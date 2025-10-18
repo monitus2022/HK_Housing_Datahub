@@ -1,0 +1,66 @@
+[
+    {
+        "id": "E000004419",
+        "name": "日出康城",
+        "type": "ESTATE",
+        "region": {
+            "id": "20",
+            "name": "九龍"
+        },
+        "subregion": {
+            "id": "2010",
+            "name": "將軍澳"
+        },
+        "district": {
+            "id": "201005",
+            "name": "康城"
+        },
+        "monthly": [
+            {
+                "date": "2025-07-31T16:00:00.000Z",
+                "avg_ft_price": 0,
+                "avg_net_ft_price": 11598,
+                "avg_ft_rent": 0,
+                "avg_net_ft_rent": 0,
+                "max_ft_price": 0,
+                "max_net_ft_price": 15428,
+                "max_ft_rent": 0,
+                "max_net_ft_rent": 0,
+                "min_ft_price": 0,
+                "min_net_ft_price": 10114,
+                "min_ft_rent": 0,
+                "min_net_ft_rent": 0,
+                "total_tx_count": 57,
+                "total_rent_tx_count": 0,
+                "total_tx_amount": 424978000,
+                "total_rent_tx_amount": 0,
+                "pre_avg_ft_price": 0,
+                "pre_avg_net_ft_price": 11658,
+                "pre_avg_ft_rent": 0,
+                "pre_avg_net_ft_rent": 0,
+                "pre_max_ft_price": 0,
+                "pre_max_net_ft_price": 16283,
+                "pre_max_ft_rent": 0,
+                "pre_max_net_ft_rent": 0,
+                "pre_min_ft_price": 0,
+                "pre_min_net_ft_price": 10114,
+                "pre_min_ft_rent": 0,
+                "pre_min_net_ft_rent": 0,
+                "pre_total_tx_count": 66,
+                "pre_total_rent_tx_count": 0,
+                "pre_total_tx_amount": 503553000,
+                "pre_total_rent_tx_amount": 0,
+                "avg_ft_price_chg": 0,
+                "avg_net_ft_price_chg": -0.52,
+                "avg_ft_rent_chg": 0,
+                "avg_net_ft_rent_chg": 0,
+                "circulate_rate": 0,
+                "pre_circulate_rate": 0,
+                "total_no_of_unit": 0,
+                "pre_total_no_of_unit": 0
+            }
+        ],
+        "latitude": 22.2944,
+        "longitude": 114.269558
+    }
+]
