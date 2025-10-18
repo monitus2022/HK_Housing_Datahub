@@ -1,0 +1,6 @@
+venv/
+testing.*
+__pycache__/
+data/
+.DS_Store
+.vscode
