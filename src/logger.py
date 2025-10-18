@@ -20,6 +20,14 @@ class HousingLogger:
         ))
         self.logger.addHandler(handler)
 
+        # Set log file path
+        file_handler = logging.FileHandler('housing_datahub.log')
+        file_handler.setLevel(logging.ERROR)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(module)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
+        ))
+        self.logger.addHandler(file_handler)
+
     def get_logger(self):
         return self.logger
     

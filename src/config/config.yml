@@ -33,7 +33,7 @@ storage:
   agency:
     path: "agency/"
     files:
-      estate_ids: "estate_ids.json"
+      estate_ids: "estate_ids.txt"
       building_ids: "building_ids.json"
   wiki:
     path: "wiki/"
