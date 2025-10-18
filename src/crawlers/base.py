@@ -43,11 +43,15 @@ class BaseCrawler(ABC):
             return response
         housing_logger.error(f"Failed to fetch URL: {url} with params: {params} after {retry} retries.")
         return None
-    
+
     @abstractmethod
     def _set_file_paths(self):
         pass
 
     @abstractmethod
     def _set_request_urls(self):
+        pass
+
+    @abstractmethod
+    def test_crawler(self):
         pass

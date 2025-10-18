@@ -1,11 +1,12 @@
 # API endpoints for data scraping
 agency_api:
   urls:
+    homepage: "https://www.hkp.com.hk/"
     all_estate_info: "https://data.hkp.com.hk/search/v1/estates"
     single_estate_info: "https://data.hkp.com.hk/info/v1/estates/{estate_id}"
-    estate_market_info: "https://data.hkp.com.hk/info/v1/market_stat"
+    estate_monthly_market_info: "https://data.hkp.com.hk/info/v1/market_stat"
     building_transactions: "https://data.hkp.com.hk/info/v1/transactions/buildings/{building_id}"
-    
+
   headers:
     accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
     accept_language: "zh-HK,zh;q=0.9,en-HK;q=0.8,en-US;q=0.7,en;q=0.6,zh-TW;q=0.5,zh-CN;q=0.4,ja;q=0.3"
@@ -31,5 +32,11 @@ storage:
   root_path: "data/"
   agency:
     path: "agency/"
+    files:
+      estate_ids: "estate_ids.json"
+      building_ids: "building_ids.json"
   wiki:
     path: "wiki/"
+    files:
+      summaries: "summaries.json"
+      page_docs: "page_docs.json"
