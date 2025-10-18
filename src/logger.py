@@ -1,9 +1,6 @@
 import logging
 import colorlog
 
-import logging
-import colorlog
-
 class HousingLogger:
     def __init__(self, name: str):
         self.logger = colorlog.getLogger(name)

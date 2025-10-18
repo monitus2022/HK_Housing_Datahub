@@ -1,4 +1,4 @@
-from config import housing_crawler_config
+from config import housing_datahub_config
 from logger import housing_logger
 import pathlib
 from typing import Optional
@@ -6,18 +6,18 @@ import requests
 from abc import ABC, abstractmethod
 import time
 
+WORKING_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
+
 class BaseCrawler(ABC):
     def __init__(self):
-        self.working_dir = pathlib.Path(__file__).parent.parent.parent.resolve()
+        self.working_dir = WORKING_DIR
         # Set up data storage paths
-        self.data_storage_path = self.working_dir / housing_crawler_config.storage.root_path
-        self.files_path = self.data_storage_path / housing_crawler_config.storage.files.path
-        for path in [self.data_storage_path, self.files_path]:
-            if not path.exists():
-                try:
-                    path.mkdir(parents=True, exist_ok=True)
-                except Exception as e:
-                    housing_logger.error(f"Failed to create directory {path}: {e}")
+        self.data_storage_path = self.working_dir / housing_datahub_config.storage.root_path
+        if not self.data_storage_path.exists():
+            try:
+                self.data_storage_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                housing_logger.error(f"Failed to create directory {self.data_storage_path}: {e}")
         self.session: Optional[requests.Session] = None
         self.headers: Optional[dict] = None
 
