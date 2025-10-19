@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Optional, Union
 
 
 class IgnoreExtraModel(BaseModel):
@@ -20,8 +20,18 @@ class NameOnlyField(IgnoreExtraModel):
 
 
 class LocationField(IgnoreExtraModel):
-    lat: float
-    lon: float
+    lat: Union[str, float]
+    lon: Union[str, float]
+
+    @field_validator('lat', 'lon', mode='before')
+    @classmethod
+    def convert_to_float(cls, v):
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                raise ValueError(f"Invalid float string: {v}")
+        return v 
 
 
 # docs/api_responses/estate_info.json--------------------------------------------

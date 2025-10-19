@@ -4,6 +4,7 @@ from config import housing_datahub_config
 from typing import Optional
 from requests import Session
 from utils import parse_response
+import time
 from models.agency.request_params import (
     EstateInfoRequestParams,
     SingleEstateInfoRequestParams
@@ -16,7 +17,8 @@ from models.agency.responses import (
 class EstatesCrawler(BaseCrawler):
     def __init__(self, agency_session: Session):
         super().__init__()
-        self.agency_session = agency_session
+        self._set_request_urls()
+        self.session = agency_session
 
     def _set_request_urls(self):
         self.all_estate_info_url = (
@@ -29,7 +31,7 @@ class EstatesCrawler(BaseCrawler):
             housing_datahub_config.agency_api.urls.estate_monthly_market_info
         )
 
-    def fetch_all_estate_info_for_estate_ids(self) -> Optional[list]:
+    def fetch_estate_ids_from_all_estate_info(self) -> Optional[list]:
         """
         Fetch all estate info and return a list of estate IDs
         """
@@ -56,39 +58,33 @@ class EstatesCrawler(BaseCrawler):
             )
             if estate_info.count < estate_count:
                 estate_count = estate_info.count
+            estate_ids.extend([estate.id for estate in estate_info.result])
+            housing_logger.info(
+                f"Fetched page {request_params['page']}. Total estates fetched so far: {len(estate_ids)}."
+            )
+            request_params["page"] += 1
+            time.sleep(0.25)
 
-        estate_ids = [estate.id for estate in estate_info.result]
         housing_logger.info(f"Fetched {len(estate_ids)} estate IDs.")
         return estate_ids
-
-    def fetch_all_single_estate_info(self) -> Optional[list]:
-        pass
-
-    def _fetch_single_estate_info_by_id(self, estate_id: str) -> Optional[dict[str, SingleEstateInfoResponse]]:
-        """
-        Fetch single estate info, phases and buildings by estate ID
-        Fetch in both Chinese and English, then merge the names later in processor
-        """
-        base_url = self.agency_crawler.single_estate_info_url.format(estate_id=estate_id)
-        output = {}
-
-        # Fetch in both Chinese and English
-        for lang in ["zh-hk", "en"]:
-            request_params = SingleEstateInfoRequestParams(
-                lang=lang
-            ).model_dump()
-            response = self._make_request(
-                url=base_url, params=request_params
-            )
-            if not response:
-                housing_logger.warning(f"Failed to fetch single estate info for estate ID: {estate_id} in language: {lang}.")
-                return None
-            
-            estate_info: Optional[SingleEstateInfoResponse] = self.estates_processor.process_single_estate_info_response(
-                single_estate_info_response=response
-            )
-            output[lang] = estate_info
-        return output
+    
+    def fetch_single_estate_info_by_id_lang(self, estate_id: str, lang="en") -> Optional[SingleEstateInfoResponse]:
+        base_url = self.single_estate_info_url.format(estate_id=estate_id)
+        request_params = SingleEstateInfoRequestParams(
+            lang=lang
+        ).model_dump()
+        response = self._make_request(
+            url=base_url, params=request_params
+        )
+        if not response:
+            housing_logger.warning(f"Failed to fetch single estate info for estate ID: {estate_id} in language: {lang}.")
+            return None
+        
+        estate_info: Optional[SingleEstateInfoResponse] = parse_response(
+            response=response,
+            model=SingleEstateInfoResponse
+        )
+        return estate_info
 
     def fetch_all_estate_monthly_market_info(self) -> Optional[dict]:
         pass

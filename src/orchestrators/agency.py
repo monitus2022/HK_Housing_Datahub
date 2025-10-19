@@ -12,7 +12,6 @@ class AgencyOrchestrator:
     def __init__(self):
         self._init_crawlers()
         self._init_processors()
-        self._create_data_cache()
 
     def _init_crawlers(self):
         self.agency_crawler = AgencyCrawler()
@@ -22,27 +21,28 @@ class AgencyOrchestrator:
     def _init_processors(self):
         self.estates_processor = EstatesProcessor()
 
-    def _create_data_cache(self) -> None:
-        self.estate_ids_cache = []
-        self.estate_info_cache = []
-
     def run_estates_info_data_pipeline(self) -> None:
         """
         Run the complete data pipeline for estates data.
         """
         # Step 1: Fetch all estate IDs
-        self.estate_ids_cache = (
-            self.estates_crawler.fetch_all_estate_info_for_estate_ids()
-        )
+        if not self.estates_processor.estate_ids_cache:
+            self.estates_processor.estate_ids_cache = self.estates_crawler.fetch_estate_ids_from_all_estate_info()
+            self.estates_processor.save_estate_ids_to_txt()
 
-        # Step 2: Save estate IDs to file
-        self.estates_processor.save_estate_ids_to_txt(estate_ids=self.estate_ids_cache)
-
-        # Step 3: Fetch and process single estate info for each estate ID
-        single_estate_infos = self.estates_crawler.fetch_all_single_estate_info()
-        if not single_estate_infos:
-            housing_logger.error("No single estate info fetched. Aborting pipeline.")
-            return
+        # Step 2: Fetch and process single estate info for each estate ID in zh and en
+        housing_logger.info("Starting to fetch and process single estate info for each estate ID.")
+        estate_id_count = 0
+        total_estates = len(self.estates_processor.estate_ids_cache)
+        for estate_id in self.estates_processor.estate_ids_cache:
+            single_estate_info_zh = self.estates_crawler.fetch_single_estate_info_by_id_lang(estate_id, lang="zh-hk")
+            single_estate_info_en = self.estates_crawler.fetch_single_estate_info_by_id_lang(estate_id, lang="en")
+            if single_estate_info_zh and single_estate_info_en:
+                self.estates_processor.map_single_estate_info_responses_to_table_dicts(single_estate_info_zh, single_estate_info_en)
+                estate_id_count += 1
+            if estate_id_count % 100 == 0:
+                housing_logger.info(f"Processed {estate_id_count} / {total_estates} estates so far.")
+                housing_logger.info(f"Zh cache size: {len(self.estates_processor.estate_info_cache)}. Preview: {self.estates_processor.estate_info_cache[-1] if self.estates_processor.estate_info_cache else 'N/A'}")
 
         # Further processing can be added here as needed
         housing_logger.info("Completed estates data pipeline.")

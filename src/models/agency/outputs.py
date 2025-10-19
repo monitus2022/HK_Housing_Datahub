@@ -14,8 +14,8 @@ class EstateInfoTableModel(BaseModel):
     address: Optional[str] = None
     first_op_date: Optional[str] = None
     last_op_date: Optional[str] = None
-    latitude: Optional[str] = None
-    longitude: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     @classmethod
     def from_responses(cls, response: SingleEstateInfoResponse) -> 'EstateInfoTableModel':
@@ -34,15 +34,11 @@ class EstateInfoTableModel(BaseModel):
             longitude=response.longitude,
         )
 
+class EstateFacilitiesTableModel(BaseModel):
+    estate_id: str
+    facility_id: str
+
 class EstateSchoolNetTableModel(BaseModel):
     estate_id: str
     primary_school_net_id: str
     secondary_school_net_name: str
-
-    @classmethod
-    def from_response(cls, response: SingleEstateInfoResponse) -> 'EstateSchoolNetTableModel':
-        return cls(
-            estate_id=response.id,
-            primary_school_net_id=response.school_net.primary.id,
-            secondary_school_net_name=response.school_net.secondary.en,
-        )
