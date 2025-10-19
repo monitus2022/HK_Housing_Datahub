@@ -30,18 +30,6 @@ class AgencyCrawler(BaseCrawler):
 
     def _set_request_urls(self) -> None:
         self.homepage_url = housing_datahub_config.agency_api.urls.homepage
-        self.all_estate_info_url = (
-            housing_datahub_config.agency_api.urls.all_estate_info
-        )
-        self.single_estate_info_url = (
-            housing_datahub_config.agency_api.urls.single_estate_info
-        )
-        self.estate_monthly_market_info_url = (
-            housing_datahub_config.agency_api.urls.estate_monthly_market_info
-        )
-        self.building_transactions_url = (
-            housing_datahub_config.agency_api.urls.building_transactions
-        )
 
     def get_fresh_cookies(self):
         """
@@ -52,3 +40,7 @@ class AgencyCrawler(BaseCrawler):
         housing_logger.info(
             f"Fresh cookies obtained from {self.homepage_url}: {cookies.keys()}"
         )
+
+    @property
+    def request_session(self) -> requests.Session:
+        return self.session

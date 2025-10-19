@@ -24,18 +24,3 @@ class BaseProcessor:
                 self.data_storage_path.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 housing_logger.error(f"Failed to create directory {self.data_storage_path}: {e}")
-    
-    def _parse_response(
-        self, response: Response, model: BaseModel
-    ) -> Optional[BaseModel]:
-        """
-        Parse the JSON response and return as a Pydantic BaseModel
-        """
-        try:
-            data = response.json()
-            return model(**data)
-        except ValueError as e:
-            housing_logger.error(
-                f"Failed to parse JSON response to pydantic model: {model.__name__}. Error: {e}"
-            )
-            return None

@@ -1,4 +1,8 @@
-from typing import Union
+from typing import Union, Optional
+from requests import Response
+from pydantic import BaseModel
+from logger import housing_logger
+
 
 def cookie_str_to_dict(cookie_str: str) -> dict[str, str]:
     """
@@ -13,10 +17,27 @@ def cookie_str_to_dict(cookie_str: str) -> dict[str, str]:
             cookies[key.strip()] = value.strip()
     return cookies
 
-def txt_to_list(file_path: str, dtype: Union[str, int, float]=str) -> list[Union[str, int, float]]:
+
+def txt_to_list(
+    file_path: str, dtype: Union[str, int, float] = str
+) -> list[Union[str, int, float]]:
     """
     Read a text file and return a list of lines.
     Each line is stripped of leading/trailing whitespace.
     """
     with open(file_path, "r", encoding="utf-8") as f:
         return [dtype(line.strip()) for line in f if line.strip()]
+
+
+def parse_response(response: Response, model: BaseModel) -> Optional[BaseModel]:
+    """
+    Parse the JSON response and return as a Pydantic BaseModel
+    """
+    try:
+        data = response.json()
+        return model(**data)
+    except ValueError as e:
+        housing_logger.error(
+            f"Failed to parse JSON response to pydantic model: {model.__name__}. Error: {e}"
+        )
+        return None
