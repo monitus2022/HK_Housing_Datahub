@@ -1,6 +1,7 @@
 from ..base import BaseProcessor
 from config import housing_datahub_config
 from logger import housing_logger
+from abc import abstractmethod
 
 
 class AgencyProcessor(BaseProcessor):
@@ -25,6 +26,10 @@ class AgencyProcessor(BaseProcessor):
                 "estate_ids", "estate_ids.txt"
             )
         )
+
+    @abstractmethod
+    def _create_data_cache(self):
+        pass
 
     def connect_db(self):
         pass

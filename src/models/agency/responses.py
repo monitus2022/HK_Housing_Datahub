@@ -20,18 +20,8 @@ class NameOnlyField(IgnoreExtraModel):
 
 
 class LocationField(IgnoreExtraModel):
-    lat: Union[str, float]
-    lon: Union[str, float]
-
-    @field_validator('lat', 'lon', mode='before')
-    @classmethod
-    def convert_to_float(cls, v):
-        if isinstance(v, str):
-            try:
-                return float(v)
-            except ValueError:
-                raise ValueError(f"Invalid float string: {v}")
-        return v 
+    lat: float
+    lon: float
 
 
 # docs/api_responses/estate_info.json--------------------------------------------
@@ -93,4 +83,4 @@ class SingleEstateInfoResponse(IgnoreExtraModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
-    phase: Optional[list[SingleEstateInfoPhaseField]] = None
+    phase: list[SingleEstateInfoPhaseField]

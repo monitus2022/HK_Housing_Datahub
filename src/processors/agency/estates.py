@@ -10,11 +10,16 @@ from models.agency.responses import (
     SingleEstateInfoResponse,
 )
 from models.agency.outputs import (
-    EstateBaseModel,
+    SingleLanguageBaseModel,
+    BilingualBaseModel,
     EstateInfoTableModel,
     EstateFacilitiesTableModel,
     EstateSchoolNetTableModel,
     EstateMtrLineTableModel,
+    RegionsTableModel,
+    SubregionsTableModel,
+    DistrictsTableModel,
+    PhasesTableModel
 )
 
 
@@ -22,13 +27,24 @@ class EstatesProcessor(AgencyProcessor):
     def __init__(self, force_refetch_estate_ids: bool = False):
         super().__init__()
         self.force_refetch_estate_ids = force_refetch_estate_ids
+        self.zh_table_configs: dict[str, type[SingleLanguageBaseModel]] = {
+            "estate_facilities_cache": EstateFacilitiesTableModel,
+            "estate_monthly_market_info_cache": None,
+        }
+        self.table_configs: dict[str, type[BilingualBaseModel]] = {
+            "estate_info_cache": EstateInfoTableModel,
+            "estate_school_nets_cache": EstateSchoolNetTableModel,
+            "estate_mtr_lines_cache": EstateMtrLineTableModel,
+            "regions_cache": RegionsTableModel,
+            "subregions_cache": SubregionsTableModel,
+            "districts_cache": DistrictsTableModel,
+            "phases_cache": PhasesTableModel,
+            # "buildings_cache": None,
+        }
         self._create_data_cache()
 
     def _create_data_cache(self) -> None:
-        self.caches = {
-            "estate_ids_cache": []
-        }
-
+        self.caches = {"estate_ids_cache": []}
         # Load local txt file for estate_ids if exists or not forced to refetch
         if (
             os.path.exists(self.estate_ids_file_path)
@@ -38,9 +54,20 @@ class EstatesProcessor(AgencyProcessor):
                 f"Loading local estate IDs cache from {self.estate_ids_file_path}."
             )
             with open(self.estate_ids_file_path, "r", encoding="utf-8") as f:
-                self.caches["estate_ids_cache"] = [line.strip() for line in f.readlines()]
-        else:
-            self.caches["estate_ids_cache"] = []
+                self.caches["estate_ids_cache"] = [
+                    line.strip() for line in f.readlines()
+                ]
+
+        for cache_name in self.zh_table_configs.keys():
+            self.caches[cache_name] = []
+        for cache_name in self.table_configs.keys():
+            self.caches[cache_name] = []
+
+    def peek_data_caches(self) -> None:
+        for cache_name, cache_content in self.caches.items():
+            housing_logger.debug(
+                f"Cache: {cache_name}, Size: {len(cache_content)}, Preview: {cache_content[-1] if cache_content else 'N/A'}"
+            )
 
     def process_all_estate_info_response(self, estate_info_response: Response) -> int:
         """
@@ -54,7 +81,9 @@ class EstatesProcessor(AgencyProcessor):
             return (None, None)
 
         estate_count = estate_info.count
-        self.caches["estate_ids_cache"].extend([estate.id for estate in estate_info.result])
+        self.caches["estate_ids_cache"].extend(
+            [estate.id for estate in estate_info.result]
+        )
         return estate_count
 
     def save_estate_ids_to_txt(self) -> None:
@@ -91,30 +120,31 @@ class EstatesProcessor(AgencyProcessor):
         - Buildings
         """
         # Single language: get from zh response
-        if not self.caches.get("estate_facilities_cache"):
-            self.caches["estate_facilities_cache"] = []
-        facilities = estate_info_zh.facilityGroup or []
+        facilities = EstateFacilitiesTableModel.from_response(
+            response=estate_info_zh
+        )
         if facilities:
             for facility in facilities:
-                self.caches["estate_facilities_cache"].append(
-                    EstateFacilitiesTableModel.from_response(
-                        estate_id=estate_info_zh.id, facility_id=facility.id
-                    )
-                ).model_dump()
+                facility_dict = facility.model_dump()
+                if facility_dict in self.caches["estate_facilities_cache"]:
+                    continue
+                self.caches["estate_facilities_cache"].append(facility_dict)
 
-        # Multilingual names: get from both responses
-        table_configs: dict[str, type[EstateBaseModel]] = {
-            "estate_info_cache": EstateInfoTableModel,
-            "estate_school_nets_cache": EstateSchoolNetTableModel,
-            "estate_mtr_lines_cache": EstateMtrLineTableModel,
-        }
-
-        for cache_name, table_model in table_configs.items():
-            if not self.caches.get(cache_name):
-                self.caches[cache_name] = []
-            content: Optional[EstateBaseModel] = table_model.from_both_responses(
-                    zh_response=estate_info_zh, en_response=estate_info_en
-                )
-            if content:
-                self.caches[cache_name].append(content.model_dump())
-
+        # Bilingual: get from both zh and en responses
+        for cache_name, table_model in self.table_configs.items():
+            content: Optional[BilingualBaseModel] = table_model.from_both_responses(
+                zh_response=estate_info_zh, en_response=estate_info_en
+            )
+            if not content:
+                continue
+            elif type(content) is list:
+                for item in content:
+                    item_dict = item.model_dump()
+                    if item_dict in self.caches[cache_name]:
+                        continue
+                    self.caches[cache_name].append(item_dict)
+            else:
+                content_dict = content.model_dump()
+                if content_dict in self.caches[cache_name]:
+                    continue
+                self.caches[cache_name].append(content_dict)

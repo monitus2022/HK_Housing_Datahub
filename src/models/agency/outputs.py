@@ -1,10 +1,17 @@
 # In src/models/agency/output_models.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional
 from .responses import SingleEstateInfoResponse
+from logger import housing_logger
 
 
-class EstateBaseModel(BaseModel):
+class SingleLanguageBaseModel(BaseModel):
+    @classmethod
+    def from_response(cls, response: SingleEstateInfoResponse):
+        raise NotImplementedError("This method should be implemented in subclasses.")
+
+
+class BilingualBaseModel(BaseModel):
     @classmethod
     def from_both_responses(
         cls,
@@ -14,7 +21,7 @@ class EstateBaseModel(BaseModel):
         raise NotImplementedError("This method should be implemented in subclasses.")
 
 
-class EstateInfoTableModel(EstateBaseModel):
+class EstateInfoTableModel(BilingualBaseModel):
     estate_id: str
     estate_name_zh: Optional[str] = None
     estate_name_en: str
@@ -56,12 +63,21 @@ class EstateFacilitiesTableModel(BaseModel):
 
     @classmethod
     def from_response(
-        cls, estate_id: str, facility_id: str
-    ) -> "EstateFacilitiesTableModel":
-        return cls(estate_id=estate_id, facility_id=facility_id)
+        cls, response: SingleEstateInfoResponse
+    ) -> Optional[list["EstateFacilitiesTableModel"]]:
+        facilities = response.facilityGroup or []
+        if not facilities:
+            return None
+        return [
+            cls(
+                estate_id=response.id,
+                facility_id=facility.id,
+            )
+            for facility in facilities
+        ]
 
 
-class EstateSchoolNetTableModel(EstateBaseModel):
+class EstateSchoolNetTableModel(BilingualBaseModel):
     estate_id: str
     school_net_id: str
     school_net_name_zh: Optional[str] = None
@@ -76,14 +92,13 @@ class EstateSchoolNetTableModel(EstateBaseModel):
         return cls(
             estate_id=zh_response.id,
             school_net_id=zh_response.school_net.primary.id,
-            school_net_name_zh=None,
-            school_net_name_en=en_response.school_net.primary.en,
+            school_net_name_zh=zh_response.school_net.secondary.name,
+            school_net_name_en=en_response.school_net.secondary.name
         )
 
 
-class EstateMtrLineTableModel(EstateBaseModel):
+class EstateMtrLineTableModel(BilingualBaseModel):
     estate_id: str
-    mtr_line_id: str
     mtr_line_name_zh: Optional[str] = None
     mtr_line_name_en: str
 
@@ -102,3 +117,114 @@ class EstateMtrLineTableModel(EstateBaseModel):
             )
         return None
 
+
+class FacilitiesTableModel(BilingualBaseModel):
+    facility_id: str
+    facility_name_zh: Optional[str] = None
+    facility_name_en: str
+
+    @classmethod
+    def from_both_responses(
+        cls,
+        zh_response: SingleEstateInfoResponse,
+        en_response: SingleEstateInfoResponse,
+    ) -> "FacilitiesTableModel":
+        zh_facilities, en_facilities = (
+            zh_response.facilityGroup,
+            en_response.facilityGroup,
+        )
+        if not zh_facilities or not en_facilities:
+            return None
+        facilities = []
+        for zh_facility, en_facility in zip(zh_facilities, en_facilities):
+            if zh_facility.id == en_facility.id:
+                facilities.append(
+                    cls(
+                        facility_id=zh_facility.id,
+                        facility_name_zh=zh_facility.name if zh_facility.name else None,
+                        facility_name_en=en_facility.name if en_facility.name else None,
+                    )
+                )
+        return facilities
+
+class RegionsTableModel(BilingualBaseModel):
+    region_id: str
+    region_name_zh: str
+    region_name_en: str
+
+    @classmethod
+    def from_both_responses(
+        cls,
+        zh_response: SingleEstateInfoResponse,
+        en_response: SingleEstateInfoResponse,
+    ) -> "RegionsTableModel":
+        return cls(
+            region_id=zh_response.region.id,
+            region_name_zh=zh_response.region.name,
+            region_name_en=en_response.region.name,
+        )
+
+class SubregionsTableModel(BilingualBaseModel):
+    subregion_id: str
+    subregion_name_zh: Optional[str] = None
+    subregion_name_en: Optional[str] = None
+
+    @classmethod
+    def from_both_responses(
+        cls,
+        zh_response: SingleEstateInfoResponse,
+        en_response: SingleEstateInfoResponse,
+    ) -> Optional["SubregionsTableModel"]:
+        if zh_response.subregion and en_response.subregion:
+            return cls(
+                subregion_id=zh_response.subregion.id,
+                subregion_name_zh=zh_response.subregion.name,
+                subregion_name_en=en_response.subregion.name,
+            )
+        return None
+
+class DistrictsTableModel(BilingualBaseModel):
+    district_id: str
+    district_name_zh: Optional[str] = None
+    district_name_en: Optional[str] = None
+
+    @classmethod
+    def from_both_responses(
+        cls,
+        zh_response: SingleEstateInfoResponse,
+        en_response: SingleEstateInfoResponse,
+    ) -> Optional["DistrictsTableModel"]:
+        if zh_response.district and en_response.district:
+            return cls(
+                district_id=zh_response.district.id,
+                district_name_zh=zh_response.district.name,
+                district_name_en=en_response.district.name,
+            )
+        return None
+    
+class PhasesTableModel(BilingualBaseModel):
+    phase_id: str
+    phase_name_zh: Optional[str] = None
+    phase_name_en: Optional[str] = None
+    estate_id: str
+
+    @classmethod
+    def from_both_responses(
+        cls,
+        zh_response: SingleEstateInfoResponse,
+        en_response: SingleEstateInfoResponse,
+    ) -> Optional[list["PhasesTableModel"]]:
+        if not zh_response.phase or not en_response.phase:
+            return None
+        phases = []
+        for single_phase_zh, single_phase_en in zip(zh_response.phase, en_response.phase):
+            if not single_phase_zh.is_phase or not single_phase_en.is_phase:
+                continue
+            single_phase = cls(
+                phase_id=single_phase_zh.id,
+                phase_name_zh=single_phase_zh.name if single_phase_zh.name else None,
+                phase_name_en=single_phase_en.name if single_phase_en.name else None,
+                estate_id=zh_response.id,
+            )
+            phases.append(single_phase)
+        return phases
