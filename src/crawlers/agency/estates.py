@@ -5,6 +5,7 @@ from crawlers.agency import AgencyCrawler
 from processors.agency import EstatesProcessor
 from models.agency.request_params import (
     EstateInfoRequestParams,
+    SingleEstateInfoRequestParams
 )
 
 
@@ -58,8 +59,26 @@ class EstatesCrawler:
     def fetch_all_single_estate_info(self) -> Optional[list]:
         pass
 
-    def _fetch_single_estate_info_by_id(self, estate_id: str) -> Optional[dict]:
-        pass
+    def _fetch_single_estate_info_by_id(self, estate_id: str, lang: str="en") -> Optional[dict]:
+        """
+        Fetch single estate info, phases and buildings by estate ID
+        """
+        base_url = self.agency_crawler.single_estate_info_url.format(estate_id=estate_id)
+        request_params = SingleEstateInfoRequestParams(
+            lang=lang
+        ).model_dump()
+        response = self.agency_crawler._make_request(
+            url=base_url, params=request_params
+        )
+        if not response:
+            housing_logger.warning(f"Failed to fetch single estate info for estate ID: {estate_id}.")
+            return None
+        
+        # Generate multiple dataset models from response
+        estate_info = self.estates_processor.process_single_estate_info_response(
+            single_estate_info_response=response
+        )
+        return estate_info
 
     def fetch_all_estate_monthly_market_info(self) -> Optional[dict]:
         pass

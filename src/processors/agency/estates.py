@@ -3,7 +3,10 @@ from requests import Response
 from logger import housing_logger
 from config import housing_datahub_config
 from typing import Optional
-from models.agency.response_models import EstateInfoResponse
+from models.agency.responses import (
+    EstateInfoResponse,
+    SingleEstateInfoResponse,
+)
 
 
 class EstatesProcessor(AgencyProcessor):
@@ -35,3 +38,18 @@ class EstatesProcessor(AgencyProcessor):
             for estate_id in estate_ids:
                 f.write(f"{estate_id}\n")
         housing_logger.info(f"Saved {len(estate_ids)} estate IDs to {self.estate_ids_file_path}.")
+    
+    def process_single_estate_info_response(
+        self, single_estate_info_response: Response
+    ) -> Optional[dict]:
+        """
+        Simple parse single estate info response to get estate details
+        """
+        estate_info: Optional[SingleEstateInfoResponse] = self._parse_response(
+            response=single_estate_info_response, model=SingleEstateInfoResponse
+        )
+        if not estate_info:
+            housing_logger.error("Failed to process single estate info response.")
+            return None
+
+        return estate_info

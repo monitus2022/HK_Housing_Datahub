@@ -1,2 +1,2 @@
-from .response_models import *
+from .responses import *
 from .request_params import *
