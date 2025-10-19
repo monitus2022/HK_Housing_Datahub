@@ -4,6 +4,7 @@ TableGroup estate_info {
   estates
   estate_school_nets
   estate_facilities
+  estate_mtr_lines
   estate_monthly_market_info
 }
 
@@ -45,6 +46,14 @@ Table facilities {
 
 Ref: estate_facilities.estate_id > estates.estate_id
 Ref: estate_facilities.facility_id > facilities.facility_id
+
+Table estate_mtr_lines {
+  estate_id text [not null]
+  mtr_line_name_zh text
+  mtr_line_name_en text [not null]
+}
+
+Ref: estate_mtr_lines.estate_id > estates.estate_id
 
 Table estate_monthly_market_info {
   estate_id text [not null]

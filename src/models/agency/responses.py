@@ -62,7 +62,7 @@ class SingleEstateInfoMarketStatField(IgnoreExtraModel):
 
 class SingleEstateInfoSchoolNetField(IgnoreExtraModel):
     primary: IdOnlyField
-    secondary: NameOnlyField
+    secondary: Optional[NameOnlyField] = None
 
 
 class SingleEstateInfoPhaseField(IgnoreExtraModel):
