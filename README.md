@@ -59,6 +59,10 @@ source venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+For MacOS: `greenlet` may require manual installation:
+```bash
+pip install --only-binary :all: greenlet
+```
 4. Create a `.env` file in the root directory based on the provided `.env.template` and fill in the necessary details (e.g., API tokens).
 5. Run the crawler:
 ```bash

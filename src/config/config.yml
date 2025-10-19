@@ -34,7 +34,7 @@ storage:
     path: "agency/"
     files:
       estate_ids: "estate_ids.txt"
-      building_ids: "building_ids.json"
+      sqlite_db: "agency_data.db"
   wiki:
     path: "wiki/"
     files:

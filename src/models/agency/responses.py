@@ -79,7 +79,7 @@ class SingleEstateInfoResponse(IgnoreExtraModel):
     last_op_date: Optional[str] = None
     facilityGroup: Optional[list[IdNameOnlyField]] = None
     misc: Optional[list[IdNameOnlyField]] = None
-    school_net: SingleEstateInfoSchoolNetField
+    school_net: Optional[SingleEstateInfoSchoolNetField] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 

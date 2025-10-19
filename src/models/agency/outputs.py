@@ -1,4 +1,3 @@
-# In src/models/agency/output_models.py
 from pydantic import BaseModel
 from typing import Optional
 from .responses import SingleEstateInfoResponse
@@ -88,12 +87,14 @@ class EstateSchoolNetTableModel(BilingualBaseModel):
         cls,
         zh_response: SingleEstateInfoResponse,
         en_response: SingleEstateInfoResponse,
-    ) -> "EstateSchoolNetTableModel":
+    ) -> Optional["EstateSchoolNetTableModel"]:
+        if not zh_response.school_net or not en_response.school_net:
+            return None
         return cls(
             estate_id=zh_response.id,
             school_net_id=zh_response.school_net.primary.id,
-            school_net_name_zh=zh_response.school_net.secondary.name,
-            school_net_name_en=en_response.school_net.secondary.name
+            school_net_name_zh=zh_response.school_net.secondary.name if zh_response.school_net.secondary else None,
+            school_net_name_en=en_response.school_net.secondary.name if en_response.school_net.secondary else None
         )
 
 
@@ -228,3 +229,34 @@ class PhasesTableModel(BilingualBaseModel):
             )
             phases.append(single_phase)
         return phases
+
+class BuildingsTableModel(BilingualBaseModel):
+    building_id: str
+    building_name_zh: str
+    building_name_en: str
+    estate_id: str
+    phase_id: Optional[str] = None
+
+    @classmethod
+    def from_both_responses(
+        cls,
+        zh_response: SingleEstateInfoResponse,
+        en_response: SingleEstateInfoResponse,
+    ) -> Optional[list["BuildingsTableModel"]]:
+        if not zh_response.phase or not en_response.phase:
+            return None
+        buildings = []
+        for single_phase_zh, single_phase_en in zip(zh_response.phase, en_response.phase):
+            if not single_phase_zh.buildings or not single_phase_en.buildings:
+                continue
+            for building_zh, building_en in zip(single_phase_zh.buildings, single_phase_en.buildings):
+                if building_zh.id == building_en.id:
+                    building = cls(
+                        building_id=building_zh.id,
+                        building_name_zh=building_zh.name if building_zh.name else None,
+                        building_name_en=building_en.name if building_en.name else None,
+                        estate_id=zh_response.id,
+                        phase_id=single_phase_zh.id,
+                    )
+                    buildings.append(building)
+        return buildings

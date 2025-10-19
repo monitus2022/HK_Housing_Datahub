@@ -2,6 +2,7 @@ from typing import Union, Optional
 from requests import Response
 from pydantic import BaseModel
 from logger import housing_logger
+import psutil
 
 
 def cookie_str_to_dict(cookie_str: str) -> dict[str, str]:
@@ -41,3 +42,10 @@ def parse_response(response: Response, model: BaseModel) -> Optional[BaseModel]:
             f"Failed to parse JSON response to pydantic model: {model.__name__}. Error: {e}"
         )
         return None
+
+def get_memory_usage() -> float:
+    """
+    Get the current system memory usage as a percentage.
+    Monitoring for low memory container environments.
+    """
+    return psutil.virtual_memory().percent

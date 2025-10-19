@@ -2,12 +2,21 @@ from ..base import BaseProcessor
 from config import housing_datahub_config
 from logger import housing_logger
 from abc import abstractmethod
+from sqlalchemy import create_engine
 
 
 class AgencyProcessor(BaseProcessor):
     def __init__(self):
         super().__init__()
         self._set_agency_file_paths()
+        self.local_db_path = (
+            self.agency_data_storage_path
+            / housing_datahub_config.storage.agency.files.get(
+                "sqlite_db", "agency_data.db"
+            )
+        )
+        self.remote_db_path = None  # To be set for remote DBs like Neon
+        self.engine = create_engine(f"sqlite:///{self.local_db_path}")
 
     def _set_agency_file_paths(self) -> None:
         self.agency_data_storage_path = (
@@ -28,8 +37,14 @@ class AgencyProcessor(BaseProcessor):
         )
 
     @abstractmethod
+    def create_tables(self):
+        pass
+
+    @abstractmethod
+    def flush_caches_to_db(self):
+        pass
+
+    @abstractmethod
     def _create_data_cache(self):
         pass
 
-    def connect_db(self):
-        pass

@@ -63,8 +63,8 @@ class AgencyOrchestrator:
                     f"Processed {estate_id_count} / {total_estates} estates so far."
                 )
             time.sleep(0.25)
-            # Debug: Limit to first 500 estates
-            if self.debug_mode and estate_id_count >= 500:
+            # Debug: Limit to first estates
+            if self.debug_mode and estate_id_count >= 200:
                 self.estates_processor.peek_data_caches()
                 break
         # Further processing can be added here as needed

@@ -9,18 +9,7 @@ from models.agency.responses import (
     EstateInfoResponse,
     SingleEstateInfoResponse,
 )
-from models.agency.outputs import (
-    SingleLanguageBaseModel,
-    BilingualBaseModel,
-    EstateInfoTableModel,
-    EstateFacilitiesTableModel,
-    EstateSchoolNetTableModel,
-    EstateMtrLineTableModel,
-    RegionsTableModel,
-    SubregionsTableModel,
-    DistrictsTableModel,
-    PhasesTableModel
-)
+from models.agency.outputs import *
 
 
 class EstatesProcessor(AgencyProcessor):
@@ -39,7 +28,7 @@ class EstatesProcessor(AgencyProcessor):
             "subregions_cache": SubregionsTableModel,
             "districts_cache": DistrictsTableModel,
             "phases_cache": PhasesTableModel,
-            # "buildings_cache": None,
+            "buildings_cache": BuildingsTableModel,
         }
         self._create_data_cache()
 
