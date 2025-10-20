@@ -44,8 +44,12 @@ class AgencyOrchestrator:
         housing_logger.info("#3 Fetching and processing estate monthly market info.")
         self._estate_monthly_market_infos()
 
-        # Step 4: Insert data into database
-        housing_logger.info("#4 Inserting data into database.")
+        # Step 4: Fetch buildings transaction info
+        housing_logger.info("#4 Fetching and processing buildings transaction info.")
+        self._buildings()
+
+        # Insert data into database
+        housing_logger.info("Inserting data into database.")
         self.estates_processor.insert_cache_into_db_tables()
 
         housing_logger.info("Completed estates data pipeline.")
@@ -119,3 +123,6 @@ class AgencyOrchestrator:
                     f"Processed {estate_id_count} / {total_estates} estates so far."
                 )
             time.sleep(0.25)
+
+    def _buildings(self) -> None:
+        pass

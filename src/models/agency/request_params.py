@@ -19,3 +19,7 @@ class EstateMonthlyMarketInfoRequestParams(BaseModel):
     type: Literal["estate", "phase"] = Field(default="estate")
     monthly: str = "true"
     est_ids: str = Field(default="")  # Comma-separated estate IDs
+
+class BuildingsRequestParams(BaseModel):
+    lang: Literal["en", "zh-hk", "zh-cn"] = Field(default="en")
+    firsthand: Literal["true", "false"] = Field(default="false")
