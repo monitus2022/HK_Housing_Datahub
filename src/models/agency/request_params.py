@@ -13,3 +13,9 @@ class EstateInfoRequestParams(BaseModel):
 
 class SingleEstateInfoRequestParams(BaseModel):
     lang: Literal["en", "zh-hk", "zh-cn"] = Field(default="en")
+
+class EstateMonthlyMarketInfoRequestParams(BaseModel):
+    lang: Literal["en", "zh-hk", "zh-cn"] = Field(default="en")
+    type: Literal["estate", "phase"] = Field(default="estate")
+    monthly: str = "true"
+    est_ids: str = Field(default="")  # Comma-separated estate IDs

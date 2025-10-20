@@ -84,19 +84,6 @@ class EstateMtrLine(Base):
     __table_args__ = (PrimaryKeyConstraint("estate_id", "mtr_line_name_en"),)
 
 
-class EstateMonthlyMarketInfo(Base):
-    __tablename__ = "estate_monthly_market_info"
-    estate_id = Column(String, ForeignKey("estates.estate_id"), nullable=False)
-    record_date = Column(DateTime, nullable=False)
-    avg_net_ft_price = Column(Float)
-    avg_net_ft_rent = Column(Float)
-    total_tx_count = Column(Integer)
-    total_rent_tx_count = Column(Integer)
-    total_tx_amount = Column(Float)
-    total_rent_tx_amount = Column(Float)
-    __table_args__ = (PrimaryKeyConstraint("estate_id", "record_date"),)
-
-
 # Phases and Buildings
 class Phase(Base):
     __tablename__ = "phases"
@@ -113,6 +100,29 @@ class Building(Base):
     building_name_en = Column(String, nullable=False)
     estate_id = Column(String, ForeignKey("estates.estate_id"), nullable=False)
     phase_id = Column(String, ForeignKey("phases.phase_id"))
+
+# Estate monthly Market Info
+class EstateMonthlyMarketInfo(Base):
+    __tablename__ = 'estate_monthly_market_info'
+    estate_id = Column(String, ForeignKey('estates.estate_id'), nullable=False)
+    record_date = Column(DateTime, nullable=False)
+    avg_ft_price = Column(Float)
+    avg_net_ft_price = Column(Float)
+    max_ft_price = Column(Float)
+    min_ft_price = Column(Float)
+    max_net_ft_price = Column(Float)
+    min_net_ft_price = Column(Float)
+    avg_ft_rent = Column(Float)
+    avg_net_ft_rent = Column(Float)
+    max_ft_rent = Column(Float)
+    min_ft_rent = Column(Float)
+    max_net_ft_rent = Column(Float)
+    min_net_ft_rent = Column(Float)
+    total_tx_count = Column(Integer)
+    total_rent_tx_count = Column(Integer)
+    total_tx_amount = Column(Float)
+    total_rent_tx_amount = Column(Float)
+    __table_args__ = (PrimaryKeyConstraint('estate_id', 'record_date'),)
 
 
 # Units and Transactions
@@ -133,7 +143,6 @@ class UnitFacility(Base):
     unit_id = Column(String, ForeignKey("units.unit_id"), nullable=False)
     facility_id = Column(String, ForeignKey("facilities.facility_id"), nullable=False)
     __table_args__ = (PrimaryKeyConstraint("unit_id", "facility_id"),)
-
 
 class Transaction(Base):
     __tablename__ = "transactions"

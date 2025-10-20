@@ -84,3 +84,33 @@ class SingleEstateInfoResponse(IgnoreExtraModel):
     longitude: Optional[float] = None
 
     phase: list[SingleEstateInfoPhaseField]
+
+
+# docs/api_responses/estate_monthly_market_info.json----------------------------
+
+
+class EstateMonthlyMarketInfoRecord(IgnoreExtraModel):
+    date: str
+    avg_ft_price: Optional[float] = None
+    avg_net_ft_price: Optional[float] = None
+    max_ft_price: Optional[float] = None
+    max_net_ft_price: Optional[float] = None
+    min_ft_price: Optional[float] = None
+    min_net_ft_price: Optional[float] = None
+    avg_ft_rent: Optional[float] = None
+    avg_net_ft_rent: Optional[float] = None
+    max_ft_rent: Optional[float] = None
+    max_net_ft_rent: Optional[float] = None
+    min_ft_rent: Optional[float] = None
+    min_net_ft_rent: Optional[float] = None
+    total_tx_count: Optional[int] = None
+    total_rent_tx_count: Optional[int] = None
+    total_tx_amount: Optional[float] = None
+    total_rent_tx_amount: Optional[float] = None
+
+
+class EstateMonthlyMarketInfoResponse(IgnoreExtraModel):
+    id: str
+    monthly: list[EstateMonthlyMarketInfoRecord]
+
+EstateMonthlyMarketInfoResponses = list[EstateMonthlyMarketInfoResponse]

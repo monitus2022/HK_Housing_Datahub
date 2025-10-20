@@ -25,8 +25,9 @@ class EstatesProcessor(AgencyProcessor):
         # Table config: cache name to (Pydantic Model, SQLAlchemy Model)
         self.zh_table_configs: dict[str, tuple[type[SingleLanguageBaseModel], type]] = {
             "estate_facilities_cache": (EstateFacilitiesTableModel, EstateFacility),
+            "estate_monthly_market_info_cache": (EstateMonthlyMarketInfoTableModel, EstateMonthlyMarketInfo),
         }
-        
+
         self.table_configs: dict[str, tuple[type[BilingualBaseModel], type]] = {
             "estate_info_cache": (EstateInfoTableModel, Estate),
             "estate_school_nets_cache": (EstateSchoolNetTableModel, EstateSchoolNet),
@@ -61,6 +62,9 @@ class EstatesProcessor(AgencyProcessor):
             self.caches[cache_name] = []
         for cache_name in self.table_configs.keys():
             self.caches[cache_name] = []
+
+    def _create_tables(self):
+        Base.metadata.create_all(self.engine)
 
     def peek_data_caches(self) -> None:
         for cache_name, cache_content in self.caches.items():
@@ -119,9 +123,7 @@ class EstatesProcessor(AgencyProcessor):
         - Buildings
         """
         # Single language: get from zh response
-        facilities = EstateFacilitiesTableModel.from_response(
-            response=estate_info_zh
-        )
+        facilities = EstateFacilitiesTableModel.from_response(response=estate_info_zh)
         if facilities:
             for facility in facilities:
                 facility_dict = facility.model_dump()
@@ -148,10 +150,26 @@ class EstatesProcessor(AgencyProcessor):
                     continue
                 self.caches[cache_name].append(content_dict)
 
-    def _create_tables(self):
-        Base.metadata.create_all(self.engine)
+    def map_single_estate_market_info_responses_to_table_dicts(
+        self, response: EstateMonthlyMarketInfoResponse
+    ) -> None:
+        """
+        Process single estate monthly market info response and save to cache
+        """
+        if not response:
+            return None
+        month_records = EstateMonthlyMarketInfoTableModel.from_response(
+            response=response
+        )
+        for month_record in month_records:
+            self.caches["estate_monthly_market_info_cache"].append(month_record.model_dump())
 
     def insert_cache_into_db_tables(self):
+        """
+        Insert cached data into database tables
+        Using upsert with primary keys to avoid duplicates
+        """
+        housing_logger.info("Inserting cached data into database tables.")
         Session = sessionmaker(bind=self.engine)
         session = Session()
         # Setup parent keys for upserting
@@ -166,6 +184,7 @@ class EstatesProcessor(AgencyProcessor):
             "buildings_cache": ["building_id"],
             "estate_facilities_cache": ["estate_id", "facility_id"],
             "facilities_cache": ["facility_id"],
+            "estate_monthly_market_info_cache": ["estate_id", "record_date"],
         }
 
         for table_config in [self.zh_table_configs, self.table_configs]:
@@ -180,19 +199,19 @@ class EstatesProcessor(AgencyProcessor):
                 for data in data_list:
                     stmt = insert(db_table_class).values(**data)
                     stmt = stmt.on_conflict_do_update(
-                        index_elements=pk_columns,
-                        set_=data
+                        index_elements=pk_columns, set_=data
                     )
                     session.execute(stmt)
         session.commit()
+        housing_logger.info("Data insertion completed.")
 
     def export_data_caches_to_json(self) -> None:
         """
         Export data caches to JSON files for inspection
         """
-        output_directory = (self.agency_data_storage_path / "data_cache_exports")
+        output_directory = self.agency_data_storage_path / "data_cache_exports"
         os.makedirs(output_directory, exist_ok=True)
-        
+
         for cache_name, data_list in self.caches.items():
             output_file_path = os.path.join(output_directory, f"{cache_name}.json")
             with open(output_file_path, "w", encoding="utf-8") as f:

@@ -1,7 +1,12 @@
 from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional
-from .responses import SingleEstateInfoResponse
+from .responses import (
+    SingleEstateInfoResponse,
+    EstateMonthlyMarketInfoResponse,
+    EstateMonthlyMarketInfoRecord,
+    EstateMonthlyMarketInfoResponses,
+)
 
 
 class SingleLanguageBaseModel(BaseModel):
@@ -18,6 +23,9 @@ class BilingualBaseModel(BaseModel):
         en_response: SingleEstateInfoResponse,
     ):
         raise NotImplementedError("This method should be implemented in subclasses.")
+
+
+# Estate info related table models ---------------------------------------
 
 
 class EstateInfoTableModel(BilingualBaseModel):
@@ -85,6 +93,7 @@ class EstateFacilitiesTableModel(BaseModel):
             for facility in facilities
         ]
 
+
 class FacilitiesTableModel(BilingualBaseModel):
     facility_id: str
     facility_name_zh: Optional[str] = None
@@ -132,8 +141,16 @@ class EstateSchoolNetTableModel(BilingualBaseModel):
         return cls(
             estate_id=zh_response.id,
             school_net_id=zh_response.school_net.primary.id,
-            school_net_name_zh=zh_response.school_net.secondary.name if zh_response.school_net.secondary else None,
-            school_net_name_en=en_response.school_net.secondary.name if en_response.school_net.secondary else None
+            school_net_name_zh=(
+                zh_response.school_net.secondary.name
+                if zh_response.school_net.secondary
+                else None
+            ),
+            school_net_name_en=(
+                en_response.school_net.secondary.name
+                if en_response.school_net.secondary
+                else None
+            ),
         )
 
 
@@ -187,6 +204,7 @@ class FacilitiesTableModel(BilingualBaseModel):
                 )
         return facilities
 
+
 class RegionsTableModel(BilingualBaseModel):
     region_id: str
     region_name_zh: str
@@ -203,6 +221,7 @@ class RegionsTableModel(BilingualBaseModel):
             region_name_zh=zh_response.region.name,
             region_name_en=en_response.region.name,
         )
+
 
 class SubregionsTableModel(BilingualBaseModel):
     subregion_id: str
@@ -225,6 +244,7 @@ class SubregionsTableModel(BilingualBaseModel):
             )
         return None
 
+
 class DistrictsTableModel(BilingualBaseModel):
     district_id: str
     district_name_zh: Optional[str] = None
@@ -242,10 +262,13 @@ class DistrictsTableModel(BilingualBaseModel):
                 district_id=zh_response.district.id,
                 district_name_zh=zh_response.district.name,
                 district_name_en=en_response.district.name,
-                subregion_id=zh_response.subregion.id if zh_response.subregion else None,
+                subregion_id=(
+                    zh_response.subregion.id if zh_response.subregion else None
+                ),
             )
         return None
-    
+
+
 class PhasesTableModel(BilingualBaseModel):
     phase_id: str
     phase_name_zh: Optional[str] = None
@@ -261,7 +284,9 @@ class PhasesTableModel(BilingualBaseModel):
         if not zh_response.phase or not en_response.phase:
             return None
         phases = []
-        for single_phase_zh, single_phase_en in zip(zh_response.phase, en_response.phase):
+        for single_phase_zh, single_phase_en in zip(
+            zh_response.phase, en_response.phase
+        ):
             if not single_phase_zh.is_phase or not single_phase_en.is_phase:
                 continue
             single_phase = cls(
@@ -272,6 +297,7 @@ class PhasesTableModel(BilingualBaseModel):
             )
             phases.append(single_phase)
         return phases
+
 
 class BuildingsTableModel(BilingualBaseModel):
     building_id: str
@@ -289,10 +315,14 @@ class BuildingsTableModel(BilingualBaseModel):
         if not zh_response.phase or not en_response.phase:
             return None
         buildings = []
-        for single_phase_zh, single_phase_en in zip(zh_response.phase, en_response.phase):
+        for single_phase_zh, single_phase_en in zip(
+            zh_response.phase, en_response.phase
+        ):
             if not single_phase_zh.buildings or not single_phase_en.buildings:
                 continue
-            for building_zh, building_en in zip(single_phase_zh.buildings, single_phase_en.buildings):
+            for building_zh, building_en in zip(
+                single_phase_zh.buildings, single_phase_en.buildings
+            ):
                 if building_zh.id == building_en.id:
                     building = cls(
                         building_id=building_zh.id,
@@ -303,3 +333,72 @@ class BuildingsTableModel(BilingualBaseModel):
                     )
                     buildings.append(building)
         return buildings
+
+
+# Estate monthly market info related table models ---------------------------------------
+
+
+class EstateMonthlyMarketInfoTableModel(BaseModel):
+    estate_id: str
+    record_date: datetime
+    avg_ft_price: Optional[float] = None
+    avg_net_ft_price: Optional[float] = None
+    max_ft_price: Optional[float] = None
+    max_net_ft_price: Optional[float] = None
+    min_ft_price: Optional[float] = None
+    min_net_ft_price: Optional[float] = None
+    avg_ft_rent: Optional[float] = None
+    avg_net_ft_rent: Optional[float] = None
+    max_ft_rent: Optional[float] = None
+    max_net_ft_rent: Optional[float] = None
+    min_ft_rent: Optional[float] = None
+    min_net_ft_rent: Optional[float] = None
+    total_tx_count: Optional[int] = None
+    total_rent_tx_count: Optional[int] = None
+    total_tx_amount: Optional[float] = None
+    total_rent_tx_amount: Optional[float] = None
+
+    @field_validator("record_date", mode="before")
+    @classmethod
+    def parse_date(cls, value):
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value)
+            except ValueError:
+                return None
+        return value
+
+    @classmethod
+    def from_response(
+        cls, response: EstateMonthlyMarketInfoResponse
+    ) -> Optional[list["EstateMonthlyMarketInfoTableModel"]]:
+        if not response:
+            return None
+        records: Optional[EstateMonthlyMarketInfoRecord] = response.monthly or []
+        if not records:
+            return None
+        output = []
+        for record in records:
+            output.append(
+                cls(
+                    estate_id=response.id,
+                    record_date=record.date,
+                    avg_ft_price=record.avg_ft_price,
+                    avg_net_ft_price=record.avg_net_ft_price,
+                    max_ft_price=record.max_ft_price,
+                    max_net_ft_price=record.max_net_ft_price,
+                    min_ft_price=record.min_ft_price,
+                    min_net_ft_price=record.min_net_ft_price,
+                    avg_ft_rent=record.avg_ft_rent,
+                    avg_net_ft_rent=record.avg_net_ft_rent,
+                    max_ft_rent=record.max_ft_rent,
+                    max_net_ft_rent=record.max_net_ft_rent,
+                    min_ft_rent=record.min_ft_rent,
+                    min_net_ft_rent=record.min_net_ft_rent,
+                    total_tx_count=record.total_tx_count,
+                    total_rent_tx_count=record.total_rent_tx_count,
+                    total_tx_amount=record.total_tx_amount,
+                    total_rent_tx_amount=record.total_rent_tx_amount,
+                )
+            )
+        return output
