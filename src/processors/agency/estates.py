@@ -6,15 +6,14 @@ from sqlalchemy.orm import sessionmaker
 import json
 
 from utils import parse_response
-from config import housing_datahub_config
 from logger import housing_logger
 from .agency_base import AgencyProcessor
-from models.agency.sql_db import *
 from models.agency.responses import (
     EstateInfoResponse,
     SingleEstateInfoResponse,
 )
 from models.agency.outputs import *
+from models.agency.sql_db import *
 
 
 class EstatesProcessor(AgencyProcessor):
@@ -25,7 +24,10 @@ class EstatesProcessor(AgencyProcessor):
         # Table config: cache name to (Pydantic Model, SQLAlchemy Model)
         self.zh_table_configs: dict[str, tuple[type[SingleLanguageBaseModel], type]] = {
             "estate_facilities_cache": (EstateFacilitiesTableModel, EstateFacility),
-            "estate_monthly_market_info_cache": (EstateMonthlyMarketInfoTableModel, EstateMonthlyMarketInfo),
+            "estate_monthly_market_info_cache": (
+                EstateMonthlyMarketInfoTableModel,
+                EstateMonthlyMarketInfo,
+            ),
         }
 
         self.table_configs: dict[str, tuple[type[BilingualBaseModel], type]] = {
@@ -65,12 +67,6 @@ class EstatesProcessor(AgencyProcessor):
 
     def _create_tables(self):
         Base.metadata.create_all(self.engine)
-
-    def peek_data_caches(self) -> None:
-        for cache_name, cache_content in self.caches.items():
-            housing_logger.debug(
-                f"Cache: {cache_name}, Size: {len(cache_content)}, Preview: {cache_content[-1] if cache_content else 'N/A'}"
-            )
 
     def process_all_estate_info_response(self, estate_info_response: Response) -> int:
         """
@@ -162,7 +158,9 @@ class EstatesProcessor(AgencyProcessor):
             response=response
         )
         for month_record in month_records:
-            self.caches["estate_monthly_market_info_cache"].append(month_record.model_dump())
+            self.caches["estate_monthly_market_info_cache"].append(
+                month_record.model_dump()
+            )
 
     def insert_cache_into_db_tables(self):
         """

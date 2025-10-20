@@ -10,6 +10,7 @@ from models.agency.responses import (
     BuildingInfoResponse,
 )
 
+
 class BuildingsCrawler(BaseCrawler):
     def __init__(self, agency_session: Session):
         super().__init__()
@@ -21,14 +22,14 @@ class BuildingsCrawler(BaseCrawler):
             housing_datahub_config.agency_api.urls.building_transactions
         )
 
-    def fetch_buildings_by_building_ids(self, building_ids: list[str]) -> Optional[list]:
+    def fetch_buildings_by_building_ids(
+        self, building_ids: list[str]
+    ) -> Optional[list[BuildingInfoResponse]]:
         """
         Fetch buildings transaction info.
         """
         base_url = self.buildings_url
-        request_params = BuildingsRequestParams(
-            lang="en"
-        ).model_dump()
+        request_params = BuildingsRequestParams(lang="en").model_dump()
 
         output = []
         housing_logger.info("Starting to fetch buildings transaction info.")
@@ -38,11 +39,9 @@ class BuildingsCrawler(BaseCrawler):
             if not response:
                 housing_logger.error("Failed to fetch buildings transaction info.")
                 return None
-            parsed_response = parse_response(
+            parsed_response: BuildingInfoResponse = parse_response(
                 response=response, model=BuildingInfoResponse
             )
             output.append(parsed_response)
             time.sleep(0.1)
         return output
-
-    

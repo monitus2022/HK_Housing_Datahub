@@ -1,6 +1,10 @@
 from typing import Optional
-from crawlers.agency import *
-from models.agency.responses import EstateMonthlyMarketInfoResponse
+from crawlers.agency import (
+    AgencyCrawler,
+    EstatesCrawler,
+    BuildingsCrawler
+) 
+from models.agency.responses import BuildingInfoResponse, EstateMonthlyMarketInfoResponse
 from processors.agency import *
 from logger import housing_logger
 import time
@@ -22,6 +26,7 @@ class AgencyOrchestrator:
         self.agency_crawler = AgencyCrawler()
         self.agency_session = self.agency_crawler.request_session
         self.estates_crawler = EstatesCrawler(agency_session=self.agency_session)
+        self.buildings_crawler = BuildingsCrawler(agency_session=self.agency_session)
 
     def _init_processors(self):
         self.estates_processor = EstatesProcessor()
@@ -125,4 +130,9 @@ class AgencyOrchestrator:
             time.sleep(0.25)
 
     def _buildings(self) -> None:
-        pass
+        housing_logger.info(
+            "Starting to fetch and process buildings transaction info for each building ID."
+        )
+        buildings: Optional[list[BuildingInfoResponse]] = self.buildings_crawler.fetch_buildings_by_building_ids(
+            self.estates_processor.caches["estate_ids_cache"]
+        )

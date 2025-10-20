@@ -402,3 +402,38 @@ class EstateMonthlyMarketInfoTableModel(BaseModel):
                 )
             )
         return output
+
+
+# Building transaction info related models ---------------------------------------
+
+
+class UnitInfoModel(BaseModel):
+    unit_id: str
+    floor: str
+    flat: str
+    area: Optional[float] = None
+    net_area: Optional[float] = None
+    bedroom: Optional[int] = None
+    sitting_room: Optional[int] = None    
+
+
+class UnitFacilitiesModel(BaseModel):
+    facility_id: str
+    unit_id: str
+
+
+class TransactionsDetailModel(BaseModel):
+    id: str
+    tx_date: datetime
+    price: float
+    net_ft_price: float
+
+    @field_validator("tx_date", mode="before")
+    @classmethod
+    def parse_date(cls, value):
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value)
+            except ValueError:
+                return None
+        return value
