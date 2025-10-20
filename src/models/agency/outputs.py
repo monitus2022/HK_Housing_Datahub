@@ -1,7 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from datetime import datetime
 from typing import Optional
 from .responses import SingleEstateInfoResponse
-from logger import housing_logger
 
 
 class SingleLanguageBaseModel(BaseModel):
@@ -29,10 +29,20 @@ class EstateInfoTableModel(BilingualBaseModel):
     district_id: Optional[str] = None
     address_zh: Optional[str] = None
     address_en: Optional[str] = None
-    first_op_date: Optional[str] = None
-    last_op_date: Optional[str] = None
+    first_op_date: Optional[datetime] = None
+    last_op_date: Optional[datetime] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+
+    @field_validator("first_op_date", "last_op_date", mode="before")
+    @classmethod
+    def parse_date(cls, value):
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value)
+            except ValueError:
+                return None
+        return value
 
     @classmethod
     def from_both_responses(
@@ -74,6 +84,35 @@ class EstateFacilitiesTableModel(BaseModel):
             )
             for facility in facilities
         ]
+
+class FacilitiesTableModel(BilingualBaseModel):
+    facility_id: str
+    facility_name_zh: Optional[str] = None
+    facility_name_en: str
+
+    @classmethod
+    def from_both_responses(
+        cls,
+        zh_response: SingleEstateInfoResponse,
+        en_response: SingleEstateInfoResponse,
+    ) -> Optional["FacilitiesTableModel"]:
+        zh_facilities, en_facilities = (
+            zh_response.facilityGroup,
+            en_response.facilityGroup,
+        )
+        if not zh_facilities or not en_facilities:
+            return None
+        facilities = []
+        for zh_facility, en_facility in zip(zh_facilities, en_facilities):
+            if zh_facility.id == en_facility.id:
+                facilities.append(
+                    cls(
+                        facility_id=zh_facility.id,
+                        facility_name_zh=zh_facility.name if zh_facility.name else None,
+                        facility_name_en=en_facility.name if en_facility.name else None,
+                    )
+                )
+        return facilities
 
 
 class EstateSchoolNetTableModel(BilingualBaseModel):
@@ -169,6 +208,7 @@ class SubregionsTableModel(BilingualBaseModel):
     subregion_id: str
     subregion_name_zh: Optional[str] = None
     subregion_name_en: Optional[str] = None
+    region_id: str
 
     @classmethod
     def from_both_responses(
@@ -181,6 +221,7 @@ class SubregionsTableModel(BilingualBaseModel):
                 subregion_id=zh_response.subregion.id,
                 subregion_name_zh=zh_response.subregion.name,
                 subregion_name_en=en_response.subregion.name,
+                region_id=zh_response.region.id,
             )
         return None
 
@@ -188,6 +229,7 @@ class DistrictsTableModel(BilingualBaseModel):
     district_id: str
     district_name_zh: Optional[str] = None
     district_name_en: Optional[str] = None
+    subregion_id: str
 
     @classmethod
     def from_both_responses(
@@ -200,6 +242,7 @@ class DistrictsTableModel(BilingualBaseModel):
                 district_id=zh_response.district.id,
                 district_name_zh=zh_response.district.name,
                 district_name_en=en_response.district.name,
+                subregion_id=zh_response.subregion.id if zh_response.subregion else None,
             )
         return None
     

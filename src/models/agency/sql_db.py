@@ -45,6 +45,10 @@ class Estate(Base):
     region_id = Column(String, ForeignKey("regions.region_id"), nullable=False)
     subregion_id = Column(String, ForeignKey("subregions.subregion_id"), nullable=False)
     district_id = Column(String, ForeignKey("districts.district_id"), nullable=False)
+    address_zh = Column(String)
+    address_en = Column(String, nullable=False)
+    first_op_date = Column(DateTime)
+    last_op_date = Column(DateTime)
     latitude = Column(Float)
     longitude = Column(Float)
 
@@ -77,6 +81,7 @@ class EstateMtrLine(Base):
     estate_id = Column(String, ForeignKey("estates.estate_id"), nullable=False)
     mtr_line_name_zh = Column(String)
     mtr_line_name_en = Column(String, nullable=False)
+    __table_args__ = (PrimaryKeyConstraint("estate_id", "mtr_line_name_en"),)
 
 
 class EstateMonthlyMarketInfo(Base):

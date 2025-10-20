@@ -1,10 +1,15 @@
-from .agency_base import AgencyProcessor
 from requests import Response
-from logger import housing_logger
-from config import housing_datahub_config
 from typing import Optional
 import os
+from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.orm import sessionmaker
+import json
+
 from utils import parse_response
+from config import housing_datahub_config
+from logger import housing_logger
+from .agency_base import AgencyProcessor
+from models.agency.sql_db import *
 from models.agency.responses import (
     EstateInfoResponse,
     SingleEstateInfoResponse,
@@ -16,23 +21,28 @@ class EstatesProcessor(AgencyProcessor):
     def __init__(self, force_refetch_estate_ids: bool = False):
         super().__init__()
         self.force_refetch_estate_ids = force_refetch_estate_ids
-        self.zh_table_configs: dict[str, type[SingleLanguageBaseModel]] = {
-            "estate_facilities_cache": EstateFacilitiesTableModel,
-            "estate_monthly_market_info_cache": None,
-        }
-        self.table_configs: dict[str, type[BilingualBaseModel]] = {
-            "estate_info_cache": EstateInfoTableModel,
-            "estate_school_nets_cache": EstateSchoolNetTableModel,
-            "estate_mtr_lines_cache": EstateMtrLineTableModel,
-            "regions_cache": RegionsTableModel,
-            "subregions_cache": SubregionsTableModel,
-            "districts_cache": DistrictsTableModel,
-            "phases_cache": PhasesTableModel,
-            "buildings_cache": BuildingsTableModel,
-        }
-        self._create_data_cache()
 
-    def _create_data_cache(self) -> None:
+        # Table config: cache name to (Pydantic Model, SQLAlchemy Model)
+        self.zh_table_configs: dict[str, tuple[type[SingleLanguageBaseModel], type]] = {
+            "estate_facilities_cache": (EstateFacilitiesTableModel, EstateFacility),
+        }
+        
+        self.table_configs: dict[str, tuple[type[BilingualBaseModel], type]] = {
+            "estate_info_cache": (EstateInfoTableModel, Estate),
+            "estate_school_nets_cache": (EstateSchoolNetTableModel, EstateSchoolNet),
+            "estate_mtr_lines_cache": (EstateMtrLineTableModel, EstateMtrLine),
+            "regions_cache": (RegionsTableModel, Region),
+            "subregions_cache": (SubregionsTableModel, Subregion),
+            "districts_cache": (DistrictsTableModel, District),
+            "facilities_cache": (FacilitiesTableModel, Facility),
+            "phases_cache": (PhasesTableModel, Phase),
+            "buildings_cache": (BuildingsTableModel, Building),
+        }
+        self._set_data_caches()
+        # Create tables if not exist
+        self._create_tables()
+
+    def _set_data_caches(self) -> None:
         self.caches = {"estate_ids_cache": []}
         # Load local txt file for estate_ids if exists or not forced to refetch
         if (
@@ -120,7 +130,7 @@ class EstatesProcessor(AgencyProcessor):
                 self.caches["estate_facilities_cache"].append(facility_dict)
 
         # Bilingual: get from both zh and en responses
-        for cache_name, table_model in self.table_configs.items():
+        for cache_name, (table_model, _) in self.table_configs.items():
             content: Optional[BilingualBaseModel] = table_model.from_both_responses(
                 zh_response=estate_info_zh, en_response=estate_info_en
             )
@@ -137,3 +147,54 @@ class EstatesProcessor(AgencyProcessor):
                 if content_dict in self.caches[cache_name]:
                     continue
                 self.caches[cache_name].append(content_dict)
+
+    def _create_tables(self):
+        Base.metadata.create_all(self.engine)
+
+    def insert_cache_into_db_tables(self):
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        # Setup parent keys for upserting
+        pk_map = {
+            "estate_info_cache": ["estate_id"],
+            "estate_school_nets_cache": ["estate_id", "school_net_id"],
+            "estate_mtr_lines_cache": ["estate_id", "mtr_line_name_en"],
+            "regions_cache": ["region_id"],
+            "subregions_cache": ["subregion_id"],
+            "districts_cache": ["district_id"],
+            "phases_cache": ["phase_id"],
+            "buildings_cache": ["building_id"],
+            "estate_facilities_cache": ["estate_id", "facility_id"],
+            "facilities_cache": ["facility_id"],
+        }
+
+        for table_config in [self.zh_table_configs, self.table_configs]:
+            for cache_name, (_, db_table_class) in table_config.items():
+                data_list = self.caches.get(cache_name, [])
+                pk_columns = pk_map.get(cache_name, [])
+                if not pk_columns:
+                    housing_logger.warning(
+                        f"No primary key mapping found for cache {cache_name}. Skipping."
+                    )
+                    continue
+                for data in data_list:
+                    stmt = insert(db_table_class).values(**data)
+                    stmt = stmt.on_conflict_do_update(
+                        index_elements=pk_columns,
+                        set_=data
+                    )
+                    session.execute(stmt)
+        session.commit()
+
+    def export_data_caches_to_json(self) -> None:
+        """
+        Export data caches to JSON files for inspection
+        """
+        output_directory = (self.agency_data_storage_path / "data_cache_exports")
+        os.makedirs(output_directory, exist_ok=True)
+        
+        for cache_name, data_list in self.caches.items():
+            output_file_path = os.path.join(output_directory, f"{cache_name}.json")
+            with open(output_file_path, "w", encoding="utf-8") as f:
+                json.dump(data_list, f, ensure_ascii=False, indent=4)
+            housing_logger.info(f"Exported {cache_name} to {output_file_path}.")

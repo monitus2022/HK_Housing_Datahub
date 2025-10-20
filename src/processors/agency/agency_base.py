@@ -17,6 +17,7 @@ class AgencyProcessor(BaseProcessor):
         )
         self.remote_db_path = None  # To be set for remote DBs like Neon
         self.engine = create_engine(f"sqlite:///{self.local_db_path}")
+        self.caches = {}
 
     def _set_agency_file_paths(self) -> None:
         self.agency_data_storage_path = (
@@ -37,11 +38,11 @@ class AgencyProcessor(BaseProcessor):
         )
 
     @abstractmethod
-    def create_tables(self):
+    def _create_tables(self):
         pass
 
     @abstractmethod
-    def flush_caches_to_db(self):
+    def insert_cache_into_db_tables(self):
         pass
 
     @abstractmethod

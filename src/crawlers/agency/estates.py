@@ -58,7 +58,11 @@ class EstatesCrawler(BaseCrawler):
             )
             if estate_info.count < estate_count:
                 estate_count = estate_info.count
-            estate_ids.extend([estate.id for estate in estate_info.result])
+            # Only include estate IDs, not phase IDs
+            estate_ids.extend([
+                estate.id for estate in estate_info.result
+                if estate.id.startswith("E")
+                ])
             housing_logger.info(
                 f"Fetched page {request_params['page']}. Total estates fetched so far: {len(estate_ids)}."
             )

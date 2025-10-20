@@ -64,8 +64,21 @@ class AgencyOrchestrator:
                 )
             time.sleep(0.25)
             # Debug: Limit to first estates
-            if self.debug_mode and estate_id_count >= 200:
-                self.estates_processor.peek_data_caches()
+            if self.debug_mode and estate_id_count >= 100:
+                # self.estates_processor.export_data_caches_to_json()
                 break
-        # Further processing can be added here as needed
+        
+        # TODO: Step 3: Fetch estate monthly market info
+
+        # Step 4: Insert data into database
+        housing_logger.info("Inserting cached data into database tables.")
+        self.estates_processor.insert_cache_into_db_tables()
+        housing_logger.info("Data insertion completed.")
+
         housing_logger.info("Completed estates data pipeline.")
+
+        def run_transactions_data_pipeline(self) -> None:
+            """
+            Run the complete data pipeline for transactions data.
+            """
+            pass  # To be implemented in the future

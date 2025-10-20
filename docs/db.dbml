@@ -51,6 +51,7 @@ Table estate_mtr_lines {
   estate_id text [not null]
   mtr_line_name_zh text
   mtr_line_name_en text [not null]
+  PRIMARY KEY (estate_id, mtr_line_name_en)
 }
 
 Ref: estate_mtr_lines.estate_id > estates.estate_id
