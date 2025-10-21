@@ -3,6 +3,8 @@ from config import housing_datahub_config
 from logger import housing_logger
 from abc import abstractmethod
 from sqlalchemy import create_engine
+import os
+import json
 
 
 class AgencyProcessor(BaseProcessor):
@@ -42,10 +44,32 @@ class AgencyProcessor(BaseProcessor):
         pass
 
     @abstractmethod
-    def insert_cache_into_db_tables(self):
-        pass
-
-    @abstractmethod
     def _create_data_cache(self):
         pass
 
+    @abstractmethod
+    def insert_cache_into_db_tables(self):
+        pass
+
+
+    def export_data_caches_to_json(self) -> None:
+        """
+        Export data caches to JSON files for inspection
+        """
+        output_directory = self.agency_data_storage_path / "data_cache_exports"
+        os.makedirs(output_directory, exist_ok=True)
+
+        for cache_name, data_list in self.caches.items():
+            output_file_path = os.path.join(output_directory, f"{cache_name}.json")
+            with open(output_file_path, "w", encoding="utf-8") as f:
+                json.dump(data_list, f, ensure_ascii=False, indent=4)
+            housing_logger.info(f"Exported {cache_name} to {output_file_path}.")
+
+    def clear_data_caches(self, cache_excluded: list[str]) -> None:
+        """
+        Clear all data caches
+        """
+        for cache_name in self.caches.keys():
+            if cache_name not in cache_excluded:
+                self.caches[cache_name] = []
+        housing_logger.info("Cleared all data caches.")

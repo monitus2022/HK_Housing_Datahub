@@ -1,15 +1,12 @@
 from typing import Optional
-from crawlers.agency import (
-    AgencyCrawler,
-    EstatesCrawler,
-    BuildingsCrawler
-) 
-from models.agency.responses import BuildingInfoResponse, EstateMonthlyMarketInfoResponse
-from processors.agency import *
+from crawlers.agency import AgencyCrawler, EstatesCrawler, BuildingsCrawler
+from models.agency.responses import (
+    BuildingInfoResponse,
+    EstateMonthlyMarketInfoResponse,
+)
+from processors.agency import EstatesProcessor, BuildingsProcessor
 from logger import housing_logger
 import time
-
-# TODO: Refine import to be exact later
 
 
 class AgencyOrchestrator:
@@ -21,6 +18,7 @@ class AgencyOrchestrator:
         self._init_crawlers()
         self._init_processors()
         self.debug_mode = debug_mode
+        self.debug_estate_limit = 20  # Limit number of estates to process in debug mode
 
     def _init_crawlers(self):
         self.agency_crawler = AgencyCrawler()
@@ -30,6 +28,7 @@ class AgencyOrchestrator:
 
     def _init_processors(self):
         self.estates_processor = EstatesProcessor()
+        self.buildings_processor = BuildingsProcessor()
 
     def run_estates_info_data_pipeline(self) -> None:
         """
@@ -54,8 +53,9 @@ class AgencyOrchestrator:
         self._buildings()
 
         # Insert data into database
-        housing_logger.info("Inserting data into database.")
+        housing_logger.info("#Final inserting data into database.")
         self.estates_processor.insert_cache_into_db_tables()
+        self.buildings_processor.insert_cache_into_db_tables()
 
         housing_logger.info("Completed estates data pipeline.")
 
@@ -66,11 +66,14 @@ class AgencyOrchestrator:
                 self.estates_crawler.fetch_estate_ids_from_all_estate_info()
             )
             self.estates_processor.save_estate_ids_to_txt()
+            housing_logger.info(
+                f"Fetched {len(self.estates_processor.caches['estate_ids_cache'])} estate IDs."
+            )
 
         # Debug: Limit to first estates
         if self.debug_mode:
             self.estates_processor.caches["estate_ids_cache"] = (
-                self.estates_processor.caches["estate_ids_cache"][:20]
+                self.estates_processor.caches["estate_ids_cache"][:self.debug_estate_limit]
             )
 
     def _estate_infos(self) -> None:
@@ -99,7 +102,10 @@ class AgencyOrchestrator:
                 housing_logger.info(
                     f"Processed {estate_id_count} / {total_estates} estates so far."
                 )
-            time.sleep(0.25)
+            time.sleep(0.1)
+        housing_logger.info(
+            f"Completed processing single estate info for {estate_id_count} estates."
+        )
 
     def _estate_monthly_market_infos(self) -> None:
         housing_logger.info(
@@ -127,12 +133,30 @@ class AgencyOrchestrator:
                 housing_logger.info(
                     f"Processed {estate_id_count} / {total_estates} estates so far."
                 )
-            time.sleep(0.25)
+            time.sleep(0.1)
+        housing_logger.info(
+            f"Completed processing estate monthly market info for {estate_id_count} estates."
+        )
 
     def _buildings(self) -> None:
         housing_logger.info(
             "Starting to fetch and process buildings transaction info for each building ID."
         )
-        buildings: Optional[list[BuildingInfoResponse]] = self.buildings_crawler.fetch_buildings_by_building_ids(
-            self.estates_processor.caches["estate_ids_cache"]
+        # Get building IDs
+        building_ids = [
+            building.get("building_id") 
+            for building in self.estates_processor.caches["buildings_cache"] 
+            if building.get("building_id")]
+        if not building_ids:
+            housing_logger.warning("No building IDs found to process.")
+            return
+        
+        buildings: Optional[list[BuildingInfoResponse]] = (
+            self.buildings_crawler.fetch_buildings_by_building_ids(
+                building_ids=building_ids
+            )
         )
+        for building in buildings:
+            self.buildings_processor.map_building_info_response_to_table_dicts(
+                building_info_response=building
+            )

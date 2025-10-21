@@ -3,6 +3,7 @@ from requests import Response
 from pydantic import BaseModel
 from logger import housing_logger
 import psutil
+import time
 
 
 def cookie_str_to_dict(cookie_str: str) -> dict[str, str]:
@@ -49,3 +50,21 @@ def get_memory_usage() -> float:
     Monitoring for low memory container environments.
     """
     return psutil.virtual_memory().percent
+
+
+def timer(func):
+    """
+    Decorator to measure the execution time of a function.
+    """
+
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        housing_logger.info(
+            f"Function {func.__name__} executed in {elapsed_time:.2f} seconds."
+        )
+        return result
+
+    return wrapper

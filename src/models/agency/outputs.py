@@ -6,6 +6,7 @@ from .responses import (
     EstateMonthlyMarketInfoResponse,
     EstateMonthlyMarketInfoRecord,
     EstateMonthlyMarketInfoResponses,
+    TransactionsDetailField,
 )
 
 
@@ -414,19 +415,25 @@ class UnitInfoModel(BaseModel):
     area: Optional[float] = None
     net_area: Optional[float] = None
     bedroom: Optional[int] = None
-    sitting_room: Optional[int] = None    
+    sitting_room: Optional[int] = None
+    building_id: str
 
 
-class UnitFacilitiesModel(BaseModel):
-    facility_id: str
+class UnitFeaturesModel(BaseModel):
     unit_id: str
+    feature_id: str
+    feature_name_zh: Optional[str] = None
+    feature_name_en: str
 
 
 class TransactionsDetailModel(BaseModel):
-    id: str
+    tx_id: str
     tx_date: datetime
     price: float
-    net_ft_price: float
+    last_tx_date: Optional[datetime] = None
+    gain: Optional[float] = None
+    net_ft_price: Optional[float] = None
+    unit_id: str
 
     @field_validator("tx_date", mode="before")
     @classmethod
@@ -437,3 +444,17 @@ class TransactionsDetailModel(BaseModel):
             except ValueError:
                 return None
         return value
+
+    @classmethod
+    def from_response(
+        cls, unit_id: str, response: "TransactionsDetailField"
+    ) -> "TransactionsDetailModel":
+        return cls(
+            tx_id=response.id,
+            tx_date=response.tx_date,
+            price=response.price,
+            last_tx_date=response.last_tx_date,
+            gain=response.gain,
+            net_ft_price=response.net_ft_price,
+            unit_id=unit_id,
+        )

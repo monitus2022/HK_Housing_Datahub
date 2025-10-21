@@ -138,13 +138,15 @@ class Unit(Base):
     building_id = Column(String, ForeignKey("buildings.building_id"), nullable=False)
 
 
-class UnitFacility(Base):
-    __tablename__ = "unit_facilities"
+class UnitFeature(Base):
+    __tablename__ = "unit_features"
     unit_id = Column(String, ForeignKey("units.unit_id"), nullable=False)
-    facility_id = Column(String, ForeignKey("facilities.facility_id"), nullable=False)
-    __table_args__ = (PrimaryKeyConstraint("unit_id", "facility_id"),)
+    feature_id = Column(String, primary_key=True)
+    feature_name_zh = Column(String)
+    feature_name_en = Column(String, nullable=False)
 
-class Transaction(Base):
+
+class Transactions(Base):
     __tablename__ = "transactions"
     tx_id = Column(String, primary_key=True)
     tx_date = Column(DateTime, nullable=False)

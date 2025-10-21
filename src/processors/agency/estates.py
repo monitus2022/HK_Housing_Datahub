@@ -167,7 +167,7 @@ class EstatesProcessor(AgencyProcessor):
         Insert cached data into database tables
         Using upsert with primary keys to avoid duplicates
         """
-        housing_logger.info("Inserting cached data into database tables.")
+        housing_logger.info("Inserting cached data into database estates tables.")
         Session = sessionmaker(bind=self.engine)
         session = Session()
         # Setup parent keys for upserting
@@ -203,15 +203,3 @@ class EstatesProcessor(AgencyProcessor):
         session.commit()
         housing_logger.info("Data insertion completed.")
 
-    def export_data_caches_to_json(self) -> None:
-        """
-        Export data caches to JSON files for inspection
-        """
-        output_directory = self.agency_data_storage_path / "data_cache_exports"
-        os.makedirs(output_directory, exist_ok=True)
-
-        for cache_name, data_list in self.caches.items():
-            output_file_path = os.path.join(output_directory, f"{cache_name}.json")
-            with open(output_file_path, "w", encoding="utf-8") as f:
-                json.dump(data_list, f, ensure_ascii=False, indent=4)
-            housing_logger.info(f"Exported {cache_name} to {output_file_path}.")

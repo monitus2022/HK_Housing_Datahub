@@ -113,18 +113,23 @@ class EstateMonthlyMarketInfoResponse(IgnoreExtraModel):
     id: str
     monthly: list[EstateMonthlyMarketInfoRecord]
 
+
 EstateMonthlyMarketInfoResponses = list[EstateMonthlyMarketInfoResponse]
 
 # docs/api_responses/transactions.json----------------------------
+
 
 class TransactionsDetailField(IgnoreExtraModel):
     id: str
     tx_date: str
     feature: Optional[list[IdNameOnlyField]] = None
     price: float
+    last_tx_date: Optional[str] = None
+    gain: Optional[float] = None
     bedroom: Optional[int] = None
     sitting_room: Optional[int] = None
-    net_ft_price: float
+    net_ft_price: Optional[float] = None
+
 
 class UnitInfoField(IgnoreExtraModel):
     unit_id: str
@@ -134,6 +139,7 @@ class UnitInfoField(IgnoreExtraModel):
     net_area: Optional[float] = None
     transactions: list[TransactionsDetailField] = []
 
+
 class BuildingInfoResponse(IgnoreExtraModel):
-    id: str
+    building: IdNameOnlyField
     data: list[UnitInfoField]
