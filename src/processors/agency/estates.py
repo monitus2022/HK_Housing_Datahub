@@ -1,8 +1,6 @@
 from requests import Response
 from typing import Optional
 import os
-from sqlalchemy.dialects.sqlite import insert
-from sqlalchemy.orm import sessionmaker
 import json
 
 from utils import parse_response
@@ -29,7 +27,6 @@ class EstatesProcessor(AgencyProcessor):
                 EstateMonthlyMarketInfo,
             ),
         }
-
         self.table_configs: dict[str, tuple[type[BilingualBaseModel], type]] = {
             "estate_info_cache": (EstateInfoTableModel, Estate),
             "estate_school_nets_cache": (EstateSchoolNetTableModel, EstateSchoolNet),
@@ -41,12 +38,29 @@ class EstatesProcessor(AgencyProcessor):
             "phases_cache": (PhasesTableModel, Phase),
             "buildings_cache": (BuildingsTableModel, Building),
         }
+        # Primary key map for upsert operations
+        self.pk_map = {
+            "estate_info_cache": ["estate_id"],
+            "estate_school_nets_cache": ["estate_id", "school_net_id"],
+            "estate_mtr_lines_cache": ["estate_id", "mtr_line_name_en"],
+            "regions_cache": ["region_id"],
+            "subregions_cache": ["subregion_id"],
+            "districts_cache": ["district_id"],
+            "phases_cache": ["phase_id"],
+            "buildings_cache": ["building_id"],
+            "estate_facilities_cache": ["estate_id", "facility_id"],
+            "facilities_cache": ["facility_id"],
+            "estate_monthly_market_info_cache": ["estate_id", "record_date"],
+        }
         self._set_data_caches()
         # Create tables if not exist
         self._create_tables()
 
     def _set_data_caches(self) -> None:
-        self.caches = {"estate_ids_cache": []}
+        self.caches = {
+            "estate_ids_cache": [],
+            "building_ids_cache": [],
+            }
         # Load local txt file for estate_ids if exists or not forced to refetch
         if (
             os.path.exists(self.estate_ids_file_path)
@@ -162,44 +176,13 @@ class EstatesProcessor(AgencyProcessor):
                 month_record.model_dump()
             )
 
-    def insert_cache_into_db_tables(self):
+    def create_building_ids_cache_from_building_cache(self) -> None:
         """
-        Insert cached data into database tables
-        Using upsert with primary keys to avoid duplicates
+        Create building IDs cache from buildings cache
         """
-        housing_logger.info("Inserting cached data into database estates tables.")
-        Session = sessionmaker(bind=self.engine)
-        session = Session()
-        # Setup parent keys for upserting
-        pk_map = {
-            "estate_info_cache": ["estate_id"],
-            "estate_school_nets_cache": ["estate_id", "school_net_id"],
-            "estate_mtr_lines_cache": ["estate_id", "mtr_line_name_en"],
-            "regions_cache": ["region_id"],
-            "subregions_cache": ["subregion_id"],
-            "districts_cache": ["district_id"],
-            "phases_cache": ["phase_id"],
-            "buildings_cache": ["building_id"],
-            "estate_facilities_cache": ["estate_id", "facility_id"],
-            "facilities_cache": ["facility_id"],
-            "estate_monthly_market_info_cache": ["estate_id", "record_date"],
-        }
-
-        for table_config in [self.zh_table_configs, self.table_configs]:
-            for cache_name, (_, db_table_class) in table_config.items():
-                data_list = self.caches.get(cache_name, [])
-                pk_columns = pk_map.get(cache_name, [])
-                if not pk_columns:
-                    housing_logger.warning(
-                        f"No primary key mapping found for cache {cache_name}. Skipping."
-                    )
-                    continue
-                for data in data_list:
-                    stmt = insert(db_table_class).values(**data)
-                    stmt = stmt.on_conflict_do_update(
-                        index_elements=pk_columns, set_=data
-                    )
-                    session.execute(stmt)
-        session.commit()
-        housing_logger.info("Data insertion completed.")
-
+        building_ids = set()
+        for building in self.caches.get("buildings_cache", []):
+            building_id = building.get("building_id")
+            if building_id:
+                building_ids.add(building_id)
+        self.caches["building_ids_cache"].extend(list(building_ids))

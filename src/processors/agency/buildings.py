@@ -12,7 +12,7 @@ from models.agency.outputs import (
     UnitFeaturesModel,
     UnitInfoModel,
 )
-from models.agency.sql_db import Base, Transactions, Unit, UnitFeature, Facility
+from models.agency.sql_db import Base, Transactions, Unit, UnitFeature
 from logger import housing_logger
 
 
@@ -25,6 +25,11 @@ class BuildingsProcessor(AgencyProcessor):
             "transactions_cache": (TransactionsDetailModel, Transactions),
         }
         self.table_configs = {}
+        self.pk_map = {
+            "units_cache": ["unit_id"],
+            "unit_features_cache": ["feature_id"],
+            "transactions_cache": ["tx_id"],
+        }
         self._set_data_caches()
         # Create tables if not exist
         self._create_tables()
@@ -94,39 +99,7 @@ class BuildingsProcessor(AgencyProcessor):
                     feature_id=feature.id,
                     feature_name_zh=feature.name,
                     feature_name_en=feature.id
-                )
+                ).model_dump()
                 if feature_dict not in self.caches["unit_features_cache"]:
                     self.caches["unit_features_cache"].append(feature_dict)
 
-    def insert_cache_into_db_tables(self):
-        """
-        Insert cached data into database tables
-        Using upsert with primary keys to avoid duplicates
-        """
-        housing_logger.info("Inserting cached data into database buildings tables.")
-        Session = sessionmaker(bind=self.engine)
-        session = Session()
-        # Setup parent keys for upserting
-        pk_map = {
-            "units_cache": ["unit_id"],
-            "unit_features_cache": ["feature_id"],
-            "transactions_cache": ["tx_id"],
-        }
-
-        for table_config in [self.zh_table_configs, self.table_configs]:
-            for cache_name, (_, db_table_class) in table_config.items():
-                data_list = self.caches.get(cache_name, [])
-                pk_columns = pk_map.get(cache_name, [])
-                if not pk_columns:
-                    housing_logger.warning(
-                        f"No primary key mapping found for cache {cache_name}. Skipping."
-                    )
-                    continue
-                for data in data_list:
-                    stmt = insert(db_table_class).values(**data)
-                    stmt = stmt.on_conflict_do_update(
-                        index_elements=pk_columns, set_=data
-                    )
-                    session.execute(stmt)
-        session.commit()
-        housing_logger.info("Data insertion completed.")

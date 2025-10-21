@@ -68,3 +68,11 @@ def timer(func):
         return result
 
     return wrapper
+
+def partition_ids(ids: list[str], partition_size: int) -> list[list[str]]:
+    """
+    Partition a list of IDs into smaller lists of given partition size.
+    """
+    return [
+        ids[i : i + partition_size] for i in range(0, len(ids), partition_size)
+    ]

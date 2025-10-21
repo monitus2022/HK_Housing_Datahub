@@ -26,20 +26,12 @@ class BuildingsCrawler(BaseCrawler):
         """
         Fetch buildings transaction info.
         """
-        total_buildings = len(building_ids)
-        housing_logger.info(f"Total building IDs to process: {total_buildings}")
-
         output = []
-        housing_logger.info("Starting to fetch buildings transaction info.")
         for building_id in building_ids:
             response = self._fetch_single_building_by_building_id(building_id=building_id)
             if response:
                 output.append(response)
             time.sleep(0.1)
-            if (len(output) % 100) == 0:
-                housing_logger.info(
-                    f"Fetched {len(output)} / {total_buildings} buildings so far."
-                )
         return output
 
     def _fetch_single_building_by_building_id(

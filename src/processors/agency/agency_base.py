@@ -5,6 +5,8 @@ from abc import abstractmethod
 from sqlalchemy import create_engine
 import os
 import json
+from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.orm import sessionmaker
 
 
 class AgencyProcessor(BaseProcessor):
@@ -19,7 +21,11 @@ class AgencyProcessor(BaseProcessor):
         )
         self.remote_db_path = None  # To be set for remote DBs like Neon
         self.engine = create_engine(f"sqlite:///{self.local_db_path}")
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
         self.caches = {}
+        # Primary key map for upsert operations
+        self.pk_map = {}
 
     def _set_agency_file_paths(self) -> None:
         self.agency_data_storage_path = (
@@ -47,11 +53,6 @@ class AgencyProcessor(BaseProcessor):
     def _create_data_cache(self):
         pass
 
-    @abstractmethod
-    def insert_cache_into_db_tables(self):
-        pass
-
-
     def export_data_caches_to_json(self) -> None:
         """
         Export data caches to JSON files for inspection
@@ -73,3 +74,25 @@ class AgencyProcessor(BaseProcessor):
             if cache_name not in cache_excluded:
                 self.caches[cache_name] = []
         housing_logger.info("Cleared all data caches.")
+
+    def insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
+        """
+        Insert cached data into database tables
+        Using upsert with primary keys to avoid duplicates
+        """
+        housing_logger.info("Inserting cached data into database estates tables.")
+
+        for table_config in config_maps:
+            for cache_name, (_, db_table_class) in table_config.items():
+                data_list = self.caches.get(cache_name, [])
+                if not data_list:
+                    continue
+                pk_columns = self.pk_map.get(cache_name, [])
+                for data in data_list:
+                    stmt = insert(db_table_class).values(**data)
+                    stmt = stmt.on_conflict_do_update(
+                        index_elements=pk_columns, set_=data
+                    )
+                    self.session.execute(stmt)
+        self.session.commit()
+        housing_logger.info("Data insertion completed.")
