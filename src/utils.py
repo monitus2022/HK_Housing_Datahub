@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from logger import housing_logger
 import psutil
 import time
+from functools import wraps
 
 
 def cookie_str_to_dict(cookie_str: str) -> dict[str, str]:
@@ -44,6 +45,7 @@ def parse_response(response: Response, model: BaseModel) -> Optional[BaseModel]:
         )
         return None
 
+
 def get_memory_usage() -> float:
     """
     Get the current system memory usage as a percentage.
@@ -69,10 +71,48 @@ def timer(func):
 
     return wrapper
 
+
+def timed_steps(func):
+    """
+    A decorator that times the execution of a function and allows timing
+    individual steps within the function.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_total = time.perf_counter()
+
+        # Initialize a dictionary to store step timings
+        wrapper.step_times = {}
+        wrapper.last_step_time = start_total  # Store the start time for the first step
+
+        def log_step(step_name):
+            """
+            Logs the time taken for a specific step.
+            Call this within the decorated function.
+            """
+            current_time = time.perf_counter()
+            elapsed = current_time - wrapper.last_step_time
+            wrapper.step_times[step_name] = elapsed
+            wrapper.last_step_time = current_time  # Update for the next step
+
+        # Pass the log_step function to the decorated function
+        result = func(*args, log_step=log_step, **kwargs)
+
+        end_total = time.perf_counter()
+        total_elapsed = end_total - start_total
+
+        housing_logger.debug(f"Function '{func.__name__}' total time: {total_elapsed:.4f} seconds")
+        for step_name, step_elapsed in wrapper.step_times.items():
+            housing_logger.debug(f"  Step '{step_name}': {step_elapsed:.4f} seconds")
+
+        return result
+
+    return wrapper
+
+
 def partition_ids(ids: list[str], partition_size: int) -> list[list[str]]:
     """
     Partition a list of IDs into smaller lists of given partition size.
     """
-    return [
-        ids[i : i + partition_size] for i in range(0, len(ids), partition_size)
-    ]
+    return [ids[i : i + partition_size] for i in range(0, len(ids), partition_size)]

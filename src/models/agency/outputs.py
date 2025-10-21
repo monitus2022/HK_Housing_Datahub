@@ -2,11 +2,13 @@ from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional
 from .responses import (
+    IdNameOnlyField,
     SingleEstateInfoResponse,
     EstateMonthlyMarketInfoResponse,
     EstateMonthlyMarketInfoRecord,
     EstateMonthlyMarketInfoResponses,
     TransactionsDetailField,
+    UnitInfoField,
 )
 
 
@@ -418,12 +420,39 @@ class UnitInfoModel(BaseModel):
     sitting_room: Optional[int] = None
     building_id: str
 
+    @classmethod
+    def from_response(
+        cls, response: UnitInfoField, 
+        building_id: str, bedroom: Optional[int], sitting_room: Optional[int]
+    ) -> "UnitInfoModel":
+        return cls(
+            unit_id=response.unit_id,
+            floor=response.floor,
+            flat=response.flat,
+            area=response.area,
+            net_area=response.net_area,
+            bedroom=bedroom,
+            sitting_room=sitting_room,
+            building_id=building_id,
+        )
+
 
 class UnitFeaturesModel(BaseModel):
     unit_id: str
     feature_id: str
     feature_name_zh: Optional[str] = None
     feature_name_en: str
+
+    @classmethod
+    def from_response(
+        cls, unit_id: str, response: IdNameOnlyField
+    ) -> "UnitFeaturesModel":
+        return cls(
+            unit_id=unit_id,
+            feature_id=response.id,
+            feature_name_zh=response.name,
+            feature_name_en=response.id,
+        )
 
 
 class TransactionsDetailModel(BaseModel):
