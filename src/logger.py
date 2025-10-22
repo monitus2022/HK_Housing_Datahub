@@ -1,5 +1,6 @@
 import logging
 import colorlog
+import os
 
 class HousingLogger:
     def __init__(self, name: str):
@@ -21,7 +22,11 @@ class HousingLogger:
         self.logger.addHandler(handler)
 
         # Set log file path
-        file_handler = logging.FileHandler('housing_datahub.log')
+        # Check if log directory exists, if not create it
+        log_dir = os.path.join(os.path.dirname(__file__), '..', 'logs')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        file_handler = logging.FileHandler(os.path.join(log_dir, 'hk_housing_datahub.log'))
         file_handler.setLevel(logging.ERROR)
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s - %(module)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
