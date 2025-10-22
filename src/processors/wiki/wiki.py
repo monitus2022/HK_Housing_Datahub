@@ -5,6 +5,7 @@ from typing import Optional
 from models.wiki.outputs import WikiPage, WikiSection, WikiTable
 from processors.base import BaseProcessor
 from wikipediaapi import WikipediaPage
+from config import housing_datahub_config
 
 
 class WikiProcessor(BaseProcessor):
@@ -15,10 +16,27 @@ class WikiProcessor(BaseProcessor):
 
     def __init__(self):
         super().__init__()
+        self._set_wiki_file_paths()
+        self._create_data_cache()
 
     def _create_data_cache(self):
-        """Create data cache if needed."""
-        pass
+        self.data_cache = {}
+
+    def _set_wiki_file_paths(self) -> None:
+        self.wiki_data_storage_path = (
+            self.data_storage_path / housing_datahub_config.storage.wiki.path
+        )
+        if not self.wiki_data_storage_path.exists():
+            try:
+                self.wiki_data_storage_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                housing_logger.error(
+                    f"Failed to create directory {self.wiki_data_storage_path}: {e}"
+                )
+        self.wiki_data_file_path = (
+            self.wiki_data_storage_path
+            / housing_datahub_config.storage.wiki.files.pages
+        )
 
     def _parse_tables_from_wikitext(self, wikitext: str) -> list[str]:
         """Parse tables from wiki markup text, handling colspan and rowspan by expanding cells."""
@@ -120,7 +138,10 @@ class WikiProcessor(BaseProcessor):
         return table.to_csv_string()
 
     def _get_section_wikitext(
-        self, page_content: WikipediaPage, section_title: str, wikitext: Optional[str] = None
+        self,
+        page_content: WikipediaPage,
+        section_title: str,
+        wikitext: Optional[str] = None,
     ) -> str:
         """Get the raw wikitext for a specific section."""
         # If wikitext is provided (from crawler), use it

@@ -24,7 +24,6 @@ class AgencyProcessor(BaseProcessor):
         self.engine = create_engine(f"sqlite:///{self.local_db_path}")
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        self.caches = {}
         # Primary key map for upsert operations
         self.pk_map = {}
 
@@ -66,15 +65,6 @@ class AgencyProcessor(BaseProcessor):
             with open(output_file_path, "w", encoding="utf-8") as f:
                 json.dump(data_list, f, ensure_ascii=False, indent=4)
             housing_logger.info(f"Exported {cache_name} to {output_file_path}.")
-
-    def clear_data_caches(self, cache_excluded: list[str]) -> None:
-        """
-        Clear all data caches
-        """
-        for cache_name in self.caches.keys():
-            if cache_name not in cache_excluded:
-                self.caches[cache_name] = []
-        housing_logger.info("Cleared all data caches.")
 
     def insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
         """

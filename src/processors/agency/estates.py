@@ -52,11 +52,11 @@ class EstatesProcessor(AgencyProcessor):
             "facilities_cache": ["facility_id"],
             "estate_monthly_market_info_cache": ["estate_id", "record_date"],
         }
-        self._set_data_caches()
+        self._create_data_cache()
         # Create tables if not exist
         self._create_tables()
 
-    def _set_data_caches(self) -> None:
+    def _create_data_cache(self) -> None:
         self.caches = {
             "estate_ids_cache": [],
             "building_ids_cache": [],

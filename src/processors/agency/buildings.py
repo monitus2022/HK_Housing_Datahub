@@ -35,11 +35,11 @@ class BuildingsProcessor(AgencyProcessor):
             "unit_features_cache": ["feature_id"],
             "transactions_cache": ["tx_id"],
         }
-        self._set_data_caches()
+        self._create_data_cache()
         # Create tables if not exist
         self._create_tables()
 
-    def _set_data_caches(self):
+    def _create_data_cache(self):
         for cache_name in self.zh_table_configs.keys():
             self.caches[cache_name] = []
         for cache_name in self.table_configs.keys():

@@ -1,10 +1,10 @@
 import requests
-from wikipediaapi import Wikipedia, ExtractFormat, WikipediaPage
+from wikipediaapi import Wikipedia, WikipediaPage
 from logger import housing_logger
 from typing import Optional
 from crawlers.base import BaseCrawler
 from models.wiki.request_params import WikiPageRequestParams
-import re
+from config import housing_datahub_config
 
 
 class WikiCrawler(BaseCrawler):
@@ -24,9 +24,13 @@ class WikiCrawler(BaseCrawler):
         self._set_request_urls()
 
     def _set_request_urls(self):
-        self.base_url = f"https://{self.language}.wikipedia.org/w/api.php"
+        self.base_url = housing_datahub_config.wiki_api.urls.search.format(
+            language=self.language
+        )
 
-    def _make_request(self, url: str, params: dict = None) -> Optional[requests.Response]:
+    def _make_request(
+        self, url: str, params: dict = None
+    ) -> Optional[requests.Response]:
         """Make a request to the API."""
         try:
             response = self.session.get(url, params=params)

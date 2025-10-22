@@ -23,12 +23,10 @@ agency_api:
     upgrade_insecure_requests: "1"
     user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 
-# wiki_api:
-#   urls: 
-#     page_doc_en: "https://en.wikipedia.org/api/rest_v1/page/" # Get available items to fetch
-#     page_doc_zh: "https://zh.wikipedia.org/api/rest_v1/page/"
-#     search_en: "https://en.wikipedia.org/w/api.php"
-#     search_zh: "https://zh.wikipedia.org/w/api.php"
+wiki_api:
+  urls: 
+    search: "https://{language}.wikipedia.org/w/api.php"
+
 
 storage:
   root_path: "data/"
@@ -40,5 +38,4 @@ storage:
   wiki:
     path: "wiki/"
     files:
-      summaries: "summaries.json"
-      page_docs: "page_docs.json"
+      pages: "estate_wiki_data.json"
