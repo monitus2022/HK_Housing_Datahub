@@ -1,0 +1,11 @@
+services:
+  hk_housing_datahub:
+    container_name: hk_housing_datahub
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'

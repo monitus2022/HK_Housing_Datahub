@@ -1,0 +1,151 @@
+{
+    "id": "E000012000",
+    "name": {
+        "chi": "福華街40號",
+        "en": "40 Fuk Wa Street"
+    },
+    "is_phase": false,
+    "news_name": "福華街40號",
+    "sell_count": 0,
+    "rent_count": 0,
+    "recommendation_sell": false,
+    "recommendation_rent": false,
+    "market_stat": {
+        "net_ft_price": 6953,
+        "pre_net_ft_price": 6953.22,
+        "tx_count": 0,
+        "net_ft_price_chg": 0,
+        "tx_amount": 0
+    },
+    "no_of_blocks": "1",
+    "total_flats": "5 Units",
+    "hos": false,
+    "bldg_type": "APARTMENT",
+    "region": {
+        "id": "20",
+        "name": "Kowloon"
+    },
+    "subregion": {
+        "id": "2006",
+        "name": "Sham Shui Po"
+    },
+    "district": {
+        "id": "200602",
+        "name": "Cheung Sha Wan / Sham Shui Po",
+        "neighborhood_district": false
+    },
+    "sm_district": {
+        "top_estate": [
+            {
+                "name": "Harbour Park"
+            },
+            {
+                "name": "Trinity Towers"
+            },
+            {
+                "name": "The Prominence"
+            }
+        ]
+    },
+    "mtr_line": [],
+    "mtr": [],
+    "address": "40 Fuk Wa Street",
+    "first_op_date": "1964-02-09T16:00:00.000Z",
+    "last_op_date": "1964-02-09T16:00:00.000Z",
+    "facilityGroup": [],
+    "misc": [],
+    "school_net": {
+        "kindergarten": {
+            "id": "SSP",
+            "name": "Sham Shui Po",
+            "url_desc": "https://app2.hkp.com.hk/school/inc/school_list.jsp?type=KS&distCode=SSP&distNet=40"
+        },
+        "primary": {
+            "id": "40",
+            "url_desc": "https://app2.hkp.com.hk/school/inc/school_list.jsp?type=PS&distCode=SSP&distNet=40"
+        },
+        "secondary": {
+            "id": "SSP",
+            "name": "Sham Shui Po",
+            "url_desc": "https://app2.hkp.com.hk/school/inc/school_list.jsp?type=SS&distCode=SSP&distNet="
+        }
+    },
+    "latitude": "22.3295",
+    "longitude": "114.1653",
+    "siteplan": [],
+    "video": [],
+    "photos": [],
+    "floorplans": [],
+    "phase": [
+        {
+            "is_phase": false,
+            "buildings": [
+                {
+                    "id": "B000073945",
+                    "name": "Fuk Wa Street 40",
+                    "bldg_type": "APARTMENT",
+                    "type": "BUILDING",
+                    "estate": {
+                        "id": "E000012000",
+                        "name": "40 Fuk Wa Street"
+                    },
+                    "address": "40 Fuk Wa Street",
+                    "first_op_date": "1964-02-09T16:00:00.000Z",
+                    "latitude": "22.3295",
+                    "longitude": "114.1653",
+                    "search": {
+                        "buy": {
+                            "url_desc": "https://www.hkp.com.hk/en/list/buy/"
+                        },
+                        "rent": {
+                            "url_desc": "https://www.hkp.com.hk/en/list/rent/"
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "url_desc": {
+        "zh-hk": "https://www.hkp.com.hk/zh-hk/estate/%E4%B9%9D%E9%BE%8D-%E9%95%B7%E6%B2%99%E7%81%A3-%E6%B7%B1%E6%B0%B4%E5%9F%97-%E7%A6%8F%E8%8F%AF%E8%A1%9740%E8%99%9F-E000012000",
+        "zh-cn": "https://www.hkp.com.hk/zh-cn/estate/%E4%B9%9D%E9%BE%99-%E9%95%BF%E6%B2%99%E6%B9%BE-%E6%B7%B1%E6%B0%B4%E5%9F%97-%E7%A6%8F%E5%8D%8E%E8%A1%9740%E5%8F%B7-E000012000",
+        "en": "https://www.hkp.com.hk/en/estate/Kowloon-Cheung-Sha-Wan-Sham-Shui-Po-40-Fuk-Wa-Street-E000012000"
+    },
+    "search": {
+        "url_desc": "https://www.hkp.com.hk/en/list/estate/",
+        "property": {
+            "estate": {
+                "buy": {
+                    "url_desc": "https://www.hkp.com.hk/en/list/buy/40-Fuk-Wa-Street-E-E000012000"
+                },
+                "rent": {
+                    "url_desc": "https://www.hkp.com.hk/en/list/rent/40-Fuk-Wa-Street-E-E000012000"
+                }
+            },
+            "district": {
+                "buy": {
+                    "url_desc": "https://www.hkp.com.hk/en/list/buy/Cheung-Sha-Wan-Sham-Shui-Po-D-200602"
+                },
+                "rent": {
+                    "url_desc": "https://www.hkp.com.hk/en/list/rent/Cheung-Sha-Wan-Sham-Shui-Po-D-200602"
+                }
+            }
+        },
+        "transaction": {
+            "url_desc": "https://www.hkp.com.hk/en/list/transaction/40-Fuk-Wa-Street-E-E000012000"
+        },
+        "branch": {
+            "url_desc": "https://www.hkp.com.hk/en/list/branch/"
+        },
+        "school_net": {
+            "buy": {
+                "url_desc": "https://www.hkp.com.hk/en/list/estate/%E6%A0%A1%E7%B6%B2-40-S-40"
+            },
+            "rent": {
+                "url_desc": "https://www.hkp.com.hk/zh-hk/list/estate/%E6%A0%A1%E7%B6%B2-40-S-40"
+            }
+        },
+        "tx_history": {
+            "url_desc": "https://www.hkp.com.hk/en/transaction-history/Kowloon-40-Fuk-Wa-Street-E000012000"
+        }
+    }
+}

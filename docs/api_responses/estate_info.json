@@ -1,0 +1,73 @@
+{
+    "count": 17861,
+    "filter": {
+        "q": "5970a3",
+        "hash": true,
+        "bookmark": false,
+        "lang": "en",
+        "currency": "HKD",
+        "unit": "feet",
+        "search_behavior": "normal",
+        "page": 1,
+        "limit": 1
+    },
+    "result": [
+        {
+            "id": "E000004419",
+            "name": "Lohas Park",
+            "region": {
+                "id": "20",
+                "name": "Kowloon"
+            },
+            "subregion": {
+                "id": "2010",
+                "name": "Tseung Kwan O"
+            },
+            "district": {
+                "id": "201005",
+                "name": "Lohas Park"
+            },
+            "sm_district": {
+                "id": "20100002",
+                "name": "Lohas Park"
+            },
+            "combined_district": {
+                "id": "201005-20100002",
+                "name": "Lohas Park"
+            },
+            "location": {
+                "lat": 22.2944,
+                "lon": 114.269558
+            },
+            "url_desc": "https://www.hkp.com.hk/en/estate/Kowloon-Lohas-Park-Lohas-Park-E000004419",
+            "tx_history_url_desc": "https://www.hkp.com.hk/en/transaction-history/Kowloon-Lohas-Park-E000004419",
+            "buy_listing_url_desc": "https://www.hkp.com.hk/en/list/buy/Lohas-Park-E-E000004419",
+            "rent_listing_url_desc": "https://www.hkp.com.hk/en/list/rent/Lohas-Park-E-E000004419",
+            "photo": "https://wm.hkp.com.hk/img_wm_revamp.php?wm=hkp&src=http%3A%2F%2Fimg.midland.com.hk%2Fphoto_db%2Foutlook%2Festate%2FEE000004419_17.jpg",
+            "hos": false,
+            "first_op_date": "2008-12-08T16:00:00.000Z",
+            "icon": "video",
+            "show": true,
+            "property_stat": {
+                "sell_count": 1260,
+                "rent_count": 341
+            },
+            "market_stat": {
+                "ft_price": 0,
+                "net_ft_price": 12134,
+                "tx_count": 46,
+                "net_ft_price_chg": 8.61,
+                "pre_net_ft_price": 11172,
+                "ft_price_chg": 0,
+                "pre_ft_price": 0,
+                "total_tx_amount": 367593000,
+                "yearly": {
+                    "tx_count": 604,
+                    "total_tx_amount": 4613907680,
+                    "net_ft_price": 11748.88,
+                    "net_ft_price_chg": -0.22
+                }
+            }
+        }
+    ]
+}

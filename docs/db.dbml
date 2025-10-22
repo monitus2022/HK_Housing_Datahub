@@ -1,0 +1,170 @@
+// ER Diagram for HK Housing Crawler Database
+
+TableGroup estate_info {
+  estates
+  estate_school_nets
+  estate_facilities
+  estate_mtr_lines
+  estate_monthly_market_info
+}
+
+Table estates {
+  estate_id text [pk]
+  estate_name_zh text [not null]
+  estate_name_en text [not null]
+  region_id text [not null]
+  subregion_id text [not null]
+  district_id text [not null]
+  latitude real
+  longitude real
+  Note: "Other attributes: school net, operation date, etc."
+}
+
+Table estate_school_nets {
+  estate_id text [not null]
+  school_net_id text [not null]
+  school_net_name_zh text [not null]
+  school_net_name_en text [not null]
+  PRIMARY KEY (estate_id, school_net_id)
+  Note: "ID obtained from primary school, name obtained from secondary school."
+}
+
+Ref: estate_school_nets.estate_id > estates.estate_id
+
+Table estate_facilities {
+  estate_id text [not null]
+  facility_id text [not null]
+  PRIMARY KEY (estate_id, facility_id)
+}
+
+Table facilities {
+  facility_id text [pk]
+  facility_name_zh text
+  facility_name_en text [not null]
+  Note: "Contain facilities from estates, buildings and units."
+}
+
+Ref: estate_facilities.estate_id > estates.estate_id
+Ref: estate_facilities.facility_id > facilities.facility_id
+
+Table estate_mtr_lines {
+  estate_id text [not null]
+  mtr_line_name_zh text
+  mtr_line_name_en text [not null]
+  PRIMARY KEY (estate_id, mtr_line_name_en)
+}
+
+Ref: estate_mtr_lines.estate_id > estates.estate_id
+
+Table estate_monthly_market_info {
+  estate_id text [not null]
+  record_date datetime [not null]
+  avg_net_ft_price real
+  avg_net_ft_rent real
+  total_tx_count int
+  total_rent_tx_count int
+  total_tx_amount real
+  total_rent_tx_amount real
+  PRIMARY KEY (estate_id, record_date)
+  note: "Monthly aggregated market info for each estate, contains more fields."
+}
+
+Ref: estate_monthly_market_info.estate_id > estates.estate_id
+
+TableGroup location_hierarchy {
+  regions
+  subregions
+  districts
+  note: "Subregions belong to regions; districts belong to subregions."
+}
+
+Table regions {
+  region_id text [pk]
+  region_name_zh text [not null]
+  region_name_en text [not null]
+}
+
+Table subregions {
+  subregion_id text [pk]
+  subregion_name_zh text [not null]
+  subregion_name_en text [not null]
+  region_id text [not null]
+}
+
+Table districts {
+  district_id text [pk]
+  district_name_zh text [not null]
+  district_name_en text [not null]
+  subregion_id text [not null]
+}
+
+Ref: subregions.region_id > regions.region_id
+Ref: districts.subregion_id > subregions.subregion_id
+
+Ref: estates.region_id > regions.region_id
+Ref: estates.subregion_id > subregions.subregion_id
+Ref: estates.district_id > districts.district_id
+
+Table phases {
+  phase_id text [pk]
+  phase_name_zh text [not null]
+  phase_name_en text [not null]
+  estate_id text [not null]
+}
+
+Table buildings {
+  building_id text [pk]
+  building_name_zh text [not null]
+  building_name_en text [not null]
+  estate_id text [not null]
+  phase_id text [null]
+  Note: "Small estates may have no phases."
+}
+
+Ref: phases.estate_id > estates.estate_id
+Ref: buildings.estate_id > estates.estate_id
+Ref: buildings.phase_id > phases.phase_id
+
+TableGroup property_units {
+  units
+  unit_facilities
+  transactions
+}
+
+Table units {
+  unit_id text [pk]
+  floor text
+  flat text [not null]
+  area real
+  net_area real
+  bedroom int
+  sitting_room int
+  building_id text [not null]
+}
+
+Table unit_facilities {
+  unit_id text [not null]
+  facility_id text [not null]
+  PRIMARY KEY (unit_id, facility_id)
+}
+
+Ref: units.building_id > buildings.building_id
+Ref: unit_facilities.unit_id > units.unit_id
+Ref: unit_facilities.facility_id > facilities.facility_id
+
+Table transactions {
+  tx_id text [pk]
+  tx_date datetime [not null]
+  price real [not null]
+  last_tx_date datetime
+  gain real
+  net_ft_price real
+  unit_id text [not null]
+
+  indexes {
+    unit_id
+    tx_date
+  }
+}
+
+Ref: transactions.unit_id > units.unit_id

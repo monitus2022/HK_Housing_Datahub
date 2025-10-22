@@ -1,0 +1,218 @@
+{
+  "id": "E000004419",
+  "name": {
+    "chi": "日出康城",
+    "en": "Lohas Park"
+  },
+  "is_phase": false,
+  "news_name": "日出康城",
+  "sell_count": 1259,
+  "rent_count": 341,
+  "recommendation_sell": true,
+  "recommendation_rent": true,
+  "avg_net_ft_price": 14130,
+  "min_net_ft_price": 9017,
+  "max_net_ft_price": 36710,
+  "market_stat": {
+    "net_ft_price": 12134,
+    "pre_net_ft_price": 11172.11,
+    "tx_count": 46,
+    "net_ft_price_chg": 8.61,
+    "tx_amount": 367593000
+  },
+  "no_of_blocks": "83 Blocks",
+  "total_flats": "22,483 Units",
+  "term_of_year": "50 Years Commencing From 16 May, 2002",
+  "no_of_storeys": "Phase 1 Capitol:\nTower 1, 2 : 8/F - 70/F\nTower 3, 5 : 8/F - 68/F\nTower 6 : 8/F - 66/F\n*13, 14, 24, 34, 44, 54 And 64 Are Omitted.\n*29/F & 52/F Are Refuge Floors.\n\nPhase 2A Le Prestige:\nTower 1 (8-65/F)\nTower 2,3 & 5 (8-70/F)\n\nPhase 2B  Le Prime:\n59 Storeys (8-76/F)\n* 4,13,14,24,34,44,54,64,74 Are Omitted\n\nPhase 2C La Splendeur:\n63 Storeys (Block 9L,9R: 1-72/F)\n60 Storeys (Block 10L,10R: 1-69/F)\n57 Storeys (Block 11L,11R: 1-66/F)\n* Not Including Roof;\n* 4,7,13,14,24,34,44,54,64/F Are Omitted.\n\nPhase 3 Hemera:\nTower 1 Diamond And Tower 2 Emerald – 62 Storeys (Excluding Roof, Lg1-Lg3, G/F, 1-66/F)\n\nTower 3 Amber And Tower 5 Topaz– 56 Storeys (Excluding Roof,Lg1-Lg3, G/F, 1-59/F)\n*4,13,14,24,34,44,54,64/F Are Omitted\n\nPhase 4A Wings At Sea:\n50 Storeys (Block 1A,1B: (B2,B1,G/F,1-12/F)\n51 Storeys (Block 2A,2B: B2,B1,G/F,1-20/F)\n* Not Including Transfer Plate, R/F, Upper Roof And Top Roof;\n* 4,13,14,24,34,44,54/F Are Omitted.\n\nPhase 4B Wings At Sea II:\n52 Storeys (Tower3(3A&3B): B2,B1,G,1-56/F)\n55 Storeys (Tower5(5A&5B): B2,B1,G,1-59/F)* Not Including Transfer Plate, R/F, Upper Roof And Top Roof;\n* 4,13,14,24,34,44,54/F Are Omitted.\n\nPhase 5A Malibu:\n64 Storeys (Block 1A,1B: G/F,1-71/F)\n63 Storeys (Block 2A,2B: G/F,1-70/F)\n60 Storeys (Block 3A,3B: G/F,1-67/F)\n* Not Including Transfer Plate,Roof,Upper Roof And Top Roof;\n* 4,13,14,24,34,44,54,64/F Are Omitted.\n\nPhase 6 LP6:\n63 Storeys (Block 1,2: B2/F, B1/F, G/F, 1-68/F)\n61 Storeys (Block 3,5: B2/F, B1/F, G/F, 1-66/F)\n* Not Including Transfer Plate,Roof,Upper Roof And Top Roof;\n* 4,13,14,24,34,44,54,64/F Are Omitted\n\nPhase 7A Montara:\n64 Storeys (Tower 2A&2B：G/F, 1/F-70/F And Refuge Floor)\n* Not Including Transfer Plate, Roof, Upper Roof 1, Upper Roof 2 And Top Roof\n* 13, 14, 24, 34, 44, 54, 64/F Are Omitted\n\nPhase 7B Grand Montara:\n64 Storeys (Tower 1A&1B：G,1-70/F And Refuge Floor)\n* Not Including Transfer Plate, Roof, Upper Roof 1, Upper Roof 2 And Top Roof\n* 13,14,24,34,44,54,64/F Are Omitted\n\nPhase 8 Sea To Sky:\n54 Storeys (Block 1: G/F,1-60/F)\n60 Storeys (Block 2: G/F,1-67/F)\n61 Storeys (Block 3: G/F,1-68/F)\n* Not Including Transfer Plate, Roof, Upper Roof, Lift Machine Room And Top Roof\n*4,13,14,24,34,44,54/F Are Omitted (Block 1)\n*4,13,14,24,34,44,54,64/F Are Omitted (Block 2,3)\n\nPhase 9A Marini:\n61 Storeys (Tower 3A&3B：G,1-60/F And Refuge Floor)\n* Not Including Transfer Plate,Lift Machine Room Level, Roof,Upper Roof And Top Roof\n* 4,13,14,24,34,44,54,64/F Are Omitted\n\nPhase 9B Grand Marini:\n63 Storeys (Tower 2A&2B：G,1-70/F And Refuge Floor)\n* Not Including Transfer Plate,Lift Machine Room Level, Roof,Upper Roof And Top Roof\n* 4,13,14,24,34,44,54,64/F Are Omitted\n\nPhase 9C Ocean Marini:\n63 Storeys (Tower 1A&1B：G,1-70/F And Refuge Floor)\n* Not Including Transfer Plate,Lift Machine Room Level, Roof,Upper Roof And Top Roof\n* 4,13,14,24,34,44,54,64/F Are Omitted\n\nPhase 10 LP10:\n52 Storeys (Tower 1 ( T1-A & T1-B) : Lg4/F, Lg2/F, Lg1/F, G/F, 1/F - 55/F)\n* Not Including Transfer Plate, E&M, Roof, Upper Roof And Top Roof\n* Lg3/F, 4/F, 13/F, 14/F, 24/F, 34/F, 44/F And 54/F Are Omitted\n\n57 Storeys (Tower 2 (T2-A & T2-B) : Lg4/F, Lg3/F, Lg2/F, Lg1/F, G/F, 1/F - 59/F)\n* Not Including Transfer Plate, E&M, Roof, Upper Roof And Top Roof\n* 4/F, 13/F, 14/F, 24/F, 34/F, 44/F And 54/F Are Omitted",
+  "hos": false,
+  "bldg_type": "APARTMENT",
+  "region": {
+    "id": "20",
+    "name": "Kowloon"
+  },
+  "subregion": {
+    "id": "2010",
+    "name": "Tseung Kwan O"
+  },
+  "district": {
+    "id": "201005",
+    "name": "Lohas Park",
+    "neighborhood_district": false
+  },
+  "sm_district": {
+    "top_estate": [
+      {
+        "name": "Wings At Sea"
+      },
+      {
+        "name": "Wings At Sea II"
+      },
+      {
+        "name": "Malibu"
+      }
+    ]
+  },
+  "mtr_line": [
+    {
+      "name": "Tseung Kwan O Line"
+    }
+  ],
+  "mtr": [],
+  "address": "1 Lohas Park Road",
+  "op_date": "9 December, 2008 (Phase 1 Capitol)\n29 January, 2010 (Phase 2A Le Prestige)\n23 March, 2011 (Phase 2B Le Prime)\n21 December, 2012 (Phase 2C La Splendeur)\n23 December, 2014 (Phase 3 Hemera)\n12 December, 2018 (Phase 4A Wings At Sea)\n12 December, 2018 (Phase 4B Wings At Sea II)\n30 September, 2019 (Phase 5A Malibu)\n27 May, 2020 (Phase 6 LP6)\n28 May, 2021 (Phase 7A Montara)\n3, August 2021 (Phase 7B Grand Montara)\n29 April, 2021 (Phase 8 Sea To Sky)\n7 May, 2021 (Phase 9A Marini)\n7 June, 2021 (Phase 9B Grand Marini)\n14 July, 2021 (Phase 9C Ocean Marini)\n31 January, 2022 (Phase 10 LP10)\n25 November, 2024 (Estimated Material Date) (Phase 11A Villa Garda I )",
+  "first_op_date": "2008-12-08T16:00:00.000Z",
+  "last_op_date": "2024-12-30T16:00:00.000Z",
+  "facilityGroup": [
+    {
+      "id": "FM12",
+      "name": "Clubhouse"
+    }
+  ],
+  "misc": [
+    {
+      "id": "MISCF00052",
+      "name": "Pet Allowed",
+      "icon": "pet",
+      "disclaimer": "Data Sources : integration of known data which collect from Property Management Company or DMC, for informational purposes only. The Company encourages purchasers/tenants to check with the Property Management Company or the vendors/landlords to confirm the restrictions on pet keeping in buildings."
+    }
+  ],
+  "school_net": {
+    "kindergarten": {
+      "id": "SK",
+      "name": "Saikung",
+      "url_desc": "https://app2.hkp.com.hk/school/inc/school_list.jsp?type=KS&distCode=SK&distNet=95"
+    },
+    "primary": {
+      "id": "95",
+      "url_desc": "https://app2.hkp.com.hk/school/inc/school_list.jsp?type=PS&distCode=SK&distNet=95"
+    },
+    "secondary": {
+      "id": "SK",
+      "name": "Saikung",
+      "url_desc": "https://app2.hkp.com.hk/school/inc/school_list.jsp?type=SS&distCode=SK&distNet="
+    }
+  },
+  "latitude": "22.2944",
+  "longitude": "114.269558",
+  "siteplan": [
+    {
+      "path": "https://wm.hkp.com.hk/img_wm_revamp.php?wm=hkp&src=http%3A%2F%2Fimg.midland.com.hk%2Fphoto_db%2Foutlook%2Fphase%2FPP000001168_0.jpg"
+    }
+  ],
+  "video": [
+    {
+      "thumbnail": "https://img.youtube.com/vi/p9gxvP-RXTw/mqdefault.jpg",
+      "link": "https://www.youtube.com/embed/p9gxvP-RXTw"
+    }
+  ],
+  "photos": [
+    {
+      "path": "https://wm.hkp.com.hk/img_wm_revamp.php?wm=hkp&src=http%3A%2F%2Fimg.midland.com.hk%2Fphoto_db%2Foutlook%2Festate%2FEE000004419_17.jpg",
+      "name": "Main Outlook"
+    }
+  ],
+  "floorplans": [
+    {
+      "id": "B0000634581",
+      "name": "The Capitol Tower 1 L (Banff) 8/F-70/F",
+      "wan_doc_path": "https://wm.hkp.com.hk/img_wm_revamp.php?wm=hkp&v=2016101107241013&src=http%3A%2F%2Fimg.midland.com.hk%2Ffloorplan_db%2Fbuilding%2F458%2FBB000063458_1.jpg",
+      "source": "BUILDING",
+      "estate": {
+        "id": "E000004419"
+      },
+      "phase": {
+        "id": "P000000424",
+        "name": "The Capitol"
+      },
+      "building": {
+        "id": "B000063458",
+        "name": "Tower 1 L (Banff)"
+      },
+      "floor_from": "8",
+      "floor_to": "70",
+      "floor_desc": "8/F-70/F"
+    }
+  ],
+  "phase": [
+    {
+      "id": "P000000424",
+      "name": "The Capitol",
+      "latitude": "22.29681",
+      "longitude": "114.2714",
+      "url_desc": "https://www.hkp.com.hk/en/estate/Kowloon-Lohas-Park-The-Capitol-P000000424",
+      "is_phase": true,
+      "buildings": [
+        {
+          "id": "B000063459",
+          "name": "Tower 1 R (Florence)",
+          "bldg_type": "APARTMENT",
+          "type": "BUILDING",
+          "estate": {
+            "id": "E000004419",
+            "name": "Lohas Park"
+          },
+          "phase": {
+            "id": "P000000424",
+            "name": "The Capitol"
+          },
+          "address": "1 Lohas Park Road",
+          "first_op_date": "2008-12-08T16:00:00.000Z",
+          "latitude": "22.296314",
+          "longitude": "114.271075",
+          "floorplan_exist": true,
+          "search": {
+            "buy": {
+              "url_desc": "https://www.hkp.com.hk/en/list/buy/The-Capitol-P-P000000424"
+            },
+            "rent": {
+              "url_desc": "https://www.hkp.com.hk/en/list/rent/The-Capitol-P-P000000424"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "url_desc": {
+    "zh-hk": "https://www.hkp.com.hk/zh-hk/estate/%E4%B9%9D%E9%BE%8D-%E5%BA%B7%E5%9F%8E-%E6%97%A5%E5%87%BA%E5%BA%B7%E5%9F%8E-E000004419",
+    "zh-cn": "https://www.hkp.com.hk/zh-cn/estate/%E4%B9%9D%E9%BE%99-%E5%BA%B7%E5%9F%8E-%E6%97%A5%E5%87%BA%E5%BA%B7%E5%9F%8E-E000004419",
+    "en": "https://www.hkp.com.hk/en/estate/Kowloon-Lohas-Park-Lohas-Park-E000004419"
+  },
+  "search": {
+    "url_desc": "https://www.hkp.com.hk/en/list/estate/",
+    "property": {
+      "estate": {
+        "buy": {
+          "url_desc": "https://www.hkp.com.hk/en/list/buy/Lohas-Park-E-E000004419"
+        },
+        "rent": {
+          "url_desc": "https://www.hkp.com.hk/en/list/rent/Lohas-Park-E-E000004419"
+        }
+      },
+      "district": {
+        "buy": {
+          "url_desc": "https://www.hkp.com.hk/en/list/buy/Lohas-Park-D-201005"
+        },
+        "rent": {
+          "url_desc": "https://www.hkp.com.hk/en/list/rent/Lohas-Park-D-201005"
+        }
+      }
+    },
+    "transaction": {
+      "url_desc": "https://www.hkp.com.hk/en/list/transaction/Lohas-Park-E-E000004419"
+    },
+    "branch": {
+      "url_desc": "https://www.hkp.com.hk/en/list/branch/"
+    },
+    "school_net": {
+      "buy": {
+        "url_desc": "https://www.hkp.com.hk/en/list/estate/%E6%A0%A1%E7%B6%B2-95-S-95"
+      },
+      "rent": {
+        "url_desc": "https://www.hkp.com.hk/zh-hk/list/estate/%E6%A0%A1%E7%B6%B2-95-S-95"
+      }
+    },
+    "tx_history": {
+      "url_desc": "https://www.hkp.com.hk/en/transaction-history/Kowloon-Lohas-Park-E000004419?phaseId=P000000424"
+    }
+  }
+}

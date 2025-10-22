@@ -1,0 +1,55 @@
+{
+  "building": {
+    "id": "B000063458",
+    "name": "1座 L",
+    "bldg_type": "APARTMENT",
+    "estate": {
+      "id": "E000004419",
+      "name": "日出康城"
+    },
+    "phase": {
+      "id": "P000000424",
+      "name": "首都"
+    }
+  },
+  "data": [
+    {
+      "unit_id": "U001660920",
+      "unit_type": "APARTMENT",
+      "floor": "70",
+      "floor_seq": 53,
+      "flat": "B",
+      "flat_name": "B",
+      "area": 903,
+      "net_area": 681,
+      "transactions": [
+        {
+          "id": "I20250300653",
+          "tx_type": "S",
+          "tx_date": "2025-04-09T16:00:00.000Z",
+          "feature": [
+            {
+              "id": "balcony",
+              "name": "連露台"
+            },
+            {
+              "id": "utility_platform",
+              "name": "連工作平台"
+            }
+          ],
+          "area": "903",
+          "net_area": "681",
+          "price": "6800000",
+          "last_tx_date": "2017-02-20T16:00:00.000Z",
+          "gain": "-2.86",
+          "mkt_type": "2",
+          "bedroom": "3",
+          "sitting_room": "2",
+          "url_desc": "https://www.hkp.com.hk/zh-hk/transaction/%E4%B9%9D%E9%BE%8D-%E9%A6%96%E9%83%BD-I20250300653",
+          "transaction_type": "NORM",
+          "net_ft_price": 9985
+        }
+      ]
+    }
+  ]
+}
