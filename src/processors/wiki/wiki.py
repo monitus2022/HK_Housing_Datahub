@@ -35,7 +35,7 @@ class WikiProcessor(BaseProcessor):
                 )
         self.wiki_data_file_path = (
             self.wiki_data_storage_path
-            / housing_datahub_config.storage.wiki.files.pages
+            / housing_datahub_config.storage.wiki.files["pages"]
         )
 
     def _parse_tables_from_wikitext(self, wikitext: str) -> list[str]:

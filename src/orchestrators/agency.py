@@ -15,9 +15,9 @@ class AgencyOrchestrator:
     Orchestrates the crawling and processing of agency data.
     """
 
-    def __init__(self, debug_mode: bool = False, partition_size: int = 100):
+    def __init__(self, debug_mode: bool = False, partition_size: int = 100, keep_latest_transaction_only: bool = False):
         self._init_crawlers()
-        self._init_processors()
+        self._init_processors(keep_latest_transaction_only=keep_latest_transaction_only)
         self.debug_mode = debug_mode
         self.debug_estate_limit = 20  # Limit number of estates to process in debug mode
 
@@ -29,9 +29,9 @@ class AgencyOrchestrator:
         self.estates_crawler = EstatesCrawler(agency_session=self.agency_session)
         self.buildings_crawler = BuildingsCrawler(agency_session=self.agency_session)
 
-    def _init_processors(self):
+    def _init_processors(self, keep_latest_transaction_only: bool = False):
         self.estates_processor = EstatesProcessor()
-        self.buildings_processor = BuildingsProcessor()
+        self.buildings_processor = BuildingsProcessor(keep_latest_transaction_only=keep_latest_transaction_only)
 
     def run_estates_info_data_pipeline(self) -> None:
         """

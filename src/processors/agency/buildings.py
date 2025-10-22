@@ -22,8 +22,9 @@ from models.agency.sql_db import Base, Transactions, Unit, UnitFeature
 
 
 class BuildingsProcessor(AgencyProcessor):
-    def __init__(self):
+    def __init__(self, keep_latest_transaction_only: bool = False):
         super().__init__()
+        self.keep_latest_transaction_only = keep_latest_transaction_only
         self.zh_table_configs: dict[str, tuple[type[SingleLanguageBaseModel], type]] = {
             "units_cache": (UnitInfoModel, Unit),
             "unit_features_cache": (UnitFeaturesModel, UnitFeature),
@@ -86,8 +87,14 @@ class BuildingsProcessor(AgencyProcessor):
     ) -> "UnitFeaturesFromTransactions":
         """
         Map transaction to TransactionsDetailModel
+        If keep_latest_transaction_only is True, only keep the latest transaction per unit
         """
         unit_features, bedroom, sitting_room = None, None, None
+        if self.keep_latest_transaction_only:
+            # Sort transactions by tx_date descending and take the first (latest)
+            sorted_transactions = sorted(transactions, key=lambda t: t.tx_date, reverse=True)
+            transactions = [sorted_transactions[0]] if sorted_transactions else transactions
+
         for transaction in transactions:
             # Get unit features from transactions info
             # Keep overwriting bedroom and sitting_room if multiple transactions exist, in case renovation
