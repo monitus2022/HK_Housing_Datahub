@@ -103,6 +103,7 @@ class AgencyProcessor(BaseProcessor):
                 )
 
         self.session.commit()
+        self.session.close()  # Close session to free up connections
         housing_logger.info("Bulk data upsertion completed.")
 
     def bulk_insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
@@ -120,4 +121,5 @@ class AgencyProcessor(BaseProcessor):
                 objects = [db_table_class(**data) for data in data_list]
                 self.session.bulk_save_objects(objects)
             self.session.commit()
+        self.session.close()  # Close session to free up connections
         housing_logger.info("Bulk data insertion completed.")

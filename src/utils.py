@@ -116,3 +116,39 @@ def partition_ids(ids: list[str], partition_size: int) -> list[list[str]]:
     Partition a list of IDs into smaller lists of given partition size.
     """
     return [ids[i : i + partition_size] for i in range(0, len(ids), partition_size)]
+
+
+def generate_wikipedia_title_variations(title: str) -> list[str]:
+    """
+    Generate common Wikipedia title variations to handle case sensitivity issues.
+    Wikipedia page titles are case-sensitive, so we try multiple variations.
+
+    Args:
+        title: The original title from database
+
+    Returns:
+        List of title variations to try, ordered by likelihood
+    """
+    variations = []
+
+    # Original title first
+    variations.append(title)
+
+    # All uppercase (common for HK estates)
+    variations.append(title.upper())
+
+    # All lowercase
+    variations.append(title.lower())
+
+    # Title case (first letter of each word capitalized)
+    variations.append(title.title())
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_variations = []
+    for variation in variations:
+        if variation not in seen:
+            seen.add(variation)
+            unique_variations.append(variation)
+
+    return unique_variations

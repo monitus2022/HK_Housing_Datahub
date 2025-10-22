@@ -6,6 +6,7 @@ from models.wiki.outputs import WikiPage, WikiSection, WikiTable
 from processors.base import BaseProcessor
 from wikipediaapi import WikipediaPage
 from config import housing_datahub_config
+import time
 
 
 class WikiProcessor(BaseProcessor):
@@ -112,7 +113,11 @@ class WikiProcessor(BaseProcessor):
             for cell_text, colspan, rowspan in row:
                 # Skip columns occupied by rowspan
                 while col_idx < max_cols and row_spans[col_idx] > 0:
-                    expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    # Check if we have enough previous rows for the rowspan reference
+                    if len(expanded_rows) > row_spans[col_idx]:
+                        expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    else:
+                        expanded_row.append("")  # Fallback for invalid rowspan reference
                     row_spans[col_idx] -= 1
                     col_idx += 1
                 # Add the cell, expanded for colspan
@@ -124,7 +129,11 @@ class WikiProcessor(BaseProcessor):
             # Fill remaining columns with rowspan values
             while col_idx < max_cols:
                 if row_spans[col_idx] > 0:
-                    expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    # Check if we have enough previous rows for the rowspan reference
+                    if len(expanded_rows) > row_spans[col_idx]:
+                        expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    else:
+                        expanded_row.append("")  # Fallback for invalid rowspan reference
                     row_spans[col_idx] -= 1
                 else:
                     expanded_row.append("")
@@ -163,9 +172,12 @@ class WikiProcessor(BaseProcessor):
     def process_page_content(
         self, page_content: WikipediaPage, section_wikitexts: Optional[dict] = None
     ) -> Optional[dict]:
+        start_time = time.time()
         sections = []
         section_wikitexts = section_wikitexts or {}
+        housing_logger.info(f"Processing {len(page_content.sections)} sections for page '{page_content.title}'")
         for section in page_content.sections:
+            section_start = time.time()
             section_text = section.text
             # Always include 1 level subsections' text
             if not section_text.strip():
@@ -174,13 +186,20 @@ class WikiProcessor(BaseProcessor):
                 for subsection in section.sections:
                     section_text += f"\n{subsection.text}"
             # Get raw wikitext for table parsing (from provided data or fallback)
+            wikitext_start = time.time()
             section_wikitext = self._get_section_wikitext(
                 page_content, section.title, section_wikitexts.get(section.title)
             )
+            wikitext_time = time.time() - wikitext_start
             # Parse tables from the raw wikitext
+            parse_start = time.time()
             tables = self._parse_tables_from_wikitext(section_wikitext)
+            parse_time = time.time() - parse_start
+            # Removed detailed debug logging for cleaner output
             output = WikiSection(title=section.title, text=section_text)
             if tables:
                 output.tables = tables
             sections.append(output.model_dump())
+        total_time = time.time() - start_time
+        housing_logger.info(f"Completed processing page '{page_content.title}' in {total_time:.2f}s")
         return WikiPage(title=page_content.title, sections=sections).model_dump()
