@@ -7,6 +7,7 @@ import os
 import json
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import sessionmaker
+from time import time
 
 
 class AgencyProcessor(BaseProcessor):
@@ -77,22 +78,47 @@ class AgencyProcessor(BaseProcessor):
 
     def insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
         """
-        Insert cached data into database tables
+        Upsert cached data into database tables
         Using upsert with primary keys to avoid duplicates
         """
-        housing_logger.info("Inserting cached data into database estates tables.")
+        housing_logger.info("Upserting cached data into database estates tables.")
+
+        for table_config in config_maps:
+            start_time = time()
+            stmt_list = []
+            for cache_name, (_, db_table_class) in table_config.items():
+                data_list = self.caches.get(cache_name, [])
+                if not data_list:
+                    continue
+                for data in data_list:
+                    stmt = insert(db_table_class).values(**data)
+                    stmt = stmt.on_conflict_do_nothing()
+                    stmt_list.append(stmt)
+            if stmt_list:
+                for stmt in stmt_list:
+                    self.session.execute(stmt)
+                self.session.commit()
+            end_time = time()
+            housing_logger.debug(
+                f"Upserted cache '{cache_name}' with {len(data_list)} records into database in {end_time - start_time:.2f} seconds."
+            )
+        housing_logger.info("Data upsertion completed.")
+
+    def bulk_insert_cache_into_db_tables(
+        self, config_maps: list[dict] = None
+    ) -> None:
+        """
+        Bulk insert cached data into database tables without upsert
+        Suitable for tables where duplicates are not a concern
+        """
+        housing_logger.info("Bulk inserting cached data into database tables.")
 
         for table_config in config_maps:
             for cache_name, (_, db_table_class) in table_config.items():
                 data_list = self.caches.get(cache_name, [])
                 if not data_list:
                     continue
-                pk_columns = self.pk_map.get(cache_name, [])
-                for data in data_list:
-                    stmt = insert(db_table_class).values(**data)
-                    stmt = stmt.on_conflict_do_update(
-                        index_elements=pk_columns, set_=data
-                    )
-                    self.session.execute(stmt)
-        self.session.commit()
-        housing_logger.info("Data insertion completed.")
+                objects = [db_table_class(**data) for data in data_list]
+                self.session.bulk_save_objects(objects)
+            self.session.commit()
+        housing_logger.info("Bulk data insertion completed.")

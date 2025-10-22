@@ -7,7 +7,7 @@ from models.agency.responses import (
 from processors.agency import EstatesProcessor, BuildingsProcessor
 from logger import housing_logger
 import time
-from utils import partition_ids, timed_steps
+from utils import partition_ids, timer
 
 
 class AgencyOrchestrator:
@@ -155,7 +155,7 @@ class AgencyOrchestrator:
                 "building_ids_cache",
             ]
         )
-    
+
     def _buildings(self, building_ids: list[str]) -> None:
         if not building_ids:
             housing_logger.warning("No building IDs found to process.")

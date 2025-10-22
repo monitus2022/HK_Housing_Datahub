@@ -1,6 +1,6 @@
 from typing import Optional
-from sqlalchemy.dialects.sqlite import insert
-from sqlalchemy.orm import sessionmaker
+from logger import housing_logger
+from time import time
 
 from .agency_base import AgencyProcessor
 from models.agency.responses import (
@@ -19,8 +19,6 @@ from models.agency.outputs import (
     UnitInfoModel,
 )
 from models.agency.sql_db import Base, Transactions, Unit, UnitFeature
-from logger import housing_logger
-from time import time
 
 
 class BuildingsProcessor(AgencyProcessor):

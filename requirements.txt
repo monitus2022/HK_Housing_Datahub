@@ -1,5 +1,7 @@
 # [Web Scraping]
 requests==2.31.0
+wikipedia-api==0.8.1
+mwparserfromhell==0.6.5
 
 # [Data Processing]
 pandas==2.1.3

@@ -43,8 +43,16 @@ A web crawler and ETL pipeline to collect, store, and manage housing data from H
 - Transactions by district: https://data.hkp.com.hk/search/v1/transactions?lang=zh-hk&dist_ids=200902&tx_type=S&tx_date=3year&page=1&limit=5
 
 
-## Data Flow
+### Data Flow
 ![Data Flow Diagram](https://github.com/monitus2022/draw.io/blob/main/HK_Housing_Agent-Data%20Source%20-%20Agency.drawio.png?raw=true)
+
+
+## Wiki
+
+- **Endpoint:** Wikipedia API
+- Description: Fetches information from Wikipedia pages related to Hong Kong housing estates by name.
+- Example URL - Get sections from a page: [https://zh.wikipedia.org/w/api.php?action=parse&page=%E6%B5%B7%E6%80%A1%E5%8D%8A%E5%B3%B6&prop=sections&format=json](https://zh.wikipedia.org/w/api.php?action=parse&page=%E6%B5%B7%E6%80%A1%E5%8D%8A%E5%B3%B6&prop=sections&format=json)
+
 
 
 ## Setup
