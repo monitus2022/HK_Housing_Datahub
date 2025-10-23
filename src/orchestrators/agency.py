@@ -49,6 +49,11 @@ class AgencyOrchestrator:
         Run the complete data pipeline for estates data.
         """
         housing_logger.info("Starting estates data pipeline.")
+        # Prompt for confirmation before cleaning DB
+        confirm = input("The database will be cleaned completely before starting the pipeline. Confirm? (y/n): ")
+        if confirm.lower() != 'y':
+            housing_logger.info("Database cleaning cancelled. Aborting pipeline.")
+            return
         # Clean local DB before starting pipeline
         self.estates_processor.clean_local_db()
         self.buildings_processor.clean_local_db()

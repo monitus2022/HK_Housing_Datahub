@@ -8,7 +8,7 @@ from crawlers.base import BaseCrawler
 from models.wiki.request_params import WikiPageRequestParams
 from config import housing_datahub_config
 import time
-
+from utils import generate_wikipedia_title_variations
 
 class WikiCrawler(BaseCrawler):
     """
@@ -57,7 +57,7 @@ class WikiCrawler(BaseCrawler):
             return None
 
     def get_page_content(self, page_title: str) -> Optional[WikipediaPage]:
-        from utils import generate_wikipedia_title_variations
+
 
         start_time = time.time()
         # Try different title variations to handle case sensitivity
@@ -67,6 +67,16 @@ class WikiCrawler(BaseCrawler):
             try:
                 page = self.wiki.page(title)
                 if page.exists():
+                    # Check if the page is a disambiguation page by looking for "消歧義" in categories
+                    if any("消歧義" in category for category in page.categories):
+                        housing_logger.warning(f"Page '{title}' is a disambiguation page, skipping.")
+                        continue  # Skip to next variation
+
+                    # Verify the page is related to Hong Kong by checking for "香港" in the text
+                    if "香港" not in page.text:
+                        housing_logger.warning(f"Page '{title}' does not mention '香港', likely not an HK estate, skipping.")
+                        continue  # Skip to next variation
+
                     fetch_time = time.time() - start_time
                     housing_logger.info(f"Successfully fetched page '{title}' in {fetch_time:.2f}s")
                     return page

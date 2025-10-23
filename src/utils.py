@@ -145,6 +145,27 @@ def generate_wikipedia_title_variations(title: str) -> list[str]:
     # Title case (first letter of each word capitalized)
     variations.append(title.title())
 
+    # Handle different dot variations (common in Chinese Wikipedia titles)
+    # Replace full-width period with middle dot
+    variations.append(title.replace('．', '·'))
+    # Replace middle dot with full-width period
+    variations.append(title.replace('·', '．'))
+    # Replace regular period with middle dot
+    variations.append(title.replace('.', '·'))
+    # Replace regular period with full-width period
+    variations.append(title.replace('.', '．'))
+
+    # Remove trailing Roman numerals (with or without parentheses, e.g., " (II)" or " I")
+    import re
+    # Handle with parentheses first
+    match = re.search(r'\s*\([IVXLCDM]+\)$', title)
+    if match:
+        variations.append(re.sub(r'\s*\([IVXLCDM]+\)$', '', title))
+    # Handle without parentheses
+    match = re.search(r'\s+[IVXLCDM]+$', title)
+    if match:
+        variations.append(re.sub(r'\s+[IVXLCDM]+$', '', title))
+
     # Remove duplicates while preserving order
     seen = set()
     unique_variations = []

@@ -38,4 +38,4 @@ storage:
   wiki:
     path: "wiki/"
     files:
-      pages: "estate_wiki_data.json"
+      pages: "estate_wiki_data_{num}.json"
