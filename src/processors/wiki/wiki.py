@@ -2,9 +2,11 @@ import mwparserfromhell
 import re
 from logger import housing_logger
 from typing import Optional
-from models.wiki.outputs import WikiPage, WikiSection, WikiTable
+from models.wiki.outputs import WikiTable
 from processors.base import BaseProcessor
 from wikipediaapi import WikipediaPage
+from config import housing_datahub_config
+import time
 
 
 class WikiProcessor(BaseProcessor):
@@ -15,10 +17,27 @@ class WikiProcessor(BaseProcessor):
 
     def __init__(self):
         super().__init__()
+        self._set_wiki_file_paths()
+        self._create_data_cache()
 
     def _create_data_cache(self):
-        """Create data cache if needed."""
-        pass
+        self.data_cache = {}
+
+    def _set_wiki_file_paths(self) -> None:
+        self.wiki_data_storage_path = (
+            self.data_storage_path / housing_datahub_config.storage.wiki.path
+        )
+        if not self.wiki_data_storage_path.exists():
+            try:
+                self.wiki_data_storage_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                housing_logger.error(
+                    f"Failed to create directory {self.wiki_data_storage_path}: {e}"
+                )
+        self.wiki_data_file_path = (
+            self.wiki_data_storage_path
+            / housing_datahub_config.storage.wiki.files["pages"]
+        )
 
     def _parse_tables_from_wikitext(self, wikitext: str) -> list[str]:
         """Parse tables from wiki markup text, handling colspan and rowspan by expanding cells."""
@@ -44,6 +63,19 @@ class WikiProcessor(BaseProcessor):
         """Extract table nodes from parsed wikitext."""
         return parsed.filter_tags(matches=lambda node: node.tag == "table")
 
+    def _clean_wiki_text(self, text: str) -> str:
+        """Clean wiki markup from text, such as links and HTML tags."""
+        import re
+        # Remove wiki links: [[link|text]] -> text
+        text = re.sub(r'\[\[([^|]+)\|([^]]+)\]\]', r'\2', text)
+        # Remove simple wiki links: [[text]] -> text
+        text = re.sub(r'\[\[([^]]+)\]\]', r'\1', text)
+        # Remove <br> tags
+        text = re.sub(r'<br\s*/?>', '', text)
+        # Remove other common HTML tags if present
+        text = re.sub(r'<[^>]+>', '', text)
+        return text.strip()
+
     def _parse_table_rows(self, table_node):
         """Parse rows and cells from a table node, extracting text, colspan, and rowspan."""
         rows = []
@@ -55,6 +87,7 @@ class WikiProcessor(BaseProcessor):
                 matches=lambda node: node.tag in ["td", "th"]
             ):
                 cell_text = str(cell_node.contents).strip()
+                cell_text = self._clean_wiki_text(cell_text)
                 colspan = self._get_colspan(cell_node)
                 rowspan = self._get_rowspan(cell_node)
                 row_cells.append((cell_text, colspan, rowspan))
@@ -94,7 +127,11 @@ class WikiProcessor(BaseProcessor):
             for cell_text, colspan, rowspan in row:
                 # Skip columns occupied by rowspan
                 while col_idx < max_cols and row_spans[col_idx] > 0:
-                    expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    # Check if we have enough previous rows for the rowspan reference
+                    if len(expanded_rows) > row_spans[col_idx]:
+                        expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    else:
+                        expanded_row.append("")  # Fallback for invalid rowspan reference
                     row_spans[col_idx] -= 1
                     col_idx += 1
                 # Add the cell, expanded for colspan
@@ -106,7 +143,11 @@ class WikiProcessor(BaseProcessor):
             # Fill remaining columns with rowspan values
             while col_idx < max_cols:
                 if row_spans[col_idx] > 0:
-                    expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    # Check if we have enough previous rows for the rowspan reference
+                    if len(expanded_rows) > row_spans[col_idx]:
+                        expanded_row.append(expanded_rows[-row_spans[col_idx]][col_idx])
+                    else:
+                        expanded_row.append("")  # Fallback for invalid rowspan reference
                     row_spans[col_idx] -= 1
                 else:
                     expanded_row.append("")
@@ -120,7 +161,10 @@ class WikiProcessor(BaseProcessor):
         return table.to_csv_string()
 
     def _get_section_wikitext(
-        self, page_content: WikipediaPage, section_title: str, wikitext: Optional[str] = None
+        self,
+        page_content: WikipediaPage,
+        section_title: str,
+        wikitext: Optional[str] = None,
     ) -> str:
         """Get the raw wikitext for a specific section."""
         # If wikitext is provided (from crawler), use it
@@ -143,7 +187,9 @@ class WikiProcessor(BaseProcessor):
         self, page_content: WikipediaPage, section_wikitexts: Optional[dict] = None
     ) -> Optional[dict]:
         sections = []
+        all_tables = []
         section_wikitexts = section_wikitexts or {}
+
         for section in page_content.sections:
             section_text = section.text
             # Always include 1 level subsections' text
@@ -158,8 +204,12 @@ class WikiProcessor(BaseProcessor):
             )
             # Parse tables from the raw wikitext
             tables = self._parse_tables_from_wikitext(section_wikitext)
-            output = WikiSection(title=section.title, text=section_text)
             if tables:
-                output.tables = tables
-            sections.append(output.model_dump())
-        return WikiPage(title=page_content.title, sections=sections).model_dump()
+                all_tables.extend(tables)
+            # For normal sections, only title and text fields are kept
+            sections.append({"title": section.title, "text": section_text})
+        # If tables are found, save them into tables on same level of sections in the dict
+        result = {"title": page_content.title, "sections": sections}
+        if all_tables:
+            result["tables"] = all_tables
+        return result

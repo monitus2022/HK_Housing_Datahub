@@ -2,31 +2,31 @@ from ..base import BaseProcessor
 from config import housing_datahub_config
 from logger import housing_logger
 from abc import abstractmethod
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import os
 import json
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import sessionmaker
 from time import time
+from collections import defaultdict
+from models.agency.sql_db import Base
 
 
 class AgencyProcessor(BaseProcessor):
     def __init__(self):
         super().__init__()
         self._set_agency_file_paths()
-        self.local_db_path = (
-            self.agency_data_storage_path
-            / housing_datahub_config.storage.agency.files.get(
-                "sqlite_db", "agency_data.db"
-            )
-        )
-        self.remote_db_path = None  # To be set for remote DBs like Neon
-        self.engine = create_engine(f"sqlite:///{self.local_db_path}")
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-        self.caches = {}
+        self._init_sql_db()
         # Primary key map for upsert operations
         self.pk_map = {}
+
+    @abstractmethod
+    def _create_tables(self):
+        pass
+
+    @abstractmethod
+    def _create_data_cache(self):
+        pass
 
     def _set_agency_file_paths(self) -> None:
         self.agency_data_storage_path = (
@@ -46,13 +46,25 @@ class AgencyProcessor(BaseProcessor):
             )
         )
 
-    @abstractmethod
-    def _create_tables(self):
-        pass
-
-    @abstractmethod
-    def _create_data_cache(self):
-        pass
+    def _init_sql_db(self) -> None:
+        """
+        Initialize SQL database connection and session
+        """
+        self.local_db_path = (
+            self.agency_data_storage_path
+            / housing_datahub_config.storage.agency.files.get(
+                "sqlite_db", "agency_data.db"
+            )
+        )
+        self.remote_db_path = None  # To be set for remote DBs like Neon
+        self.engine = create_engine(f"sqlite:///{self.local_db_path}")
+        # Enable WAL mode for better concurrency
+        with self.engine.connect() as conn:
+            conn.execute(text("PRAGMA journal_mode=WAL;"))
+            housing_logger.info("Enabled WAL journal mode for SQLite database.")
+            conn.commit()
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
 
     def export_data_caches_to_json(self) -> None:
         """
@@ -67,51 +79,41 @@ class AgencyProcessor(BaseProcessor):
                 json.dump(data_list, f, ensure_ascii=False, indent=4)
             housing_logger.info(f"Exported {cache_name} to {output_file_path}.")
 
-    def clear_data_caches(self, cache_excluded: list[str]) -> None:
-        """
-        Clear all data caches
-        """
-        for cache_name in self.caches.keys():
-            if cache_name not in cache_excluded:
-                self.caches[cache_name] = []
-        housing_logger.info("Cleared all data caches.")
+    # def insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
+    #     """
+    #     Bulk upsert cached data into database tables
+    #     Using bulk INSERT with on_conflict_do_nothing to avoid duplicates
+    #     """
+    #     housing_logger.info("Bulk upserting cached data into database tables.")
+    #     table_data = defaultdict(list)
 
-    def insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
-        """
-        Upsert cached data into database tables
-        Using upsert with primary keys to avoid duplicates
-        """
-        housing_logger.info("Upserting cached data into database estates tables.")
+    #     for table_config in config_maps:
+    #         for cache_name, (_, db_table_class) in table_config.items():
+    #             data_list = self.caches.get(cache_name, [])
+    #             if data_list:
+    #                 table_data[db_table_class].extend(data_list)
 
-        for table_config in config_maps:
-            start_time = time()
-            stmt_list = []
-            for cache_name, (_, db_table_class) in table_config.items():
-                data_list = self.caches.get(cache_name, [])
-                if not data_list:
-                    continue
-                for data in data_list:
-                    stmt = insert(db_table_class).values(**data)
-                    stmt = stmt.on_conflict_do_nothing()
-                    stmt_list.append(stmt)
-            if stmt_list:
-                for stmt in stmt_list:
-                    self.session.execute(stmt)
-                self.session.commit()
-            end_time = time()
-            housing_logger.debug(
-                f"Upserted cache '{cache_name}' with {len(data_list)} records into database in {end_time - start_time:.2f} seconds."
-            )
-        housing_logger.info("Data upsertion completed.")
+    #     for db_table_class, data_list in table_data.items():
+    #         if data_list:
+    #             start_time = time()
+    #             stmt = insert(db_table_class).values(data_list).on_conflict_do_nothing()
+    #             self.session.execute(stmt)
+    #             end_time = time()
+    #             housing_logger.debug(
+    #                 f"Bulk upserted {len(data_list)} records into {db_table_class.__tablename__} in {end_time - start_time:.2f} seconds."
+    #             )
 
-    def bulk_insert_cache_into_db_tables(
-        self, config_maps: list[dict] = None
-    ) -> None:
+    #     self.session.commit()
+    #     self.session.close()  # Close session to free up connections
+    #     housing_logger.info("Bulk data upsertion completed.")
+
+    def bulk_insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
         """
         Bulk insert cached data into database tables without upsert
         Suitable for tables where duplicates are not a concern
         """
         housing_logger.info("Bulk inserting cached data into database tables.")
+        total_inserted = 0
 
         for table_config in config_maps:
             for cache_name, (_, db_table_class) in table_config.items():
@@ -120,5 +122,24 @@ class AgencyProcessor(BaseProcessor):
                     continue
                 objects = [db_table_class(**data) for data in data_list]
                 self.session.bulk_save_objects(objects)
-            self.session.commit()
-        housing_logger.info("Bulk data insertion completed.")
+                housing_logger.debug(
+                    f"{len(data_list)} records to be inserted into {db_table_class.__tablename__}."
+                )
+                total_inserted += len(data_list)
+        self.session.commit()
+        housing_logger.info(f"Bulk data insertion completed, {total_inserted} records inserted.")
+
+    def close_session(self) -> None:
+        """Close the database session"""
+        if self.session:
+            self.session.close()
+            housing_logger.info("Database session closed.")
+
+    def clean_local_db(self) -> None:
+        """
+        Clean the local SQLite database by dropping all tables and recreating them.
+        """
+        housing_logger.info("Cleaning local SQLite database.")
+        Base.metadata.drop_all(self.engine)
+        Base.metadata.create_all(self.engine)
+        housing_logger.info("Local SQLite database cleaned and tables recreated.")

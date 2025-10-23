@@ -22,8 +22,9 @@ from models.agency.sql_db import Base, Transactions, Unit, UnitFeature
 
 
 class BuildingsProcessor(AgencyProcessor):
-    def __init__(self):
+    def __init__(self, keep_latest_transaction_only: bool = False):
         super().__init__()
+        self.keep_latest_transaction_only = keep_latest_transaction_only
         self.zh_table_configs: dict[str, tuple[type[SingleLanguageBaseModel], type]] = {
             "units_cache": (UnitInfoModel, Unit),
             "unit_features_cache": (UnitFeaturesModel, UnitFeature),
@@ -32,14 +33,16 @@ class BuildingsProcessor(AgencyProcessor):
         self.table_configs = {}
         self.pk_map = {
             "units_cache": ["unit_id"],
-            "unit_features_cache": ["feature_id"],
+            "unit_features_cache": ["unit_id", "feature_id"],
             "transactions_cache": ["tx_id"],
         }
-        self._set_data_caches()
+        self._create_data_cache()
         # Create tables if not exist
         self._create_tables()
+        # Initialize persistent PK sets for deduplication across partitions
+        self._init_pk_sets()
 
-    def _set_data_caches(self):
+    def _create_data_cache(self):
         for cache_name in self.zh_table_configs.keys():
             self.caches[cache_name] = []
         for cache_name in self.table_configs.keys():
@@ -47,6 +50,12 @@ class BuildingsProcessor(AgencyProcessor):
 
     def _create_tables(self):
         Base.metadata.create_all(self.engine)
+
+    def _init_pk_sets(self):
+        """Initialize persistent PK sets for deduplication across partitions"""
+        self.pk_sets = {}
+        for cache_name in self.zh_table_configs.keys():
+            self.pk_sets[cache_name] = set()
 
     def map_building_info_response_to_table_dicts(
         self, building_info_response: BuildingInfoResponse
@@ -86,8 +95,14 @@ class BuildingsProcessor(AgencyProcessor):
     ) -> "UnitFeaturesFromTransactions":
         """
         Map transaction to TransactionsDetailModel
+        If keep_latest_transaction_only is True, only keep the latest transaction per unit
         """
         unit_features, bedroom, sitting_room = None, None, None
+        if self.keep_latest_transaction_only:
+            # Sort transactions by tx_date descending and take the first (latest)
+            sorted_transactions = sorted(transactions, key=lambda t: t.tx_date, reverse=True)
+            transactions = [sorted_transactions[0]] if sorted_transactions else transactions
+
         for transaction in transactions:
             # Get unit features from transactions info
             # Keep overwriting bedroom and sitting_room if multiple transactions exist, in case renovation
@@ -103,7 +118,11 @@ class BuildingsProcessor(AgencyProcessor):
             parsed_transaction = TransactionsDetailModel.from_response(
                 unit_id=unit_id, response=transaction
             )
-            self.caches["transactions_cache"].append(parsed_transaction.model_dump())
+            tx_dict = parsed_transaction.model_dump()
+            pk_tuple = tuple(tx_dict[key] for key in self.pk_map["transactions_cache"])
+            if pk_tuple not in self.pk_sets["transactions_cache"]:
+                self.pk_sets["transactions_cache"].add(pk_tuple)
+                self.caches["transactions_cache"].append(tx_dict)
         return UnitFeaturesFromTransactions(
             features=unit_features, bedroom=bedroom, sitting_room=sitting_room
         )
@@ -123,8 +142,11 @@ class BuildingsProcessor(AgencyProcessor):
             bedroom=unit_features_data.bedroom,
             sitting_room=unit_features_data.sitting_room,
         ).model_dump()
-        if unit_info_model and unit_info_model not in self.caches["units_cache"]:
-            self.caches["units_cache"].append(unit_info_model)
+        if unit_info_model:
+            pk_tuple = tuple(unit_info_model[key] for key in self.pk_map["units_cache"])
+            if pk_tuple not in self.pk_sets["units_cache"]:
+                self.pk_sets["units_cache"].add(pk_tuple)
+                self.caches["units_cache"].append(unit_info_model)
 
     def _map_unit_features_to_table_dicts(
         self,
@@ -139,7 +161,9 @@ class BuildingsProcessor(AgencyProcessor):
             feature_dict = UnitFeaturesModel.from_response(
                 unit_id=unit_id, response=feature
             ).model_dump()
-            if feature_dict not in self.caches["unit_features_cache"]:
+            pk_tuple = tuple(feature_dict[key] for key in self.pk_map["unit_features_cache"])
+            if pk_tuple not in self.pk_sets["unit_features_cache"]:
+                self.pk_sets["unit_features_cache"].add(pk_tuple)
                 self.caches["unit_features_cache"].append(feature_dict)
 
 

@@ -141,9 +141,10 @@ class Unit(Base):
 class UnitFeature(Base):
     __tablename__ = "unit_features"
     unit_id = Column(String, ForeignKey("units.unit_id"), nullable=False)
-    feature_id = Column(String, primary_key=True)
+    feature_id = Column(String, nullable=False)
     feature_name_zh = Column(String)
     feature_name_en = Column(String, nullable=False)
+    __table_args__ = (PrimaryKeyConstraint("unit_id", "feature_id"),)
 
 
 class Transactions(Base):

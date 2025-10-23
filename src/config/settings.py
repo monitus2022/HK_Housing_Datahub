@@ -26,9 +26,10 @@ class AgencyApiUrls(BaseModel):
     building_transactions: str
 
 
-# class WikiApiUrls(BaseModel):
-#     page_doc: str
-#     summary: str
+class WikiApiUrls(BaseModel):
+    # page_doc: str
+    # summary: str
+    search: str
 
 
 class AgencyApiConfig(BaseModel):
@@ -38,9 +39,8 @@ class AgencyApiConfig(BaseModel):
     # Load cookies from env file
     cookies_token: Optional[str] = Field(None, env="AGENCY_API_COOKIES_TOKEN")
 
-# class WikiApiConfig(BaseModel):
-#     urls: WikiApiUrls
-    # headers: Dict[str, str]
+class WikiApiConfig(BaseModel):
+    urls: WikiApiUrls
 
 
 class BaseStorageConfig(BaseModel):
@@ -56,7 +56,7 @@ class StorageConfig(BaseModel):
 
 class Settings(BaseSettings):
     agency_api: AgencyApiConfig
-    # wiki_api: WikiApiConfig
+    wiki_api: WikiApiConfig
     storage: StorageConfig
 
     model_config = SettingsConfigDict(

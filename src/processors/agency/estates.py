@@ -52,11 +52,13 @@ class EstatesProcessor(AgencyProcessor):
             "facilities_cache": ["facility_id"],
             "estate_monthly_market_info_cache": ["estate_id", "record_date"],
         }
-        self._set_data_caches()
+        self._create_data_cache()
         # Create tables if not exist
         self._create_tables()
+        # Initialize persistent PK sets for deduplication across partitions
+        self._init_pk_sets()
 
-    def _set_data_caches(self) -> None:
+    def _create_data_cache(self) -> None:
         self.caches = {
             "estate_ids_cache": [],
             "building_ids_cache": [],
@@ -81,6 +83,14 @@ class EstatesProcessor(AgencyProcessor):
 
     def _create_tables(self):
         Base.metadata.create_all(self.engine)
+
+    def _init_pk_sets(self):
+        """Initialize persistent PK sets for deduplication across partitions"""
+        self.pk_sets = {}
+        for cache_name in self.table_configs.keys():
+            self.pk_sets[cache_name] = set()
+        for cache_name in self.zh_table_configs.keys():
+            self.pk_sets[cache_name] = set()
 
     def process_all_estate_info_response(self, estate_info_response: Response) -> int:
         """
@@ -137,9 +147,10 @@ class EstatesProcessor(AgencyProcessor):
         if facilities:
             for facility in facilities:
                 facility_dict = facility.model_dump()
-                if facility_dict in self.caches["estate_facilities_cache"]:
-                    continue
-                self.caches["estate_facilities_cache"].append(facility_dict)
+                pk_tuple = tuple(facility_dict[key] for key in self.pk_map["estate_facilities_cache"])
+                if pk_tuple not in self.pk_sets["estate_facilities_cache"]:
+                    self.pk_sets["estate_facilities_cache"].add(pk_tuple)
+                    self.caches["estate_facilities_cache"].append(facility_dict)
 
         # Bilingual: get from both zh and en responses
         for cache_name, (table_model, _) in self.table_configs.items():
@@ -151,14 +162,16 @@ class EstatesProcessor(AgencyProcessor):
             elif type(content) is list:
                 for item in content:
                     item_dict = item.model_dump()
-                    if item_dict in self.caches[cache_name]:
-                        continue
-                    self.caches[cache_name].append(item_dict)
+                    pk_tuple = tuple(item_dict[key] for key in self.pk_map[cache_name])
+                    if pk_tuple not in self.pk_sets[cache_name]:
+                        self.pk_sets[cache_name].add(pk_tuple)
+                        self.caches[cache_name].append(item_dict)
             else:
                 content_dict = content.model_dump()
-                if content_dict in self.caches[cache_name]:
-                    continue
-                self.caches[cache_name].append(content_dict)
+                pk_tuple = tuple(content_dict[key] for key in self.pk_map[cache_name])
+                if pk_tuple not in self.pk_sets[cache_name]:
+                    self.pk_sets[cache_name].add(pk_tuple)
+                    self.caches[cache_name].append(content_dict)
 
     def map_single_estate_market_info_responses_to_table_dicts(
         self, response: EstateMonthlyMarketInfoResponse
@@ -171,10 +184,13 @@ class EstatesProcessor(AgencyProcessor):
         month_records = EstateMonthlyMarketInfoTableModel.from_response(
             response=response
         )
-        for month_record in month_records:
-            self.caches["estate_monthly_market_info_cache"].append(
-                month_record.model_dump()
-            )
+        if month_records:
+            for month_record in month_records:
+                record_dict = month_record.model_dump()
+                pk_tuple = tuple(record_dict[key] for key in self.pk_map["estate_monthly_market_info_cache"])
+                if pk_tuple not in self.pk_sets["estate_monthly_market_info_cache"]:
+                    self.pk_sets["estate_monthly_market_info_cache"].add(pk_tuple)
+                    self.caches["estate_monthly_market_info_cache"].append(record_dict)
 
     def create_building_ids_cache_from_building_cache(self) -> None:
         """

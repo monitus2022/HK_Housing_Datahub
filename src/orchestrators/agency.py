@@ -15,10 +15,19 @@ class AgencyOrchestrator:
     Orchestrates the crawling and processing of agency data.
     """
 
-    def __init__(self, debug_mode: bool = False, partition_size: int = 100):
+    def __init__(
+        self,
+        debug_mode: bool = False,
+        partition_size: int = 100,
+        keep_latest_transaction_only: bool = False,
+    ):
         self._init_crawlers()
-        self._init_processors()
+        self._init_processors(keep_latest_transaction_only=keep_latest_transaction_only)
         self.debug_mode = debug_mode
+        if self.debug_mode:
+            housing_logger.info(
+                "Debug mode is ON. Limiting data processing for faster runs."
+            )
         self.debug_estate_limit = 20  # Limit number of estates to process in debug mode
 
         self.partition_size = partition_size  # For batch processing
@@ -29,15 +38,25 @@ class AgencyOrchestrator:
         self.estates_crawler = EstatesCrawler(agency_session=self.agency_session)
         self.buildings_crawler = BuildingsCrawler(agency_session=self.agency_session)
 
-    def _init_processors(self):
+    def _init_processors(self, keep_latest_transaction_only: bool = False):
         self.estates_processor = EstatesProcessor()
-        self.buildings_processor = BuildingsProcessor()
+        self.buildings_processor = BuildingsProcessor(
+            keep_latest_transaction_only=keep_latest_transaction_only
+        )
 
     def run_estates_info_data_pipeline(self) -> None:
         """
         Run the complete data pipeline for estates data.
         """
         housing_logger.info("Starting estates data pipeline.")
+        # Prompt for confirmation before cleaning DB
+        confirm = input("The database will be cleaned completely before starting the pipeline. Confirm? (y/n): ")
+        if confirm.lower() != 'y':
+            housing_logger.info("Database cleaning cancelled. Aborting pipeline.")
+            return
+        # Clean local DB before starting pipeline
+        self.estates_processor.clean_local_db()
+        self.buildings_processor.clean_local_db()
 
         # Step 1: Fetch all estate IDs
         housing_logger.info("#1 Fetching all estate IDs.")
@@ -53,7 +72,7 @@ class AgencyOrchestrator:
         housing_logger.info("#3 Fetching and processing estate monthly market info.")
         for idx, estate_id_partition in enumerate(partitioned_estate_ids):
             housing_logger.info(
-                f"Processing estate monthly market info partition {idx + 1} / {len(partitioned_estate_ids)}."
+                f"Processing estate info and monthly market info partition {idx + 1} / {len(partitioned_estate_ids)}."
             )
             self._estate_infos(estate_ids=estate_id_partition)
             self._estate_monthly_market_infos(estate_ids=estate_id_partition)
@@ -120,8 +139,11 @@ class AgencyOrchestrator:
         self.estates_processor.create_building_ids_cache_from_building_cache()
 
         # Push to db and clear caches
-        self.estates_processor.insert_cache_into_db_tables(
-            config_maps=[self.estates_processor.zh_table_configs, self.estates_processor.table_configs]
+        self.estates_processor.bulk_insert_cache_into_db_tables(
+            config_maps=[
+                self.estates_processor.zh_table_configs,
+                self.estates_processor.table_configs,
+            ]
         )
         self.estates_processor.clear_data_caches(
             cache_excluded=[
@@ -145,10 +167,13 @@ class AgencyOrchestrator:
                     response=info
                 )
             time.sleep(0.1)
-        
+
         # Push to db and clear caches
-        self.estates_processor.insert_cache_into_db_tables(
-            config_maps=[self.estates_processor.zh_table_configs, self.estates_processor.table_configs]
+        self.estates_processor.bulk_insert_cache_into_db_tables(
+            config_maps=[
+                self.estates_processor.zh_table_configs,
+                self.estates_processor.table_configs,
+            ]
         )
         self.estates_processor.clear_data_caches(
             cache_excluded=[
@@ -172,7 +197,11 @@ class AgencyOrchestrator:
             )
 
         # Push to db and clear caches
-        self.buildings_processor.insert_cache_into_db_tables(
+        self.buildings_processor.bulk_insert_cache_into_db_tables(
             config_maps=[self.buildings_processor.zh_table_configs]
         )
         self.buildings_processor.clear_data_caches(cache_excluded=[])
+
+        # Close database sessions
+        self.estates_processor.close_session()
+        self.buildings_processor.close_session()

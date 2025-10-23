@@ -74,7 +74,7 @@ class SingleEstateInfoResponse(IgnoreExtraModel):
     subregion: Optional[IdNameOnlyField] = None
     district: IdNameOnlyField
     mtr_line: Optional[list[NameOnlyField]] = None
-    address: str
+    address: Optional[str] = None
     first_op_date: Optional[str] = None
     last_op_date: Optional[str] = None
     facilityGroup: Optional[list[IdNameOnlyField]] = None
