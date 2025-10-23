@@ -7,8 +7,8 @@ from config import housing_datahub_config
 from logger import housing_logger
 import json
 import pathlib
-import time
 import asyncio
+from typing import Dict, Any, Optional
 
 
 class WikiOrchestrator:
@@ -40,49 +40,72 @@ class WikiOrchestrator:
             # Close the session to free up database connections
             self.session.close()
 
-    async def _fetch_estate_wiki_data_async(self) -> dict:
+    async def _fetch_estate_wiki_data_async(self) -> Dict[str, Any]:
         estate_wiki_data = {}
-        total_start = time.time()
         housing_logger.info(f"Starting to fetch wiki data for {len(self.estate_list)} estates.")
 
-        for i, estate in enumerate(self.estate_list):
-            estate_start = time.time()
-            page_content = self.crawler.get_page_content(estate)
-            if not page_content:
-                housing_logger.warning(f"No page content found for estate: {estate}")
+        for estate in self.estate_list:
+            try:
+                page_content = self.crawler.get_page_content(estate)
+                if not page_content:
+                    housing_logger.warning(f"No page content found for estate: {estate}")
+                    continue
+
+                # Fetch wikitext for all sections concurrently
+                section_wikitexts = await self.crawler.fetch_section_wikitexts_concurrent(page_content)
+
+                # Process the page content with the fetched wikitext data
+                wiki_data = self.wiki_processor.process_page_content(
+                    page_content, section_wikitexts
+                )
+
+                if wiki_data is not None:
+                    estate_wiki_data[estate] = wiki_data
+                else:
+                    housing_logger.warning(f"Failed to process page content for estate: {estate}")
+
+            except Exception as e:
+                housing_logger.error(f"Failed to process estate '{estate}': {e}")
                 continue
 
-            # Fetch wikitext for all sections concurrently
-            section_wikitexts = await self.crawler.fetch_section_wikitexts_concurrent(page_content)
-
-            # Process the page content with the fetched wikitext data
-            wiki_data = self.wiki_processor.process_page_content(
-                page_content, section_wikitexts
-            )
-            estate_wiki_data[estate] = wiki_data
-
-        total_time = time.time() - total_start
-        housing_logger.info(f"Completed fetching Wikipedia data for all estates in {total_time:.2f}s.")
+        successful_count = len(estate_wiki_data)
+        total_count = len(self.estate_list)
+        housing_logger.info(f"Successfully processed {successful_count}/{total_count} estates.")
         return estate_wiki_data
 
-    def _fetch_estate_wiki_data(self) -> dict:
+    def _fetch_estate_wiki_data(self) -> Dict[str, Any]:
         """Synchronous wrapper for async method."""
-        # Create a new event loop if one doesn't exist
         try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Create a new event loop if one doesn't exist
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
 
-        # Run the async method with proper session management
-        async def run_with_session():
-            async with self.crawler:
-                return await self._fetch_estate_wiki_data_async()
+            # Run the async method with proper session management
+            async def run_with_session():
+                async with self.crawler:
+                    return await self._fetch_estate_wiki_data_async()
 
-        return loop.run_until_complete(run_with_session())
+            return loop.run_until_complete(run_with_session())
 
-    def run_estate_wiki_data_pipeline(self):
-        wiki_data = self._fetch_estate_wiki_data()
-        with open(self.wiki_processor.wiki_data_file_path, "w", encoding="utf-8") as f:
-            json.dump(wiki_data, f, ensure_ascii=False, indent=4)
-        return wiki_data
+        except Exception as e:
+            housing_logger.error(f"Failed to fetch estate wiki data: {e}")
+            return {}
+
+    def run_estate_wiki_data_pipeline(self) -> Optional[Dict[str, Any]]:
+        try:
+            wiki_data = self._fetch_estate_wiki_data()
+            if not wiki_data:
+                housing_logger.warning("No wiki data was successfully fetched")
+                return None
+
+            with open(self.wiki_processor.wiki_data_file_path, "w", encoding="utf-8") as f:
+                json.dump(wiki_data, f, ensure_ascii=False, indent=4)
+            housing_logger.info(f"Successfully saved wiki data to {self.wiki_processor.wiki_data_file_path}")
+            return wiki_data
+
+        except Exception as e:
+            housing_logger.error(f"Failed to run wiki data pipeline: {e}")
+            return None

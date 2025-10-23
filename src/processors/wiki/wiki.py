@@ -176,6 +176,39 @@ class WikiProcessor(BaseProcessor):
         sections = []
         section_wikitexts = section_wikitexts or {}
         housing_logger.info(f"Processing {len(page_content.sections)} sections for page '{page_content.title}'")
+
+        # Special handling for 日出康城: move table from '有蓋行人通道網絡' to '住宅部分'
+        if page_content.title == "日出康城":
+            # Find the sections
+            residential_section = None
+            walkway_section = None
+            for section in page_content.sections:
+                if section.title == "住宅部分":
+                    residential_section = section
+                elif section.title == "有蓋行人通道網絡":
+                    walkway_section = section
+
+            if residential_section and walkway_section:
+                # Get wikitext for both sections
+                residential_wikitext = self._get_section_wikitext(
+                    page_content, "住宅部分", section_wikitexts.get("住宅部分")
+                )
+                walkway_wikitext = self._get_section_wikitext(
+                    page_content, "有蓋行人通道網絡", section_wikitexts.get("有蓋行人通道網絡")
+                )
+
+                # Parse tables from walkway section
+                walkway_tables = self._parse_tables_from_wikitext(walkway_wikitext)
+
+                # Combine residential wikitext with walkway tables
+                if walkway_tables:
+                    # Add tables to residential section wikitext
+                    combined_wikitext = residential_wikitext + "\n" + walkway_wikitext
+                    section_wikitexts = section_wikitexts.copy()
+                    section_wikitexts["住宅部分"] = combined_wikitext
+                    # Remove tables from walkway section by setting empty wikitext
+                    section_wikitexts["有蓋行人通道網絡"] = ""
+
         for section in page_content.sections:
             section_start = time.time()
             section_text = section.text
@@ -198,6 +231,7 @@ class WikiProcessor(BaseProcessor):
             # Removed detailed debug logging for cleaner output
             output = WikiSection(title=section.title, text=section_text)
             if tables:
+                housing_logger.info(f"Found {len(tables)} table(s) in section '{section.title}'")
                 output.tables = tables
             sections.append(output.model_dump())
         total_time = time.time() - start_time
