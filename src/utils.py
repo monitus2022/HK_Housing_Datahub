@@ -38,11 +38,13 @@ def parse_response(response: Response, model: BaseModel) -> Optional[BaseModel]:
     """
     try:
         data = response.json()
+        housing_logger.debug(f"Full JSON response for {model.__name__}: {data}")
         return model(**data)
     except ValueError as e:
         housing_logger.error(
             f"Failed to parse JSON response to pydantic model: {model.__name__}. Error: {e}"
         )
+        housing_logger.debug(f"Raw response text: {response.text}")
         return None
 
 

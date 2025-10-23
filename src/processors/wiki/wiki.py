@@ -2,7 +2,7 @@ import mwparserfromhell
 import re
 from logger import housing_logger
 from typing import Optional
-from models.wiki.outputs import WikiPage, WikiSection, WikiTable
+from models.wiki.outputs import WikiTable
 from processors.base import BaseProcessor
 from wikipediaapi import WikipediaPage
 from config import housing_datahub_config
@@ -63,6 +63,19 @@ class WikiProcessor(BaseProcessor):
         """Extract table nodes from parsed wikitext."""
         return parsed.filter_tags(matches=lambda node: node.tag == "table")
 
+    def _clean_wiki_text(self, text: str) -> str:
+        """Clean wiki markup from text, such as links and HTML tags."""
+        import re
+        # Remove wiki links: [[link|text]] -> text
+        text = re.sub(r'\[\[([^|]+)\|([^]]+)\]\]', r'\2', text)
+        # Remove simple wiki links: [[text]] -> text
+        text = re.sub(r'\[\[([^]]+)\]\]', r'\1', text)
+        # Remove <br> tags
+        text = re.sub(r'<br\s*/?>', '', text)
+        # Remove other common HTML tags if present
+        text = re.sub(r'<[^>]+>', '', text)
+        return text.strip()
+
     def _parse_table_rows(self, table_node):
         """Parse rows and cells from a table node, extracting text, colspan, and rowspan."""
         rows = []
@@ -74,6 +87,7 @@ class WikiProcessor(BaseProcessor):
                 matches=lambda node: node.tag in ["td", "th"]
             ):
                 cell_text = str(cell_node.contents).strip()
+                cell_text = self._clean_wiki_text(cell_text)
                 colspan = self._get_colspan(cell_node)
                 rowspan = self._get_rowspan(cell_node)
                 row_cells.append((cell_text, colspan, rowspan))
@@ -172,45 +186,11 @@ class WikiProcessor(BaseProcessor):
     def process_page_content(
         self, page_content: WikipediaPage, section_wikitexts: Optional[dict] = None
     ) -> Optional[dict]:
-        start_time = time.time()
         sections = []
+        all_tables = []
         section_wikitexts = section_wikitexts or {}
-        housing_logger.info(f"Processing {len(page_content.sections)} sections for page '{page_content.title}'")
-
-        # Special handling for 日出康城: move table from '有蓋行人通道網絡' to '住宅部分'
-        if page_content.title == "日出康城":
-            # Find the sections
-            residential_section = None
-            walkway_section = None
-            for section in page_content.sections:
-                if section.title == "住宅部分":
-                    residential_section = section
-                elif section.title == "有蓋行人通道網絡":
-                    walkway_section = section
-
-            if residential_section and walkway_section:
-                # Get wikitext for both sections
-                residential_wikitext = self._get_section_wikitext(
-                    page_content, "住宅部分", section_wikitexts.get("住宅部分")
-                )
-                walkway_wikitext = self._get_section_wikitext(
-                    page_content, "有蓋行人通道網絡", section_wikitexts.get("有蓋行人通道網絡")
-                )
-
-                # Parse tables from walkway section
-                walkway_tables = self._parse_tables_from_wikitext(walkway_wikitext)
-
-                # Combine residential wikitext with walkway tables
-                if walkway_tables:
-                    # Add tables to residential section wikitext
-                    combined_wikitext = residential_wikitext + "\n" + walkway_wikitext
-                    section_wikitexts = section_wikitexts.copy()
-                    section_wikitexts["住宅部分"] = combined_wikitext
-                    # Remove tables from walkway section by setting empty wikitext
-                    section_wikitexts["有蓋行人通道網絡"] = ""
 
         for section in page_content.sections:
-            section_start = time.time()
             section_text = section.text
             # Always include 1 level subsections' text
             if not section_text.strip():
@@ -219,21 +199,17 @@ class WikiProcessor(BaseProcessor):
                 for subsection in section.sections:
                     section_text += f"\n{subsection.text}"
             # Get raw wikitext for table parsing (from provided data or fallback)
-            wikitext_start = time.time()
             section_wikitext = self._get_section_wikitext(
                 page_content, section.title, section_wikitexts.get(section.title)
             )
-            wikitext_time = time.time() - wikitext_start
             # Parse tables from the raw wikitext
-            parse_start = time.time()
             tables = self._parse_tables_from_wikitext(section_wikitext)
-            parse_time = time.time() - parse_start
-            # Removed detailed debug logging for cleaner output
-            output = WikiSection(title=section.title, text=section_text)
             if tables:
-                housing_logger.info(f"Found {len(tables)} table(s) in section '{section.title}'")
-                output.tables = tables
-            sections.append(output.model_dump())
-        total_time = time.time() - start_time
-        housing_logger.info(f"Completed processing page '{page_content.title}' in {total_time:.2f}s")
-        return WikiPage(title=page_content.title, sections=sections).model_dump()
+                all_tables.extend(tables)
+            # For normal sections, only title and text fields are kept
+            sections.append({"title": section.title, "text": section_text})
+        # If tables are found, save them into tables on same level of sections in the dict
+        result = {"title": page_content.title, "sections": sections}
+        if all_tables:
+            result["tables"] = all_tables
+        return result

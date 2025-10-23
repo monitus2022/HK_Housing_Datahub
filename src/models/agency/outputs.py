@@ -6,7 +6,6 @@ from .responses import (
     SingleEstateInfoResponse,
     EstateMonthlyMarketInfoResponse,
     EstateMonthlyMarketInfoRecord,
-    EstateMonthlyMarketInfoResponses,
     TransactionsDetailField,
     UnitInfoField,
 )
@@ -130,8 +129,8 @@ class FacilitiesTableModel(BilingualBaseModel):
 class EstateSchoolNetTableModel(BilingualBaseModel):
     estate_id: str
     school_net_id: str
-    school_net_name_zh: Optional[str] = None
-    school_net_name_en: Optional[str] = None
+    school_net_name_zh: str
+    school_net_name_en: str
 
     @classmethod
     def from_both_responses(
@@ -146,13 +145,13 @@ class EstateSchoolNetTableModel(BilingualBaseModel):
             school_net_id=zh_response.school_net.primary.id,
             school_net_name_zh=(
                 zh_response.school_net.secondary.name
-                if zh_response.school_net.secondary
-                else None
+                if zh_response.school_net.secondary and zh_response.school_net.secondary.name
+                else ""
             ),
             school_net_name_en=(
                 en_response.school_net.secondary.name
-                if en_response.school_net.secondary
-                else None
+                if en_response.school_net.secondary and en_response.school_net.secondary.name
+                else ""
             ),
         )
 
