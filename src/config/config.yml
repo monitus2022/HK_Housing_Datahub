@@ -50,6 +50,17 @@ storage:
       batch_size: 100
       embedding_dimensions: 384
 
+# Cloud storage configuration - choose one service
+cloud_storage:
+  service_type: "cloudflare"  # Options: cloudflare, aws
+
+# Cloudflare R2 configuration
 cloudflare:
   endpoint_url: "https://{account_id}.r2.cloudflarestorage.com"
   bucket_name: "hk-housing-datahub"
+  region: "auto"
+
+# AWS S3 configuration (use when service_type is "aws")
+aws:
+  bucket_name: "hk-housing-datahub"
+  region: "us-east-1"

@@ -1,1 +1,1 @@
-from .settings import housing_datahub_config, cloudflare_secrets
+from .settings import housing_datahub_config, cloud_storage_secrets

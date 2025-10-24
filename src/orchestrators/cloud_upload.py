@@ -1,44 +1,69 @@
 import boto3
 from pathlib import Path
-from config import housing_datahub_config, cloudflare_secrets
+from config import housing_datahub_config, cloud_storage_secrets
 from logger import housing_logger
 
 
 class CloudUploadOrchestrator:
     """
-    Orchestrator for uploading files to Cloudflare R2 object storage.
+    Orchestrator for uploading files to S3-compatible object storage (Cloudflare R2, AWS S3, etc.).
     """
 
     def __init__(self):
         self.s3_client = None
-        self.bucket_name = housing_datahub_config.cloudflare.bucket_name
-        self.account_id = cloudflare_secrets.account_id
-        self.access_key_id = cloudflare_secrets.access_key_id
-        self.secret_access_key = cloudflare_secrets.secret_access_key
+        self.service_type = housing_datahub_config.cloud_storage.service_type
+
+        # Get configuration based on service type
+        if self.service_type == 'aws':
+            self.bucket_name = housing_datahub_config.aws.bucket_name
+            self.region = housing_datahub_config.aws.region
+            self.account_id = None
+        elif self.service_type == 'cloudflare':
+            self.bucket_name = housing_datahub_config.cloudflare.bucket_name
+            self.region = housing_datahub_config.cloudflare.region
+            self.account_id = cloud_storage_secrets.account_id
+        else:
+            raise ValueError(f"Unsupported service type: {self.service_type}")
+
+        self.access_key_id = cloud_storage_secrets.access_key_id
+        self.secret_access_key = cloud_storage_secrets.secret_access_key
 
         self._initialize_s3_client()
 
     def _initialize_s3_client(self):
-        """Initialize the S3 client for Cloudflare R2."""
+        """Initialize the S3 client for the configured service."""
         try:
+            # Determine endpoint URL and region based on service type
+            if self.service_type == 'aws':
+                endpoint_url = f"https://s3.{self.region}.amazonaws.com"
+                region_name = self.region
+                service_name = "AWS S3"
+            elif self.service_type == 'cloudflare':
+                endpoint_url = housing_datahub_config.cloudflare.endpoint_url.format(account_id=self.account_id)
+                region_name = self.region
+                service_name = "Cloudflare R2"
+            else:
+                raise ValueError(f"Unsupported service type: {self.service_type}")
+
             self.s3_client = boto3.client(
                 's3',
-                endpoint_url=housing_datahub_config.cloudflare.endpoint_url.format(account_id=self.account_id),
+                endpoint_url=endpoint_url,
                 aws_access_key_id=self.access_key_id,
                 aws_secret_access_key=self.secret_access_key,
-                region_name='auto'  # Cloudflare R2 uses 'auto' region
+                region_name=region_name
             )
-            housing_logger.info("Cloudflare R2 S3 client initialized successfully")
+            housing_logger.info(f"{service_name} S3 client initialized successfully")
         except Exception as e:
-            housing_logger.error(f"Failed to initialize Cloudflare R2 S3 client: {e}")
+            housing_logger.error(f"Failed to initialize {self.service_type} S3 client: {e}")
             raise
 
     def upload_files_from_data_folder(self):
         """
-        Upload all files from the data folder to Cloudflare R2 bucket.
+        Upload all files from the data folder to the configured S3-compatible bucket.
         """
         try:
-            housing_logger.info("Starting upload of files from data folder to Cloudflare R2")
+            service_name = "AWS S3" if self.service_type == 'aws' else "Cloudflare R2"
+            housing_logger.info(f"Starting upload of files from data folder to {service_name}")
 
             data_path = Path(housing_datahub_config.storage.root_path)
 
@@ -48,14 +73,15 @@ class CloudUploadOrchestrator:
 
             # Walk through all files in the data directory
             for file_path in data_path.rglob('*'):
-                if file_path.is_file():
+                if file_path.is_file() and file_path.name != '.DS_Store':
                     # Get relative path for S3 key
                     relative_path = file_path.relative_to(data_path.parent)
                     s3_key = str(relative_path)
 
                     self._upload_file(str(file_path), s3_key)
 
-            housing_logger.info("Upload of files from data folder completed successfully")
+            service_name = "AWS S3" if self.service_type == 'aws' else "Cloudflare R2"
+            housing_logger.info(f"Upload of files from data folder to {service_name} completed successfully")
 
         except Exception as e:
             housing_logger.error(f"Upload failed: {e}")
@@ -63,7 +89,7 @@ class CloudUploadOrchestrator:
 
     def _upload_file(self, local_file_path: str, s3_key: str):
         """
-        Upload a single file to Cloudflare R2.
+        Upload a single file to the configured S3-compatible service.
 
         Args:
             local_file_path: Path to the local file

@@ -1,10 +1,17 @@
-from orchestrators import AgencyOrchestrator, WikiOrchestrator, RAGOrchestrator, CloudUploadOrchestrator
+from orchestrators import (
+    AgencyOrchestrator,
+    WikiOrchestrator,
+    RAGOrchestrator,
+    CloudUploadOrchestrator,
+)
+
 
 def main():
+    # # Run data pipelines
     # agency_orchestrator = AgencyOrchestrator(
     #     debug_mode=False,
     #     keep_latest_transaction_only=False,
-    #     )
+    # )
     # agency_orchestrator.run_estates_info_data_pipeline()
     # wiki_orchestrator = WikiOrchestrator()
     # wiki_orchestrator.run_estate_wiki_data_pipeline()
@@ -16,6 +23,7 @@ def main():
     # Upload data to Cloudflare R2
     cloud_upload_orchestrator = CloudUploadOrchestrator()
     cloud_upload_orchestrator.upload_files_from_data_folder()
+
 
 if __name__ == "__main__":
     main()

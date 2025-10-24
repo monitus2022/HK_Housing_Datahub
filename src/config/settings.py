@@ -55,15 +55,23 @@ class WikiApiConfig(BaseModel):
     urls: WikiApiUrls
 
 
+class CloudStorageConfig(BaseModel):
+    service_type: str = "cloudflare"
+
 class CloudflareConfig(BaseModel):
     endpoint_url: str
     bucket_name: str
+    region: str = "auto"
+
+class AWSConfig(BaseModel):
+    bucket_name: str
+    region: str = "us-east-1"
 
 
-class CloudflareSecrets(BaseSettings):
-    account_id: str = Field(alias="cloudflare_account_id")
-    access_key_id: str = Field(alias="cloudflare_access_key_id")
-    secret_access_key: str = Field(alias="cloudflare_secret_access_key")
+class CloudStorageSecrets(BaseSettings):
+    account_id: Optional[str] = Field(None, alias="cloudflare_account_id")  # Only needed for Cloudflare
+    access_key_id: str = Field(alias="cloud_storage_access_key_id")
+    secret_access_key: str = Field(alias="cloud_storage_secret_access_key")
 
     model_config = SettingsConfigDict(
         env_file=env_path if env_path.exists() else None,
@@ -94,7 +102,9 @@ class Settings(BaseSettings):
     agency_api: AgencyApiConfig
     wiki_api: WikiApiConfig
     storage: StorageConfig
+    cloud_storage: CloudStorageConfig
     cloudflare: CloudflareConfig
+    aws: AWSConfig
 
     model_config = SettingsConfigDict(
         extra="allow",
@@ -106,4 +116,4 @@ class Settings(BaseSettings):
 
 # Create separate settings instances
 housing_datahub_config = Settings(**yaml_data)
-cloudflare_secrets = CloudflareSecrets()
+cloud_storage_secrets = CloudStorageSecrets()
