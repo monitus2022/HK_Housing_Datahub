@@ -15,10 +15,6 @@ class RAGOrchestrator:
     def run_text_embedding_pipeline(self):
         """
         Run the complete text embedding pipeline.
-
-        Args:
-            upload_to_cloud: Whether to upload ChromaDB to cloud storage
-            cloud_bucket: S3 bucket name for cloud upload
         """
         try:
             housing_logger.info("Starting RAG text embedding pipeline")

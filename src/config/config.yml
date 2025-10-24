@@ -49,3 +49,7 @@ storage:
       chunk_overlap: 50
       batch_size: 100
       embedding_dimensions: 384
+
+cloudflare:
+  endpoint_url: "https://{account_id}.r2.cloudflarestorage.com"
+  bucket_name: "hk-housing-datahub"
