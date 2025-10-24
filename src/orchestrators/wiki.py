@@ -12,6 +12,8 @@ from typing import Dict, Any, Optional
 
 
 class WikiOrchestrator:
+    """Orchestrator for fetching and processing Wikipedia data for housing estates."""
+
     def __init__(self, partition_count: int = 10):
         self.partition_count = partition_count
         self.crawler = WikiCrawler()
@@ -50,6 +52,64 @@ class WikiOrchestrator:
             # Close the session to free up database connections
             self.session.close()
 
+    def _calculate_partition_size(self, total_estates: int) -> int:
+        """Calculate the size of each partition for processing estates."""
+        partition_size = total_estates // self.partition_count
+        if partition_size == 0:
+            partition_size = (
+                1  # Ensure at least 1 estate per partition if total < partition_count
+            )
+        return partition_size
+
+    def _get_partition_estates(
+        self, partition_idx: int, partition_size: int, total_estates: int
+    ) -> list[str]:
+        """Get the list of estates for a specific partition."""
+        start_idx = partition_idx * partition_size
+        end_idx = (
+            start_idx + partition_size
+            if partition_idx < self.partition_count - 1
+            else total_estates
+        )
+        return self.estate_list[start_idx:end_idx]
+
+    async def _process_estate_partition(
+        self, partition_estates: list[str]
+    ) -> Dict[str, Any]:
+        """Process a partition of estates and return the wiki data."""
+        partition_data = {}
+        for estate in partition_estates:
+            try:
+                page_content = self.crawler.get_page_content(estate)
+                if not page_content:
+                    housing_logger.warning(
+                        f"No page content found for estate: {estate}"
+                    )
+                    continue
+
+                # Fetch wikitext for all sections concurrently
+                section_wikitexts = (
+                    await self.crawler.fetch_section_wikitexts_concurrent(page_content)
+                )
+
+                # Process the page content with the fetched wikitext data
+                wiki_data = self.wiki_processor.process_page_content(
+                    page_content, section_wikitexts
+                )
+
+                if wiki_data is not None:
+                    partition_data[estate] = wiki_data
+                else:
+                    housing_logger.warning(
+                        f"Failed to process page content for estate: {estate}"
+                    )
+
+            except Exception as e:
+                housing_logger.error(f"Failed to process estate '{estate}': {e}")
+                continue
+
+        return partition_data
+
     def _flush_partition_to_local(
         self, partition_data: Dict[str, Any], partition_idx: int
     ):
@@ -70,63 +130,25 @@ class WikiOrchestrator:
             )
 
     async def _fetch_estate_wiki_data_async(self) -> Dict[str, Any]:
+        """Asynchronously fetch Wikipedia data for all estates using partitioned processing."""
         estate_wiki_data = {}
         housing_logger.info(
             f"Starting to fetch wiki data for {len(self.estate_list)} estates."
         )
 
         total_estates = len(self.estate_list)
-        partition_size = total_estates // self.partition_count
-        if partition_size == 0:
-            partition_size = (
-                1  # Ensure at least 1 estate per partition if total < partition_count
-            )
+        partition_size = self._calculate_partition_size(total_estates)
 
         for partition_idx in range(self.partition_count):
-            start_idx = partition_idx * partition_size
-            end_idx = (
-                start_idx + partition_size
-                if partition_idx < self.partition_count - 1
-                else total_estates
+            partition_estates = self._get_partition_estates(
+                partition_idx, partition_size, total_estates
             )
-            partition_estates = self.estate_list[start_idx:end_idx]
 
             housing_logger.info(
                 f"Processing partition {partition_idx + 1}/{self.partition_count} with {len(partition_estates)} estates."
             )
 
-            partition_data = {}
-            for estate in partition_estates:
-                try:
-                    page_content = self.crawler.get_page_content(estate)
-                    if not page_content:
-                        housing_logger.warning(
-                            f"No page content found for estate: {estate}"
-                        )
-                        continue
-
-                    # Fetch wikitext for all sections concurrently
-                    section_wikitexts = (
-                        await self.crawler.fetch_section_wikitexts_concurrent(
-                            page_content
-                        )
-                    )
-
-                    # Process the page content with the fetched wikitext data
-                    wiki_data = self.wiki_processor.process_page_content(
-                        page_content, section_wikitexts
-                    )
-
-                    if wiki_data is not None:
-                        partition_data[estate] = wiki_data
-                    else:
-                        housing_logger.warning(
-                            f"Failed to process page content for estate: {estate}"
-                        )
-
-                except Exception as e:
-                    housing_logger.error(f"Failed to process estate '{estate}': {e}")
-                    continue
+            partition_data = await self._process_estate_partition(partition_estates)
 
             # Flush partition data to local storage
             if partition_data:
@@ -164,14 +186,14 @@ class WikiOrchestrator:
             return {}
 
     def run_estate_wiki_data_pipeline(self) -> Optional[Dict[str, Any]]:
+        """Run the complete Wikipedia data pipeline for estates."""
         try:
             wiki_data = self._fetch_estate_wiki_data()
             if not wiki_data:
                 housing_logger.warning("No wiki data was successfully fetched")
                 return None
 
-            # Note: Individual partitions are already flushed to local storage in _fetch_estate_wiki_data_async
-            # Here we save the complete aggregated data as well
+            # Save the complete aggregated data
             with open(
                 self.wiki_processor.wiki_data_file_path, "w", encoding="utf-8"
             ) as f:
