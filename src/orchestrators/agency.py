@@ -20,6 +20,7 @@ class AgencyOrchestrator:
         debug_mode: bool = False,
         partition_size: int = 100,
         keep_latest_transaction_only: bool = False,
+        allow_cleanup_db: bool = False
     ):
         self._init_crawlers()
         self._init_processors(keep_latest_transaction_only=keep_latest_transaction_only)
@@ -29,7 +30,7 @@ class AgencyOrchestrator:
                 "Debug mode is ON. Limiting data processing for faster runs."
             )
         self.debug_estate_limit = 20  # Limit number of estates to process in debug mode
-
+        self.allow_cleanup_db = allow_cleanup_db
         self.partition_size = partition_size  # For batch processing
 
     def _init_crawlers(self):
@@ -50,13 +51,14 @@ class AgencyOrchestrator:
         """
         housing_logger.info("Starting estates data pipeline.")
         # Prompt for confirmation before cleaning DB
-        confirm = input("The database will be cleaned completely before starting the pipeline. Confirm? (y/n): ")
-        if confirm.lower() != 'y':
-            housing_logger.info("Database cleaning cancelled. Aborting pipeline.")
-            return
-        # Clean local DB before starting pipeline
-        self.estates_processor.clean_local_db()
-        self.buildings_processor.clean_local_db()
+        if self.allow_cleanup_db:
+            confirm = input("The database will be cleaned completely before starting the pipeline. Confirm? (y/n): ")
+            if confirm.lower() != 'y':
+                housing_logger.info("Database cleaning cancelled. Aborting pipeline.")
+                return
+            # Clean local DB before starting pipeline
+            self.estates_processor.clean_local_db()
+            self.buildings_processor.clean_local_db()
 
         # Step 1: Fetch all estate IDs
         housing_logger.info("#1 Fetching all estate IDs.")

@@ -38,4 +38,29 @@ storage:
   wiki:
     path: "wiki/"
     files:
-      pages: "estate_wiki_data_{num}.json"
+      pages: "wiki_data_partition_{num}.json"
+  rag:
+    path: "rag/"
+    files:
+      chroma_db: "chroma_db/"
+      embeddings_model: "paraphrase-multilingual-MiniLM-L12-v2"
+    settings:
+      chunk_size: 500
+      chunk_overlap: 50
+      batch_size: 100
+      embedding_dimensions: 384
+
+# Cloud storage configuration - choose one service
+cloud_storage:
+  service_type: "cloudflare"  # Options: cloudflare, aws
+
+# Cloudflare R2 configuration
+cloudflare:
+  endpoint_url: "https://{account_id}.r2.cloudflarestorage.com"
+  bucket_name: "hk-housing-datahub"
+  region: "auto"
+
+# AWS S3 configuration (use when service_type is "aws")
+aws:
+  bucket_name: "hk-housing-datahub"
+  region: "us-east-1"
