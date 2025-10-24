@@ -38,4 +38,14 @@ storage:
   wiki:
     path: "wiki/"
     files:
-      pages: "estate_wiki_data_{num}.json"
+      pages: "wiki_data_partition_{num}.json"
+  rag:
+    path: "rag/"
+    files:
+      chroma_db: "chroma_db/"
+      embeddings_model: "paraphrase-multilingual-MiniLM-L12-v2"
+    settings:
+      chunk_size: 500
+      chunk_overlap: 50
+      batch_size: 100
+      embedding_dimensions: 384

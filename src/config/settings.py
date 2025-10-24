@@ -48,10 +48,17 @@ class BaseStorageConfig(BaseModel):
     files: Dict[str, str]
 
 
+class RAGStorageConfig(BaseModel):
+    path: str
+    files: Dict[str, str]
+    settings: Dict[str, int]
+
+
 class StorageConfig(BaseModel):
     root_path: str
     agency: BaseStorageConfig
     wiki: BaseStorageConfig
+    rag: RAGStorageConfig
 
 
 class Settings(BaseSettings):

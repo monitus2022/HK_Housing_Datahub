@@ -5,10 +5,7 @@ from abc import abstractmethod
 from sqlalchemy import create_engine, text
 import os
 import json
-from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import sessionmaker
-from time import time
-from collections import defaultdict
 from models.agency.sql_db import Base
 
 
@@ -79,33 +76,6 @@ class AgencyProcessor(BaseProcessor):
                 json.dump(data_list, f, ensure_ascii=False, indent=4)
             housing_logger.info(f"Exported {cache_name} to {output_file_path}.")
 
-    # def insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
-    #     """
-    #     Bulk upsert cached data into database tables
-    #     Using bulk INSERT with on_conflict_do_nothing to avoid duplicates
-    #     """
-    #     housing_logger.info("Bulk upserting cached data into database tables.")
-    #     table_data = defaultdict(list)
-
-    #     for table_config in config_maps:
-    #         for cache_name, (_, db_table_class) in table_config.items():
-    #             data_list = self.caches.get(cache_name, [])
-    #             if data_list:
-    #                 table_data[db_table_class].extend(data_list)
-
-    #     for db_table_class, data_list in table_data.items():
-    #         if data_list:
-    #             start_time = time()
-    #             stmt = insert(db_table_class).values(data_list).on_conflict_do_nothing()
-    #             self.session.execute(stmt)
-    #             end_time = time()
-    #             housing_logger.debug(
-    #                 f"Bulk upserted {len(data_list)} records into {db_table_class.__tablename__} in {end_time - start_time:.2f} seconds."
-    #             )
-
-    #     self.session.commit()
-    #     self.session.close()  # Close session to free up connections
-    #     housing_logger.info("Bulk data upsertion completed.")
 
     def bulk_insert_cache_into_db_tables(self, config_maps: list[dict] = None) -> None:
         """
