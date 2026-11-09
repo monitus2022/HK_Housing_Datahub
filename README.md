@@ -97,6 +97,9 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
+# For a test/CI-only environment without the optional RAG/cloud stack:
+# pip install -r requirements-core.txt -r requirements-dev.txt
+
 # Optional: copy the template and fill credentials only if you will upload.
 cp .env.template .env
 
@@ -220,17 +223,23 @@ python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
 # Dev tooling: pytest and ruff
 pip install -r requirements-dev.txt
 
-# Phase 2/3 tests: upserts, run metadata, and quality checks; no network
+# Fixture/DB tests: upserts, run metadata, quality, response models, and mapping
 pytest -q
 
 # Lint the files touched by the tidy-up so far
-ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py src/quality
+ruff check src/main.py src/quality src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
+
+# Optional shortcuts
+make test
+make lint
+make quality
 ```
 
-`tests/` currently contains the Phase 2 upsert/run-metadata tests and Phase 3
-quality tests (31 total). Broader fixture coverage and the CI workflow are
-Phase 4. Quality check details and thresholds are in
-[`docs/quality.md`](docs/quality.md).
+`tests/` contains the Phase 2–4 tests (44 total): upserts, run metadata,
+quality checks, response-model parsing, table mapping, and duplicate-input
+dedupe. The CI workflow in `.github/workflows/ci-cd.yml` installs
+`requirements-core.txt` + `requirements-dev.txt` and runs the same tests and
+lint. Quality details and thresholds are in [`docs/quality.md`](docs/quality.md).
 
 ## Known limitations
 
@@ -256,18 +265,19 @@ Phase 4. Quality check details and thresholds are in
   service.
 - The reference snapshot ends 2025-10-21; the project does not run on a
   schedule yet.
+- CI installs core dependencies only; the optional RAG and cloud-upload code is
+  not exercised in CI.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap
 
-1. Phase 0–3: baseline, repo presentation, config safety, idempotent upserts,
-   and data-quality checks. *(implemented; see PRs #24, #25, #26, and the
-   Phase 3 PR)*
-2. Phase 4: fixtures, tests, and CI.
-3. Phase 5: analytics marts.
-4. Phase 6: versioned serving snapshot and R2 publish.
-5. Phase 7–8: optional sample data and final handoff.
-6. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+1. Phase 0–4: baseline, repo presentation, config safety, idempotent upserts,
+   data-quality checks, fixture tests, and CI. *(implemented; see PRs #24–#27
+   and the Phase 4 PR)*
+2. Phase 5: analytics marts.
+3. Phase 6: versioned serving snapshot and R2 publish.
+4. Phase 7–8: optional sample data and final handoff.
+5. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 
 ## Disclaimer
 

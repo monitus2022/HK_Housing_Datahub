@@ -200,17 +200,28 @@ legacy uploader only for private storage.
 ## Tests and checks
 
 ```bash
+# Core test environment (no RAG/cloud extras)
+pip install -r requirements-core.txt -r requirements-dev.txt
+
 # Available now
 python3 scripts/baseline_stats.py
 python scripts/run_quality.py --db data/agency/agency_data.db --fail-on none
 pytest -q
+ruff check src/main.py src/quality src/processors/agency \
+  src/models/agency/sql_db.py src/orchestrators scripts tests
 
-# Lint the files touched by the tidy-up so far; full-tree cleanup is Phase 4
-ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py src/quality
+# Shortcuts
+make test
+make lint
+make quality
+make quality-strict
 ```
 
-`tests/` contains the Phase 2 upsert/run-metadata tests and the Phase 3 quality
-tests. The CI workflow is still empty; CI is Phase 4.
+`tests/` contains the Phase 2–4 tests (44 total): upserts, run metadata,
+quality checks, response models, table mapping, and duplicate-input dedupe. The
+CI workflow (`.github/workflows/ci-cd.yml`) installs core + dev dependencies,
+checks that `config` imports without `.env`, compiles, runs `pytest`, and runs
+ruff on the touched modules.
 
 ## Common failures
 

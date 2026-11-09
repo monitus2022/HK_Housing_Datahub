@@ -167,6 +167,22 @@ Run metadata lives in the `pipeline_runs` table in the same SQLite database.
 `data/` is gitignored. The reference DB is about 320 MB and must be treated as
 read-only during development unless a temporary copy is used.
 
+## Dependencies and CI
+
+Runtime dependencies are split by concern:
+
+| File | Contents |
+|---|---|
+| `requirements-core.txt` | Crawling, parsing, SQLite, config, logging |
+| `requirements-rag.txt` | Sentence Transformers and ChromaDB |
+| `requirements-cloud.txt` | boto3 |
+| `requirements.txt` | Full runtime: core + RAG + cloud |
+| `requirements-dev.txt` | pytest and ruff |
+
+`src/orchestrators/__init__.py` uses lazy exports, so importing
+`orchestrators.agency` does not pull in the RAG or cloud stacks. CI installs
+core + dev only; the optional RAG/cloud paths are not exercised there.
+
 ## Configuration and secrets
 
 - YAML: `src/config/config.yml` (URLs, headers, storage paths, cloud service
@@ -186,7 +202,7 @@ credentials.
 - The raw schema is the current contract; Phase 2 added idempotent upserts and
   the `pipeline_runs` table without renaming existing tables.
 - Phase 3 added `src/quality/` checks and JSON/Markdown reports.
-- Phase 4 adds fixtures, broader tests, and CI.
+- Phase 4 added fixture-based tests, broader coverage, and CI.
 - Phase 5 adds analytics marts and dashboard indexes.
 - Phase 6 adds a versioned serving snapshot and retires/gates the legacy raw
   uploader.
