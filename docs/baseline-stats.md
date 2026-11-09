@@ -94,7 +94,7 @@ median ~8,020; p1 ~1,868; p99 ~30,597; max ~1,890,482.
 This was an uncommitted local choice and is preserved intentionally in the
 Phase 0 commit. RAG reruns are **not** idempotent today: the embedding pipeline
 uses Chroma `collection.add()`, which raises when IDs already exist. Fixing
-that belongs to a later phase.
+that is tracked separately in issue #17.
 
 ## Known gaps confirmed at snapshot time
 
@@ -111,7 +111,7 @@ that belongs to a later phase.
 
 ## Reproduce
 
-The committed script prints every number in this document:
+The committed script prints every database metric in this document:
 
 ```bash
 python3 scripts/baseline_stats.py
@@ -119,4 +119,5 @@ python3 scripts/baseline_stats.py
 
 It opens the agency database with SQLite's `mode=ro` URI and the Chroma
 database read-only, so it cannot modify either one. Pass `--db PATH` to point
-at a different copy.
+at a different copy of the agency database; the wiki and Chroma paths are
+resolved from the current working directory, so run it from the repo root.
