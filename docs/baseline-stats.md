@@ -4,6 +4,11 @@ Reference snapshot for the tidy-up workplan. All database queries were
 read-only against `data/agency/agency_data.db`. No data or secrets were
 modified.
 
+> **Snapshot note:** this file records the Phase 0 state. Phase 1 subsequently
+> made cloud-storage secrets lazy, added `.dockerignore`, and reconciled the
+> schema diagram. See the README for current behavior; the numbers below remain
+> the reference data snapshot.
+
 - Repository: `monitus2022/HK_Housing_Datahub`
 - Base branch: `dev` @ `92bc704`. `origin/main` contains `dev` plus the merge
   commits through PR #12: `origin/main` is 3 commits ahead of `dev`, and

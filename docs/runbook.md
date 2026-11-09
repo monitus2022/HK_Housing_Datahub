@@ -1,0 +1,220 @@
+# Runbook
+
+Operational notes for running, resuming, and troubleshooting the datahub. For
+architecture and schema details, see
+[`architecture.md`](architecture.md) and
+[`data-dictionary.md`](data-dictionary.md).
+
+## Current entrypoint
+
+`src/main.py` is a manual toggle board. The Phase 0 baseline state is:
+
+- **Enabled:** RAG embedding pipeline.
+- **Disabled:** agency pipeline, wiki pipeline, cloud upload.
+
+That is why `python src/main.py` currently only processes wiki embeddings. Do
+not assume it refreshes the SQLite database.
+
+**Known caveat:** RAG reruns are not idempotent. The embedding pipeline uses
+Chroma `collection.add()`, which raises when IDs already exist. A second run
+against the same collection will fail. This is tracked in issue #17. Until it
+is fixed, delete or rename `data/chroma_db/` before a full rebuild, or run the
+pipeline against a fresh Chroma path.
+
+## Local setup
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Only needed for cloud upload; local data processing works without it.
+cp .env.template .env
+```
+
+The reference data is in `data/` and is gitignored. The agency database is about
+320 MB.
+
+## Run the stages
+
+The orchestrator methods can be called directly from Python with `src` on the
+path. Run from the repo root.
+
+### Agency pipeline (network, long)
+
+```bash
+python - <<'PY'
+import sys
+sys.path.insert(0, "src")
+from orchestrators import AgencyOrchestrator
+
+orchestrator = AgencyOrchestrator(
+    debug_mode=False,
+    keep_latest_transaction_only=False,
+)
+orchestrator.run_estates_info_data_pipeline()
+PY
+```
+
+### Wiki pipeline (network, writes partition JSON)
+
+```bash
+python - <<'PY'
+import sys
+sys.path.insert(0, "src")
+from orchestrators import WikiOrchestrator
+
+WikiOrchestrator().run_estate_wiki_data_pipeline()
+PY
+```
+
+### RAG embeddings (CPU; rebuild caveat above)
+
+```bash
+python - <<'PY'
+import sys
+sys.path.insert(0, "src")
+from orchestrators import RAGOrchestrator
+
+RAGOrchestrator().run_text_embedding_pipeline()
+PY
+```
+
+### Legacy cloud upload (requires credentials)
+
+```bash
+python - <<'PY'
+import sys
+sys.path.insert(0, "src")
+from orchestrators import CloudUploadOrchestrator
+
+CloudUploadOrchestrator().upload_files_from_data_folder()
+PY
+```
+
+This uploader walks all of `data/`, including the SQLite database and Chroma
+store. It is not the serving path; Phase 6 replaces it with a small versioned
+snapshot. Do not point it at a public bucket.
+
+## Debug mode
+
+`AgencyOrchestrator(debug_mode=True)` limits the estate list to the first 20
+estates. It still makes live network requests and still writes to the configured
+database, so use a copy if you do not want to touch the reference DB.
+
+```python
+orchestrator = AgencyOrchestrator(debug_mode=True)
+```
+
+For a truly offline smoke test, use the payload fixtures under
+`docs/api_responses/` and the processor methods directly. There is no fixture
+test harness yet; Phase 4 adds one.
+
+## Resume and rerun behaviour
+
+Current limitations:
+
+- Estate IDs are cached in `data/agency/estate_ids.txt`. If the file exists and
+  `force_refetch_estate_ids` is false, the crawler reuses it.
+- Agency writes use `bulk_save_objects()` with no upsert. Rerunning a partition
+  can duplicate rows or fail on primary-key conflicts.
+- Deduplication (`pk_sets`) is process-local and resets between runs.
+- `close_session()` is currently called inside the building partition loop.
+- RAG writes are not idempotent (issue #17).
+- Wiki partition files are overwritten per partition, but the aggregated file
+  is overwritten at the end of a successful run.
+
+Phase 2 introduces SQLite upserts, run metadata, and safer reruns. Until then,
+prefer running against a copy of the DB and a fresh Chroma path.
+
+## Inspect data
+
+Read-only table counts and coverage:
+
+```bash
+python3 scripts/baseline_stats.py
+```
+
+Ad-hoc SQL (read-only):
+
+```bash
+python3 - <<'PY'
+import sqlite3
+con = sqlite3.connect("file:data/agency/agency_data.db?mode=ro", uri=True)
+for row in con.execute("select count(*) from transactions"):
+    print(row)
+PY
+```
+
+## Quality reports
+
+Phase 3 will write:
+
+```text
+data/quality/latest.json
+data/quality/{run_id}.json
+```
+
+and expose a command such as:
+
+```bash
+python -m quality.run --db data/agency/agency_data.db --fail-on critical
+```
+
+These do not exist yet. Do not assume the data is quality-checked.
+
+## Publish serving data
+
+Phase 6 will add:
+
+```bash
+python scripts/publish_dashboard.py --dry-run
+python scripts/publish_dashboard.py
+python scripts/verify_serving.py
+```
+
+The intended contract is a versioned snapshot under
+`data/serving/{build_id}/` with a `manifest.json`, then an R2 upload under
+`dashboard/{build_id}/` with the manifest updated last. Until Phase 6, use the
+legacy uploader only for private storage.
+
+## Tests and checks
+
+```bash
+# Available now
+python3 scripts/baseline_stats.py
+
+# Available after Phase 4
+pytest -q
+ruff check src tests
+```
+
+There is no `tests/` directory and `.github/workflows/ci-cd.yml` is empty at the
+Phase 0 baseline.
+
+## Common failures
+
+| Symptom | Likely cause | Action |
+|---|---|---|
+| `ModuleNotFoundError: config` | `src` is not on `sys.path` | Run from the repo root with `sys.path.insert(0, "src")`, or use `python src/main.py` (which puts `src` on the path). |
+| `Missing cloud storage credentials` | Upload attempted without `.env` keys | Set `cloud_storage_access_key_id`, `cloud_storage_secret_access_key`, and `cloudflare_account_id` (for R2) in `.env`. Local processing does not need them. |
+| Chroma `ValueError: ... id already exists` | RAG pipeline rerun | Delete/rename `data/chroma_db/` or use a fresh path; see issue #17. |
+| `database is locked` | Concurrent SQLite writers | Use one writer at a time; WAL helps readers but does not allow concurrent writers. |
+| Estate returns 404 | Estate removed or unavailable | The crawler logs and skips; rerun later or inspect the ID list. |
+| Building returns 502 | Source API transient failure | The shared request wrapper retries 3 times with a 2 s pause; rerun the building partition later. |
+| No wiki page found | Title variation/disambiguation/HK check failed | Inspect the estate name; the crawler tries Chinese title variations and skips ambiguous pages. |
+| Wiki partition is empty | All estates in the partition failed | Check the logs and network; rerun that partition after fixing the source issue. |
+| `.env` missing | Local config | Not required for imports or local processing; copy `.env.template` only when using cloud upload. |
+
+## Logs
+
+Logs go to the console and to `logs/hk_housing_datahub.log` (ERROR level for the
+file). `logs/` is gitignored.
+
+## Safety rules
+
+- Do not commit `data/`, `*.db`, `.env`, `logs/`, `venv/`, or `.DS_Store`.
+- Do not run the full crawl just to test a transformation; use fixtures.
+- Do not modify the reference `agency_data.db`; copy it first.
+- Do not upload the raw `data/` tree to a public bucket.
+- Do not merge a PR to `main` from an agent session; a human does that.
