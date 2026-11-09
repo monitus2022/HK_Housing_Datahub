@@ -59,7 +59,7 @@ commented in or out rather than driven by CLI flags:
 
 At the Phase 0 baseline, only the RAG block is enabled and the cloud upload is
 disabled. The agency and wiki blocks are also commented out. See the runbook for
-the current state and the RAG rerun caveat.
+the current state and the RAG rerun behavior.
 
 ## Module responsibilities
 
@@ -152,7 +152,10 @@ Notes:
    characters, 50 overlap).
 3. Generate 384-dimensional normalized embeddings with
    `paraphrase-multilingual-MiniLM-L12-v2` on CPU.
-4. Write batches (default 100) to the `hk_housing_wiki` Chroma collection.
+4. Write batches (default 100) to the `hk_housing_wiki` Chroma collection using
+   `upsert`, so reruns refresh existing chunks in place. After a complete run,
+   stored IDs that are no longer in the wiki source are pruned. Pruning is
+   skipped if any input file fails to load or if the run yields no chunks.
 
 ### Analytics path
 
@@ -216,11 +219,12 @@ Runtime dependencies are split by concern:
 | `requirements-rag.txt` | Sentence Transformers and ChromaDB |
 | `requirements-cloud.txt` | boto3 |
 | `requirements.txt` | Full runtime: core + RAG + cloud |
-| `requirements-dev.txt` | pytest and ruff |
+| `requirements-dev.txt` | pytest, ruff, and ChromaDB for the offline RAG tests |
 
 `src/orchestrators/__init__.py` uses lazy exports, so importing
 `orchestrators.agency` does not pull in the RAG or cloud stacks. CI installs
-core + dev only; the optional RAG/cloud paths are not exercised there.
+core + dev, so the Chroma-backed RAG storage tests run but the embedding model
+(sentence-transformers/torch) and cloud upload are not exercised there.
 
 ## Configuration and secrets
 

@@ -425,8 +425,8 @@ lookup indexes (`idx_mart_*`) on their grain keys.
   missingness.
 - `estate_mtr_lines` is not exhaustive.
 - `unit_features` uses the source English name as both ID and name.
-- Agency upserts and run metadata are implemented (Phase 2). RAG idempotency
-  remains open (issue #17).
+- Agency upserts and run metadata are implemented (Phase 2). RAG writes are
+  idempotent and prune removed chunks (issue #17).
 - Wiki JSON and Chroma are not relational tables; their counts are tracked in
   `baseline-stats.md`. The marts use wiki JSON keys only for `has_wiki`.
 - Mart windows are relative to the latest transaction date in the snapshot, not

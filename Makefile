@@ -28,6 +28,7 @@ lint:
 		src/quality \
 		src/serving \
 		src/processors/agency \
+		src/processors/rag \
 		src/models/agency/sql_db.py \
 		src/orchestrators \
 		scripts \
