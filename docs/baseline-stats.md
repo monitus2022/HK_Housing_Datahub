@@ -101,10 +101,11 @@ median ~8,020; p1 ~1,868; p99 ~30,597; max ~1,890,482.
 - has the cloud upload commented out.
 
 This was an uncommitted local choice and is preserved intentionally in the
-Phase 0 commit. RAG reruns are **not** idempotent today: the embedding pipeline
-uses Chroma `collection.add()`, which in Chroma 0.5.5 logs a warning and skips
-IDs that already exist, so reruns can leave stale chunks. Tracked separately in
-issue #17.
+Phase 0 commit. RAG reruns are idempotent: chunks are written with Chroma
+`upsert()` and IDs that are no longer in the wiki source are pruned after a
+complete run. Chunk IDs are a SHA-1 of estate name, section title, and chunk
+index, so edited text refreshes in place. Pruning is skipped when any input
+file fails to load (issue #17).
 
 ## Known gaps confirmed at snapshot time
 
@@ -141,11 +142,12 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff checks — 2026-11-10
 
-- **Tests:** `pytest -q` → 59 passed. Core-only venv (no RAG/cloud extras) →
-  58 passed, 1 skipped (boto3-only legacy-upload gate).
+- **Tests:** `pytest -q` → 67 passed, including 8 offline RAG idempotency tests
+  against a temporary Chroma store (issue #17). A core-only venv without
+  `chromadb` skips the RAG test module and the boto3 legacy-upload test.
 - **Lint:** `ruff check src/main.py src/analytics src/quality src/serving
-  src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts
-  tests` → all checks passed.
+  src/processors/agency src/processors/rag src/models/agency/sql_db.py
+  src/orchestrators scripts tests` → all checks passed.
 - **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
 - **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
   (Phase 3), #28 (Phase 4), #29 (Phase 5), #30 (Phase 6).
@@ -172,6 +174,5 @@ resolved from the current working directory, so run it from the repo root.
   fresh Pages production build.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; map/trend/recent-transaction
-  frontend views; RAG idempotency (#17); the 160 phase orphans; Parquet export
-  for the large marts; incremental crawls, RVD, and monitoring (see
-  [`roadmap.md`](roadmap.md)).
+  frontend views; the 160 phase orphans; Parquet export for the large marts;
+  incremental crawls, RVD, and monitoring (see [`roadmap.md`](roadmap.md)).

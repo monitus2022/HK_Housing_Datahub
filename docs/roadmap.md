@@ -44,9 +44,9 @@ baseline. This file tracks work beyond it.
 
 ## RAG / retrieval
 
-- **RAG idempotency (#17)** — use Chroma `upsert()` or a versioned collection
-  per build; handle orphaned chunks when source text changes. Deferred because
-  the static dashboard does not depend on Chroma.
+- **RAG idempotency** — implemented (issue #17): chunks are upserted and IDs not
+  present in the current wiki source are pruned after a complete run. Pruning is
+  skipped when any input file fails to load.
 
 ## Modeling
 

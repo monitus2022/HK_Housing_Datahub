@@ -121,7 +121,7 @@ then the RAG embedding pipeline. The agency pipeline, wiki pipeline, and cloud
 upload are commented out. The quality step is report-only in `main.py`; use
 `scripts/run_quality.py --fail-on critical` to gate. See
 [`docs/runbook.md`](docs/runbook.md) for how to run each stage and for the
-known RAG rerun caveat.
+RAG rerun behavior.
 
 ### From clone to snapshot
 
@@ -360,9 +360,11 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - Agency SQLite writes are idempotent as of Phase 2: they use SQLite upserts and
   record run metadata in `pipeline_runs`. Rerunning a partition leaves row
   counts unchanged and refreshes non-key columns.
-- RAG reruns are not idempotent: Chroma `collection.add()` skips IDs that
-  already exist, so changed chunks are not refreshed. Use a fresh collection or
-  `upsert` for a rebuild. Tracked in issue #17.
+- RAG reruns are idempotent: chunks are written with Chroma `upsert()` and
+  every stored ID that is not in the current wiki source is pruned after a
+  complete run. Chunk IDs are a SHA-1 of estate name, section title, and chunk
+  index, so edited text refreshes in place and removed sections are deleted.
+  Pruning is skipped if any wiki file fails to load (issue #17).
 - The reference DB currently has 160 `buildings.phase_id -> phases.phase_id`
   orphan rows. The quality CLI with `--fail-on critical` exits non-zero until
   the mapping or data is repaired; `src/main.py` runs the checks in report-only
@@ -378,7 +380,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   origins.
 - The reference snapshot ends 2025-10-21; the project does not run on a
   schedule yet.
-- CI installs core dependencies only; the optional RAG and cloud-upload code is
+- CI installs core dependencies plus `chromadb` for the offline RAG storage
+  tests. The embedding model (sentence-transformers/torch) and cloud upload are
   not exercised in CI.
 - The 12- and 24-month mart windows are relative to the latest transaction date
   in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
