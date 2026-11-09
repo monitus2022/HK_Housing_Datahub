@@ -49,7 +49,8 @@ Cache headers:
 | File | Cache-Control |
 |---|---|
 | `dashboard/manifest.json` | `public, max-age=60` |
-| `dashboard/{build_id}/*` | `public, max-age=31536000, immutable` |
+| `dashboard/{build_id}/manifest.json` | `public, max-age=60` |
+| `dashboard/{build_id}/*.json` / `*.json.gz` | `public, max-age=31536000, immutable` |
 
 Content types: JSON data is `application/json`; gzip files also carry
 `Content-Encoding: gzip`. Credentials are never logged.

@@ -443,20 +443,28 @@ code, split it.
 ## 8. Dashboard serving contract (for the separate frontend work)
 
 The Datahub workplan ends at producing and publishing the serving snapshot. The
-frontend can then fetch:
+manifest is authoritative; the frontend fetches the manifest first, then the
+files named in `manifest.files`:
 
 ```text
 https://<r2-public-host>/dashboard/manifest.json
-https://<r2-public-host>/dashboard/{build_id}/overview.json
-https://<r2-public-host>/dashboard/{build_id}/district_monthly.json
-https://<r2-public-host>/dashboard/{build_id}/estate_summary.json
-https://<r2-public-host>/dashboard/{build_id}/coverage.json
+https://<r2-public-host>/dashboard/{build_id}/{file from manifest.files}
+
+# Examples from the Phase 6 builder:
+.../{build_id}/overview.json
+.../{build_id}/estate_summary.json.gz
+.../{build_id}/district_monthly.json.gz
+.../{build_id}/coverage.json.gz
 ```
 
 Rules:
 
 - The frontend fetches `manifest.json` first, then the files referenced by it.
-- Manifest is short-cache; data files are immutable and long-cache.
+- The top-level manifest and the versioned manifest are short-cache; versioned
+  data files are immutable and long-cache.
+- Large JSON files are gzipped and served with `Content-Encoding: gzip`;
+  browsers decompress them transparently.
+- Never hardcode file names; use `manifest.files`.
 - CORS on the R2 bucket must allow the static site origin.
 - The frontend should bundle a fallback snapshot or show a clear error if the
   fetch fails.

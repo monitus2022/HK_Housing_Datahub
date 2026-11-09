@@ -82,7 +82,9 @@ RAGOrchestrator().run_text_embedding_pipeline()
 PY
 ```
 
-### Legacy cloud upload (requires credentials)
+### Legacy cloud upload (disabled by default)
+
+The raw uploader now refuses to run unless explicitly enabled:
 
 ```bash
 python - <<'PY'
@@ -90,13 +92,14 @@ import sys
 sys.path.insert(0, "src")
 from orchestrators import CloudUploadOrchestrator
 
-CloudUploadOrchestrator().upload_files_from_data_folder()
+CloudUploadOrchestrator(allow_raw_upload=True).upload_files_from_data_folder()
 PY
 ```
 
-This uploader walks all of `data/`, including the SQLite database and Chroma
-store. It is not the serving path; Phase 6 replaces it with a small versioned
-snapshot. Do not point it at a public bucket.
+It walks all of `data/`, including the SQLite database and Chroma store, and
+skips hidden files/directories. It is not the serving path. Use
+`scripts/publish_dashboard.py` for the versioned snapshot, and do not point the
+raw uploader at a public bucket.
 
 ## Debug mode
 
@@ -274,7 +277,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains the Phase 2–6 tests (56 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (57 total): upserts, run metadata,
 quality checks, response models, table mapping, duplicate-input dedupe,
 synthetic mart builds, and serving manifest/publish planning. The
 boto3-only legacy-upload gate test skips in the core-only CI environment. The

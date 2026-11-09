@@ -157,8 +157,9 @@ or use the reference payloads in `docs/api_responses/` for transformation tests.
    partition to JSON.
 4. **RAG embeddings** — clean and chunk wiki text, embed with
    `paraphrase-multilingual-MiniLM-L12-v2`, and store in ChromaDB.
-5. **Cloud upload** — legacy uploader for the raw `data/` tree; it will be
-   replaced by the versioned serving snapshot in Phase 6.
+5. **Serving snapshot** — build a versioned snapshot from the marts and publish
+   it with `scripts/publish_dashboard.py`. The legacy raw uploader is gated
+   behind `allow_raw_upload=True`.
 
 The phase plan, guardrails, and acceptance criteria are in
 [`docs/workplan-tidy.md`](docs/workplan-tidy.md).
@@ -199,7 +200,7 @@ src/
   config/         # YAML config, Pydantic settings, env loading
   main.py         # current runnable entry point
 docs/             # workplans, API docs, schema, baseline, runbook
-scripts/          # baseline, quality, and mart CLIs
+scripts/          # baseline, quality, mart, and serving CLIs
 data/             # local data, ignored
 ```
 
@@ -248,7 +249,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains the Phase 2–6 tests (56 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (57 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
 synthetic mart builds, and serving manifest/publish planning. The
 boto3-only legacy-upload gate test is skipped in the core-only CI environment.
