@@ -1,4 +1,3 @@
-from config import housing_datahub_config
 from logger import housing_logger
 from processors.rag import TextEmbeddingPipeline
 
