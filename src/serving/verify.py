@@ -6,6 +6,7 @@ import argparse
 import gzip
 import json
 import sys
+import zlib
 from pathlib import Path
 from typing import Optional
 
@@ -87,7 +88,7 @@ def verify_snapshot(snapshot_dir: Path | str) -> list[str]:
             try:
                 with gzip.open(target, "rt", encoding="utf-8") as handle:
                     json.load(handle)
-            except (OSError, ValueError) as exc:
+            except (OSError, ValueError, EOFError, zlib.error) as exc:
                 errors.append(
                     f"File for {logical_name!r} is not valid gzipped JSON: {exc}"
                 )

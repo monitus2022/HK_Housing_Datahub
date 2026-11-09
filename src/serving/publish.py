@@ -76,13 +76,27 @@ def load_manifest(snapshot_dir: Path) -> dict[str, Any]:
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
+def _safe_snapshot_file(snapshot_dir: Path, relative_path: str) -> Path:
+    path = Path(relative_path)
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError(
+            f"Unsafe manifest file path: {relative_path!r}"
+        )
+    target = snapshot_dir / path
+    if not target.exists():
+        raise FileNotFoundError(f"Manifest file not found: {target}")
+    if target.stat().st_size == 0:
+        raise ValueError(f"Manifest file is empty: {target}")
+    return target
+
+
 def plan_uploads(snapshot_dir: Path) -> list[dict[str, Any]]:
     manifest = load_manifest(snapshot_dir)
     build_id = manifest["build_id"]
     uploads: list[dict[str, Any]] = []
 
     for logical_name, relative_path in manifest["files"].items():
-        local_path = snapshot_dir / relative_path
+        local_path = _safe_snapshot_file(snapshot_dir, relative_path)
         uploads.append(
             {
                 "logical_name": logical_name,
@@ -152,7 +166,7 @@ def publish_snapshot(
     """Upload a snapshot, or return the upload plan when ``dry_run``.
 
     ``uploader`` is injectable for tests: it receives
-    ``(local_path, key, content_type, cache_control)``.
+    ``(local_path, key, content_type, cache_control, content_encoding)``.
     """
     directory = Path(snapshot_dir)
     uploads = plan_uploads(directory)

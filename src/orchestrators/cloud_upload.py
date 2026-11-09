@@ -91,14 +91,15 @@ class CloudUploadOrchestrator:
                 housing_logger.warning(f"Data folder {data_path} does not exist")
                 return
 
-            # Walk through all files in the data directory
+            # Walk through all files in the data directory, skipping hidden
+            # files and hidden directories (including .DS_Store).
             for file_path in data_path.rglob('*'):
-                if file_path.is_file() and file_path.name != '.DS_Store':
-                    # Get relative path for S3 key
+                relative_to_data = file_path.relative_to(data_path)
+                if file_path.is_file() and not any(
+                    part.startswith(".") for part in relative_to_data.parts
+                ):
                     relative_path = file_path.relative_to(data_path.parent)
-                    s3_key = str(relative_path)
-
-                    self._upload_file(str(file_path), s3_key)
+                    self._upload_file(str(file_path), str(relative_path))
 
             service_name = "AWS S3" if self.service_type == 'aws' else "Cloudflare R2"
             housing_logger.info(f"Upload of files from data folder to {service_name} completed successfully")
