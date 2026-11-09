@@ -111,6 +111,7 @@ Notes:
 | `src/orchestrators/wiki.py` | Reads estate names from SQLite, splits them into partitions, crawls Wikipedia, and flushes JSON. |
 | `src/orchestrators/rag.py` | Loads wiki partitions and runs the embedding pipeline. |
 | `src/orchestrators/cloud_upload.py` | Legacy raw-data uploader for an S3-compatible bucket (R2 or AWS S3). |
+| `src/quality/` | Read-only critical/warning checks and JSON/Markdown reports. |
 
 ## Data flow in detail
 
@@ -159,7 +160,7 @@ Notes:
 | Estate ID cache | `data/agency/estate_ids.txt` | One ID per line |
 | Wiki partitions | `data/wiki/wiki_data_partition_*.json` | JSON keyed by estate name |
 | Embeddings | `data/chroma_db/` | ChromaDB persistent store |
-| Quality reports | `data/quality/` | Planned Phase 3 |
+| Quality reports | `data/quality/` | JSON + Markdown (Phase 3) |
 | Serving snapshot | `data/serving/{build_id}/` | Planned Phase 6 |
 
 Run metadata lives in the `pipeline_runs` table in the same SQLite database.
@@ -184,8 +185,8 @@ credentials.
 
 - The raw schema is the current contract; Phase 2 added idempotent upserts and
   the `pipeline_runs` table without renaming existing tables.
-- Phase 3 adds `src/quality/` checks and reports.
-- Phase 4 adds fixtures, tests, and CI.
+- Phase 3 added `src/quality/` checks and JSON/Markdown reports.
+- Phase 4 adds fixtures, broader tests, and CI.
 - Phase 5 adds analytics marts and dashboard indexes.
 - Phase 6 adds a versioned serving snapshot and retires/gates the legacy raw
   uploader.

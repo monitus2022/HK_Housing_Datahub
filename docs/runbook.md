@@ -7,13 +7,14 @@ architecture and schema details, see
 
 ## Current entrypoint
 
-`src/main.py` is a manual toggle board. The Phase 0 baseline state is:
+`src/main.py` is a manual toggle board. The current state is:
 
-- **Enabled:** RAG embedding pipeline.
+- **Enabled:** read-only data-quality checks, then the RAG embedding pipeline.
 - **Disabled:** agency pipeline, wiki pipeline, cloud upload.
 
-That is why `python src/main.py` currently only processes wiki embeddings. Do
-not assume it refreshes the SQLite database.
+That is why `python src/main.py` reports quality and processes wiki embeddings,
+but does not refresh the SQLite database. The quality step is report-only in
+`main.py`; use `scripts/run_quality.py --fail-on critical` to gate.
 
 **Known caveat:** RAG reruns are not idempotent. The embedding pipeline uses
 Chroma `collection.add()`. In Chroma 0.5.5, adding an existing ID logs a
@@ -156,20 +157,30 @@ PY
 
 ## Quality reports
 
-Phase 3 will write:
+Run the checks (read-only):
+
+```bash
+python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
+```
+
+Outputs:
 
 ```text
 data/quality/latest.json
 data/quality/{run_id}.json
+data/quality/latest.md
 ```
 
-and expose a command such as:
+The JSON report contains a `summary` block and a `checks` array. Exit code `1`
+means the selected gate failed; `2` means the database is missing. Use
+`--fail-on warning` to gate on warnings too, or `--fail-on none` for a
+report-only run.
 
-```bash
-python -m quality.run --db data/agency/agency_data.db --fail-on critical
-```
-
-These do not exist yet. Do not assume the data is quality-checked.
+`src/main.py` calls the checks in report-only mode before the RAG step. The
+reference DB currently has one critical finding (160 `buildings.phase_id ->
+phases.phase_id` orphans) and three warnings (non-positive areas, estate
+coverage, transaction estates without market data). See
+[`quality.md`](quality.md) for the check list and thresholds.
 
 ## Publish serving data
 
@@ -191,14 +202,15 @@ legacy uploader only for private storage.
 ```bash
 # Available now
 python3 scripts/baseline_stats.py
+python scripts/run_quality.py --db data/agency/agency_data.db --fail-on none
 pytest -q
 
 # Lint the files touched by the tidy-up so far; full-tree cleanup is Phase 4
-ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py
+ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py src/quality
 ```
 
-`tests/` contains the Phase 2 upsert and run-metadata tests. The CI workflow is
-still empty; CI is Phase 4.
+`tests/` contains the Phase 2 upsert/run-metadata tests and the Phase 3 quality
+tests. The CI workflow is still empty; CI is Phase 4.
 
 ## Common failures
 
@@ -207,6 +219,7 @@ still empty; CI is Phase 4.
 | `ModuleNotFoundError: config` | `src` is not on `sys.path` | Run from the repo root with `sys.path.insert(0, "src")`, or use `python src/main.py` (which puts `src` on the path). |
 | `Missing cloud storage credentials` | Upload attempted without `.env` keys | Set `cloud_storage_access_key_id`, `cloud_storage_secret_access_key`, and `cloudflare_account_id` (for R2) in `.env`. Local processing does not need them. |
 | RAG rerun appears to succeed but old chunks remain | Chroma 0.5.5 `add()` skips existing IDs | Delete/rename `data/chroma_db/` or use a fresh path; upsert is tracked in issue #17. |
+| Quality gate exits 1 with `buildings.phase_id -> phases.phase_id` orphans | Building rows use a source "phase" that is not a real phase | Inspect `data/quality/latest.md`; repair the mapping or accept report-only mode until fixed. |
 | `database is locked` | Concurrent SQLite writers | Use one writer at a time; WAL helps readers but does not allow concurrent writers. |
 | Estate returns 404 | Estate removed or unavailable | The crawler logs and skips; rerun later or inspect the ID list. |
 | Building returns 502 | Source API transient failure | The shared request wrapper retries 3 times with a 2 s pause; rerun the building partition later. |
