@@ -9,8 +9,9 @@ class CloudUploadOrchestrator:
     Orchestrator for uploading files to S3-compatible object storage (Cloudflare R2, AWS S3, etc.).
     """
 
-    def __init__(self):
+    def __init__(self, allow_raw_upload: bool = False):
         self.s3_client = None
+        self.allow_raw_upload = allow_raw_upload
         self.service_type = housing_datahub_config.cloud_storage.service_type
 
         # Get configuration based on service type. Credentials are deliberately
@@ -69,7 +70,16 @@ class CloudUploadOrchestrator:
     def upload_files_from_data_folder(self):
         """
         Upload all files from the data folder to the configured S3-compatible bucket.
+
+        Raw data upload is disabled by default. Use
+        ``scripts/publish_dashboard.py`` for the versioned serving snapshot.
         """
+        if not self.allow_raw_upload:
+            raise RuntimeError(
+                "Raw data upload is disabled. Use "
+                "scripts/publish_dashboard.py for the serving snapshot. "
+                "Pass allow_raw_upload=True only for a private legacy upload."
+            )
         try:
             self._ensure_s3_client()
             service_name = "AWS S3" if self.service_type == 'aws' else "Cloudflare R2"

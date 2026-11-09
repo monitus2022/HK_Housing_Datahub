@@ -45,8 +45,10 @@ def main():
     rag_orchestrator = RAGOrchestrator()
     rag_orchestrator.run_text_embedding_pipeline()
 
-    # Upload data to Cloudflare R2
-    # cloud_upload_orchestrator = CloudUploadOrchestrator()
+    # Legacy raw-data upload (disabled by default). Use
+    # scripts/publish_dashboard.py for the versioned serving snapshot:
+    #   python scripts/publish_dashboard.py --dry-run
+    # cloud_upload_orchestrator = CloudUploadOrchestrator(allow_raw_upload=True)
     # cloud_upload_orchestrator.upload_files_from_data_folder()
 
 
