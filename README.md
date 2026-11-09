@@ -7,9 +7,10 @@ relational SQLite model, and builds text embeddings for retrieval-augmented
 applications. The long-term goal is a small, reproducible analytics and serving
 layer for a public dashboard.
 
-> **Status:** backend tidy-up complete through Phase 8. The first static
-> frontend lives in [`frontend/`](frontend/) and covers the overview and estate
-> search. See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
+> **Status:** backend tidy-up complete through Phase 8. The static frontend is
+> deployed at <https://hk-housing.monitus.org>; see
+> [`docs/deployment.md`](docs/deployment.md) for the current build/env status.
+> See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
 > [`docs/decisions.md`](docs/decisions.md), and
 > [`docs/roadmap.md`](docs/roadmap.md). The ML workplan is deferred.
 
@@ -218,11 +219,12 @@ dashboard/{build_id}/district_monthly.json.gz
 dashboard/{build_id}/coverage.json.gz
 ```
 
-The manifest is authoritative; the frontend fetches it first and then the files
-in `manifest.files`. The three large data files are gzip-compressed and
-versioned data files are immutable/long-cached; both the top-level and versioned
-manifests are short-cached (`max-age=60`). `overview.json` remains plain. The
-manifest includes build ID, data-through dates, coverage, and mart row counts.
+The snapshot is public at <https://hk-housing-datahub.monitus.org>. The manifest
+is authoritative; the frontend fetches it first and then the files in
+`manifest.files`. The three large data files are gzip-compressed and versioned
+data files are immutable/long-cached; both the top-level and versioned manifests
+are short-cached (`max-age=60`). `overview.json` remains plain. The manifest
+includes build ID, data-through dates, coverage, and mart row counts.
 
 Build/verify/publish:
 
@@ -232,10 +234,14 @@ python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}
 python scripts/publish_dashboard.py --db data/agency/agency_data.db
 ```
 
-Full contract: [`docs/serving.md`](docs/serving.md). Public R2 access and CORS
-still need to be configured for the frontend origin.
+Full contract: [`docs/serving.md`](docs/serving.md). R2 public access and CORS
+are configured for the frontend origin; see
+[`docs/deployment.md`](docs/deployment.md).
 
 ### Frontend
+
+- **Live:** <https://hk-housing.monitus.org>
+- **Snapshot host:** <https://hk-housing-datahub.monitus.org>
 
 ```bash
 cd frontend
@@ -257,7 +263,8 @@ npm run dev
 ```
 
 The first version covers the overview and estate search. See
-[`frontend/README.md`](frontend/README.md).
+[`frontend/README.md`](frontend/README.md) and
+[`docs/deployment.md`](docs/deployment.md) for Cloudflare Pages/R2 setup.
 
 ## Repository layout
 
@@ -366,8 +373,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - No live API. The serving layer is a versioned snapshot, not a query service.
 - The frontend v1 covers the overview and estate search only; map, district
   trend charts, and recent-transactions views are not implemented yet.
-- The R2 bucket still needs public read access (or a custom domain) and CORS for
-  the frontend origin.
+- R2 public read and CORS are configured for
+  `https://hk-housing.monitus.org`. Preview deployments may need additional
+  origins.
 - The reference snapshot ends 2025-10-21; the project does not run on a
   schedule yet.
 - CI installs core dependencies only; the optional RAG and cloud-upload code is
@@ -386,7 +394,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
    upserts, quality checks, tests/CI, analytics marts, serving snapshot/publish,
    and final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
 2. Phase 7: optional sample database. *(deferred)*
-3. Frontend v1: overview and estate search. *(implemented in `frontend/`)*
+3. Frontend v1: overview and estate search. *(implemented and deployed at
+   <https://hk-housing.monitus.org>)*
 4. R2 public access/CORS, map and trend views, and recent transactions.
 5. Incremental crawls, RVD integration, monitoring, and Parquet serving
    exports. See [`docs/roadmap.md`](docs/roadmap.md).
