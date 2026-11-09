@@ -159,16 +159,18 @@ resolved from the current working directory, so run it from the repo root.
   six files uploaded to the `hk-housing-datahub` bucket and the remote manifest
   read back successfully. Gzip `Content-Encoding` and cache headers verified.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
-  <https://hk-housing.monitus.org>; `npm run typecheck`, `npm test` (11 tests),
-  and `npm run build` pass; `npm audit` reports zero vulnerabilities. Browser
-  smoke test against a local snapshot: 9,748 estates, search filtering, and the
-  detail panel verified. Cloudflare Pages/R2 setup is in
+  <https://hk-housing.monitus.org>; snapshot host
+  <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
+  frontend origin are verified. `npm run typecheck`, `npm test` (11 tests), and
+  `npm run build` pass; `npm audit` reports zero vulnerabilities. Browser smoke
+  test against a local snapshot: 9,748 estates, search filtering, and the detail
+  panel verified. Cloudflare Pages/R2 setup is in
   [`deployment.md`](deployment.md).
-- **Branch state:** `origin/dev` has 53 commits not in `origin/main`;
-  `origin/main` has 3 merge commits not in `dev`. The final `dev` → `main` merge
-  is a human step.
+- **Branch state:** `main` contains `dev` through merge PR #35. This deployment
+  documentation change targets `main` intentionally so merging it triggers a
+  fresh Pages production build.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; map/trend/recent-transaction
-  frontend views plus R2 public access/CORS; RAG idempotency (#17); the 160
-  phase orphans; Parquet export for the large marts; incremental crawls, RVD,
-  and monitoring (see [`roadmap.md`](roadmap.md)).
+  frontend views; RAG idempotency (#17); the 160 phase orphans; Parquet export
+  for the large marts; incremental crawls, RVD, and monitoring (see
+  [`roadmap.md`](roadmap.md)).

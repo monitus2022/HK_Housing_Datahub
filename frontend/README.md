@@ -8,9 +8,9 @@ version covers:
 - estate detail panel with latest transaction, 12-month stats, market date, and
   coverage flags
 
-**Live deployment:** <https://hk-housing.monitus.org>
-
-Full Pages/R2 setup and troubleshooting: [`../docs/deployment.md`](../docs/deployment.md).
+**Live deployment:** <https://hk-housing.monitus.org>  
+If the snapshot does not load, see the deployment troubleshooting in
+[`../docs/deployment.md`](../docs/deployment.md).
 
 ## Stack
 
@@ -87,7 +87,7 @@ Cloudflare Pages production settings:
 | Build command | `npm ci && npm run build` |
 | Output directory | `dist` |
 | Node version | `22` |
-| Environment variable | `VITE_DASHBOARD_BASE_URL=https://<r2-public-host>` |
+| Environment variable | `VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org` |
 
 The live custom domain is `hk-housing.monitus.org`. The R2 bucket (or custom
 domain) must allow public reads and CORS for that origin. Do not ship write

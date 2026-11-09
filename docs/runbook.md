@@ -121,8 +121,9 @@ npm run dev
 
 Cloudflare Pages production settings: React (Vite), root `frontend`, build
 `npm ci && npm run build`, output `dist`, Node 22, and
-`VITE_DASHBOARD_BASE_URL=https://<r2-public-host>`. Vite bakes the variable at
-build time, so changing it requires a redeploy. Full setup, CORS, and
+`VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org`. Vite bakes the
+variable at build time, so changing it requires a redeploy. The snapshot host
+is <https://hk-housing-datahub.monitus.org>; full setup, CORS, and
 troubleshooting: [`deployment.md`](deployment.md).
 
 ## Debug mode

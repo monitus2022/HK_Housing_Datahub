@@ -36,10 +36,11 @@ The Phase 6 build `20261109T164834Z-ea1321` was published to the
 and every referenced file were read back successfully, and the gzip/cache
 headers were verified.
 
-The frontend is deployed at <https://hk-housing.monitus.org> and reads the
-snapshot through `VITE_DASHBOARD_BASE_URL`. The R2 bucket/custom domain must
-allow public reads and CORS for that frontend origin. See
-[`deployment.md`](deployment.md).
+The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
+is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
+`VITE_DASHBOARD_BASE_URL`. R2 public read and CORS for that frontend origin are
+configured; see [`deployment.md`](deployment.md) for the current build/env
+status and troubleshooting.
 
 ## Publish
 
@@ -103,8 +104,9 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 The frontend should:
 
-1. Fetch `https://<r2-public-host>/dashboard/manifest.json`.
-2. Read `files` and fetch `https://<r2-public-host>/dashboard/{build_id}/{file}`.
+1. Fetch `https://hk-housing-datahub.monitus.org/dashboard/manifest.json`.
+2. Read `files` and fetch
+   `https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file}`.
 3. Use `data_through`, `coverage`, and `row_counts` for display labels and
    freshness warnings.
 4. Show a clear fallback/error state if the manifest or a referenced file is

@@ -33,7 +33,8 @@ baseline. This file tracks work beyond it.
   dataset overview, estate search, estate detail, and loading/error/empty
   states. Remaining views: district price trends, map, recent-transactions
   table, and broader accessibility/performance testing.
-- **R2 public access and CORS** — the snapshot host must allow the
+- **R2 public access and CORS** — configured: the snapshot is public at
+  <https://hk-housing-datahub.monitus.org> and allows the
   `https://hk-housing.monitus.org` origin. See [`deployment.md`](deployment.md).
 - **Parquet exports** — add `mart_estate_monthly` (~592k rows) and
   `mart_transaction_recent` (~73k rows) if the dashboard needs full history or a
