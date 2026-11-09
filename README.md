@@ -232,8 +232,9 @@ yet; fixture-based tests, the test layout, and the CI workflow are Phase 4.
   (892 estates).
 - SQLite writes are not idempotent yet: `bulk_save_objects()` is used without
   upsert, and deduplication is process-local. Phase 2 fixes this.
-- RAG reruns are not idempotent: Chroma `collection.add()` raises on duplicate
-  IDs. Tracked in issue #17.
+- RAG reruns are not idempotent: Chroma `collection.add()` skips IDs that
+  already exist, so changed chunks are not refreshed. Use a fresh collection or
+  `upsert` for a rebuild. Tracked in issue #17.
 - The legacy cloud uploader walks all of `data/`, including the SQLite database
   and Chroma store. Do not point it at a public bucket.
 - No live API. The serving layer will be a versioned snapshot, not a query

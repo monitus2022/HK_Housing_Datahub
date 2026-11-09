@@ -16,10 +16,11 @@ That is why `python src/main.py` currently only processes wiki embeddings. Do
 not assume it refreshes the SQLite database.
 
 **Known caveat:** RAG reruns are not idempotent. The embedding pipeline uses
-Chroma `collection.add()`, which raises when IDs already exist. A second run
-against the same collection will fail. This is tracked in issue #17. Until it
-is fixed, delete or rename `data/chroma_db/` before a full rebuild, or run the
-pipeline against a fresh Chroma path.
+Chroma `collection.add()`. In Chroma 0.5.5, adding an existing ID logs a
+warning and skips it rather than raising. A rerun can therefore appear to
+succeed while leaving stale chunks and embeddings in place. This is tracked in
+issue #17. Until it is fixed, delete or rename `data/chroma_db/` before a full
+rebuild, or run against a fresh Chroma path.
 
 ## Local setup
 
@@ -120,7 +121,8 @@ Current limitations:
   can duplicate rows or fail on primary-key conflicts.
 - Deduplication (`pk_sets`) is process-local and resets between runs.
 - `close_session()` is currently called inside the building partition loop.
-- RAG writes are not idempotent (issue #17).
+- RAG writes are not idempotent: existing IDs are skipped, not refreshed
+  (issue #17).
 - Wiki partition files are overwritten per partition, but the aggregated file
   is overwritten at the end of a successful run.
 
@@ -198,7 +200,7 @@ Phase 0 baseline.
 |---|---|---|
 | `ModuleNotFoundError: config` | `src` is not on `sys.path` | Run from the repo root with `sys.path.insert(0, "src")`, or use `python src/main.py` (which puts `src` on the path). |
 | `Missing cloud storage credentials` | Upload attempted without `.env` keys | Set `cloud_storage_access_key_id`, `cloud_storage_secret_access_key`, and `cloudflare_account_id` (for R2) in `.env`. Local processing does not need them. |
-| Chroma `ValueError: ... id already exists` | RAG pipeline rerun | Delete/rename `data/chroma_db/` or use a fresh path; see issue #17. |
+| RAG rerun appears to succeed but old chunks remain | Chroma 0.5.5 `add()` skips existing IDs | Delete/rename `data/chroma_db/` or use a fresh path; upsert is tracked in issue #17. |
 | `database is locked` | Concurrent SQLite writers | Use one writer at a time; WAL helps readers but does not allow concurrent writers. |
 | Estate returns 404 | Estate removed or unavailable | The crawler logs and skips; rerun later or inspect the ID list. |
 | Building returns 502 | Source API transient failure | The shared request wrapper retries 3 times with a 2 s pause; rerun the building partition later. |

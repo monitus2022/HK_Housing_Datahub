@@ -98,8 +98,9 @@ median ~8,020; p1 ~1,868; p99 ~30,597; max ~1,890,482.
 
 This was an uncommitted local choice and is preserved intentionally in the
 Phase 0 commit. RAG reruns are **not** idempotent today: the embedding pipeline
-uses Chroma `collection.add()`, which raises when IDs already exist. Fixing
-that is tracked separately in issue #17.
+uses Chroma `collection.add()`, which in Chroma 0.5.5 logs a warning and skips
+IDs that already exist, so reruns can leave stale chunks. Tracked separately in
+issue #17.
 
 ## Known gaps confirmed at snapshot time
 
