@@ -88,7 +88,7 @@ Notes:
 |---|---|
 | `src/processors/base.py` | Working-directory resolution, data-root creation, and cache clearing. |
 | `src/processors/agency/agency_base.py` | SQLite engine/session, table creation, idempotent upserts, run metadata, cache-to-JSON export, and session cleanup. |
-| `src/processors/agency/estates.py` | Maps bilingual estate responses to location, estate, school-net, facility, MTR, phase, building, and market rows. Deduplicates by primary key within the process. |
+| `src/processors/agency/estates.py` | Maps bilingual estate responses to location, estate, school-net, facility, MTR, phase, building, and market rows. Rows are upserted by model primary key; duplicate keys in a batch are absorbed by the SQLite upsert. |
 | `src/processors/agency/buildings.py` | Maps building/unit/transaction payloads into `units`, `unit_features`, and `transactions`; optionally keeps only the latest transaction per unit. |
 | `src/processors/wiki/wiki.py` | Parses wiki sections and tables, expands rowspan/colspan, and emits CSV table strings alongside section text. |
 | `src/processors/rag/embedding.py` | Cleans and chunks wiki text, generates normalized Sentence Transformer embeddings, and writes to ChromaDB. |
