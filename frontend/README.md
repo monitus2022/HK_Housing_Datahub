@@ -8,6 +8,10 @@ version covers:
 - estate detail panel with latest transaction, 12-month stats, market date, and
   coverage flags
 
+**Live deployment:** <https://hk-housing.monitus.org>
+
+Full Pages/R2 setup and troubleshooting: [`../docs/deployment.md`](../docs/deployment.md).
+
 ## Stack
 
 - Vite
@@ -70,11 +74,24 @@ npm run build
 ```
 
 The static output is `frontend/dist/`. Set `VITE_DASHBOARD_BASE_URL` in the
-build environment; Vite bakes it into the bundle.
+build environment; Vite bakes it into the bundle, so changing it requires a new
+deployment.
 
-Deployment options: Cloudflare Pages, Netlify, GitHub Pages, or any static host.
-The R2 bucket (or custom domain) must allow public reads and CORS for the
-frontend origin. Do not ship write credentials to the frontend.
+Cloudflare Pages production settings:
+
+| Setting | Value |
+|---|---|
+| Production branch | `main` |
+| Framework preset | **React (Vite)** |
+| Root directory | `frontend` |
+| Build command | `npm ci && npm run build` |
+| Output directory | `dist` |
+| Node version | `22` |
+| Environment variable | `VITE_DASHBOARD_BASE_URL=https://<r2-public-host>` |
+
+The live custom domain is `hk-housing.monitus.org`. The R2 bucket (or custom
+domain) must allow public reads and CORS for that origin. Do not ship write
+credentials to the frontend.
 
 ## Checks
 

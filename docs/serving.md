@@ -34,8 +34,12 @@ and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 The Phase 6 build `20261109T164834Z-ea1321` was published to the
 `hk-housing-datahub` bucket on 2026-11-10. The remote `dashboard/manifest.json`
 and every referenced file were read back successfully, and the gzip/cache
-headers were verified. The bucket still needs public read access (or a custom
-domain) and CORS for the frontend origin.
+headers were verified.
+
+The frontend is deployed at <https://hk-housing.monitus.org> and reads the
+snapshot through `VITE_DASHBOARD_BASE_URL`. The R2 bucket/custom domain must
+allow public reads and CORS for that frontend origin. See
+[`deployment.md`](deployment.md).
 
 ## Publish
 

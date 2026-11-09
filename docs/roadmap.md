@@ -29,12 +29,12 @@ baseline. This file tracks work beyond it.
 
 ## Serving and frontend
 
-- **Frontend v1** — `frontend/` now has the dataset overview, estate search,
-  estate detail, and loading/error/empty states, driven by the manifest.
-  Remaining views: district price trends, map, recent-transactions table, and
-  broader accessibility/performance testing.
-- **R2 public access and CORS** — configure the bucket/custom domain for the
-  frontend origin. The CLI upload is verified; browser access is not.
+- **Frontend v1** — deployed at <https://hk-housing.monitus.org> with the
+  dataset overview, estate search, estate detail, and loading/error/empty
+  states. Remaining views: district price trends, map, recent-transactions
+  table, and broader accessibility/performance testing.
+- **R2 public access and CORS** — the snapshot host must allow the
+  `https://hk-housing.monitus.org` origin. See [`deployment.md`](deployment.md).
 - **Parquet exports** — add `mart_estate_monthly` (~592k rows) and
   `mart_transaction_recent` (~73k rows) if the dashboard needs full history or a
   recent-transactions table.

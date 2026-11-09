@@ -7,9 +7,9 @@ relational SQLite model, and builds text embeddings for retrieval-augmented
 applications. The long-term goal is a small, reproducible analytics and serving
 layer for a public dashboard.
 
-> **Status:** backend tidy-up complete through Phase 8. The first static
-> frontend lives in [`frontend/`](frontend/) and covers the overview and estate
-> search. See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
+> **Status:** backend tidy-up complete through Phase 8. The static frontend is
+> deployed at <https://hk-housing.monitus.org>. See
+> [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
 > [`docs/decisions.md`](docs/decisions.md), and
 > [`docs/roadmap.md`](docs/roadmap.md). The ML workplan is deferred.
 
@@ -237,6 +237,8 @@ still need to be configured for the frontend origin.
 
 ### Frontend
 
+**Live:** <https://hk-housing.monitus.org>
+
 ```bash
 cd frontend
 npm ci
@@ -257,7 +259,8 @@ npm run dev
 ```
 
 The first version covers the overview and estate search. See
-[`frontend/README.md`](frontend/README.md).
+[`frontend/README.md`](frontend/README.md) and
+[`docs/deployment.md`](docs/deployment.md) for Cloudflare Pages/R2 setup.
 
 ## Repository layout
 
@@ -386,7 +389,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
    upserts, quality checks, tests/CI, analytics marts, serving snapshot/publish,
    and final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
 2. Phase 7: optional sample database. *(deferred)*
-3. Frontend v1: overview and estate search. *(implemented in `frontend/`)*
+3. Frontend v1: overview and estate search. *(implemented and deployed at
+   <https://hk-housing.monitus.org>)*
 4. R2 public access/CORS, map and trend views, and recent transactions.
 5. Incremental crawls, RVD integration, monitoring, and Parquet serving
    exports. See [`docs/roadmap.md`](docs/roadmap.md).
