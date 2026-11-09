@@ -1,6 +1,5 @@
 from typing import Optional
 from logger import housing_logger
-from time import time
 
 from .agency_base import AgencyProcessor
 from models.agency.responses import (
@@ -13,7 +12,6 @@ from models.agency.responses import (
 )
 from models.agency.outputs import (
     SingleLanguageBaseModel,
-    UnitFeaturesModel,
     TransactionsDetailModel,
     UnitFeaturesModel,
     UnitInfoModel,
@@ -22,8 +20,12 @@ from models.agency.sql_db import Base, Transactions, Unit, UnitFeature
 
 
 class BuildingsProcessor(AgencyProcessor):
-    def __init__(self, keep_latest_transaction_only: bool = False):
-        super().__init__()
+    def __init__(
+        self,
+        keep_latest_transaction_only: bool = False,
+        db_path: Optional[str] = None,
+    ):
+        super().__init__(db_path=db_path)
         self.keep_latest_transaction_only = keep_latest_transaction_only
         self.zh_table_configs: dict[str, tuple[type[SingleLanguageBaseModel], type]] = {
             "units_cache": (UnitInfoModel, Unit),
@@ -39,8 +41,6 @@ class BuildingsProcessor(AgencyProcessor):
         self._create_data_cache()
         # Create tables if not exist
         self._create_tables()
-        # Initialize persistent PK sets for deduplication across partitions
-        self._init_pk_sets()
 
     def _create_data_cache(self):
         for cache_name in self.zh_table_configs.keys():
@@ -50,12 +50,6 @@ class BuildingsProcessor(AgencyProcessor):
 
     def _create_tables(self):
         Base.metadata.create_all(self.engine)
-
-    def _init_pk_sets(self):
-        """Initialize persistent PK sets for deduplication across partitions"""
-        self.pk_sets = {}
-        for cache_name in self.zh_table_configs.keys():
-            self.pk_sets[cache_name] = set()
 
     def map_building_info_response_to_table_dicts(
         self, building_info_response: BuildingInfoResponse
@@ -118,11 +112,9 @@ class BuildingsProcessor(AgencyProcessor):
             parsed_transaction = TransactionsDetailModel.from_response(
                 unit_id=unit_id, response=transaction
             )
-            tx_dict = parsed_transaction.model_dump()
-            pk_tuple = tuple(tx_dict[key] for key in self.pk_map["transactions_cache"])
-            if pk_tuple not in self.pk_sets["transactions_cache"]:
-                self.pk_sets["transactions_cache"].add(pk_tuple)
-                self.caches["transactions_cache"].append(tx_dict)
+            self.caches["transactions_cache"].append(
+                parsed_transaction.model_dump()
+            )
         return UnitFeaturesFromTransactions(
             features=unit_features, bedroom=bedroom, sitting_room=sitting_room
         )
@@ -143,10 +135,7 @@ class BuildingsProcessor(AgencyProcessor):
             sitting_room=unit_features_data.sitting_room,
         ).model_dump()
         if unit_info_model:
-            pk_tuple = tuple(unit_info_model[key] for key in self.pk_map["units_cache"])
-            if pk_tuple not in self.pk_sets["units_cache"]:
-                self.pk_sets["units_cache"].add(pk_tuple)
-                self.caches["units_cache"].append(unit_info_model)
+            self.caches["units_cache"].append(unit_info_model)
 
     def _map_unit_features_to_table_dicts(
         self,
@@ -161,10 +150,7 @@ class BuildingsProcessor(AgencyProcessor):
             feature_dict = UnitFeaturesModel.from_response(
                 unit_id=unit_id, response=feature
             ).model_dump()
-            pk_tuple = tuple(feature_dict[key] for key in self.pk_map["unit_features_cache"])
-            if pk_tuple not in self.pk_sets["unit_features_cache"]:
-                self.pk_sets["unit_features_cache"].add(pk_tuple)
-                self.caches["unit_features_cache"].append(feature_dict)
+            self.caches["unit_features_cache"].append(feature_dict)
 
 
 class UnitFeaturesFromTransactions(SingleLanguageBaseModel):

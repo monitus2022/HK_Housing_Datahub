@@ -7,7 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     PrimaryKeyConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
@@ -156,3 +156,15 @@ class Transactions(Base):
     gain = Column(Float)
     net_ft_price = Column(Float)
     unit_id = Column(String, ForeignKey("units.unit_id"), nullable=False)
+
+
+# Run metadata
+class PipelineRun(Base):
+    __tablename__ = "pipeline_runs"
+    run_id = Column(String, primary_key=True)
+    started_at = Column(DateTime, nullable=False)
+    finished_at = Column(DateTime)
+    mode = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+    record_counts_json = Column(String)
+    error_message = Column(String)
