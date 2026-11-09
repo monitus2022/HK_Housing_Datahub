@@ -137,7 +137,7 @@ def seed_db(path: Path) -> None:
         )
         transactions = [
             ("T1", "2024-01-15", 1_000_000.0, 10_000.0, "U1"),
-            ("T2", "2024-06-15", 1_200_000.0, 12_000.0, "U1"),
+            ("T2", "2024-06-15 16:00:00.000000", 1_200_000.0, 12_000.0, "U1"),
             ("T3", "2025-01-15", 1_300_000.0, 13_000.0, "U1"),
             ("T4", "2023-01-01", 500_000.0, 5_000.0, "U2"),
         ]
@@ -256,9 +256,10 @@ def test_marts_row_counts_and_known_values(tmp_path):
 
     recent = read_rows(
         db_path,
-        "SELECT tx_id FROM mart_transaction_recent ORDER BY tx_id",
+        "SELECT tx_id, tx_date FROM mart_transaction_recent ORDER BY tx_id",
     )
     assert [row["tx_id"] for row in recent] == ["T1", "T2", "T3"]
+    assert recent[1]["tx_date"] == "2024-06-15"
 
     coverage = read_rows(
         db_path,
@@ -286,9 +287,30 @@ def test_builder_is_idempotent_and_creates_indexes(tmp_path):
     seed_db(db_path)
     wiki_dir = make_wiki_dir(tmp_path)
 
+    raw_tables = [
+        "estates",
+        "buildings",
+        "units",
+        "transactions",
+        "estate_monthly_market_info",
+    ]
+    raw_counts_before = {
+        table: read_rows(db_path, f'SELECT count(*) AS c FROM "{table}"')[0][
+            "c"
+        ]
+        for table in raw_tables
+    }
+
     first = build(db_path, wiki_dir)
     second = build(db_path, wiki_dir)
     assert first == second
+    raw_counts_after = {
+        table: read_rows(db_path, f'SELECT count(*) AS c FROM "{table}"')[0][
+            "c"
+        ]
+        for table in raw_tables
+    }
+    assert raw_counts_after == raw_counts_before
 
     indexes = read_rows(
         db_path,

@@ -287,8 +287,8 @@ the agency orchestrator (Phase 2); it did not exist in the Phase 0 baseline.
 
 The marts are derived, denormalized tables built from the raw model by
 `python scripts/build_marts.py`. They are dropped and recreated on every build;
-the raw tables are never modified. The builder also creates the dashboard
-indexes. Row counts below are from the 2026-11-09 reference snapshot.
+raw data and columns are never modified. The builder does add dashboard indexes
+to raw tables. Row counts below are from the 2026-11-09 reference snapshot.
 
 ### `mart_estate_summary`
 

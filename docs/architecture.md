@@ -159,7 +159,8 @@ Notes:
 2. It creates a connection-local `wiki_estates` temp table for `has_wiki`.
 3. It runs ordered SQL files: raw indexes, five mart definitions, then mart
    lookup indexes.
-4. It drops/recreates the marts on every run; raw tables are unchanged.
+4. It drops/recreates the marts on every run; raw data and columns are
+   unchanged, though indexes are added to raw tables.
 
 The resulting marts are documented in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts) and are the source for
