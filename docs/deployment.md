@@ -39,7 +39,14 @@ The two are connected by the build-time `VITE_DASHBOARD_BASE_URL` value.
 | Node version | `22` (`NODE_VERSION=22`) |
 | Environment variable | `VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org` |
 
-A trailing slash is tolerated.
+A trailing slash is tolerated. Set `VITE_DASHBOARD_BASE_URL` for **Production**
+and **Preview**; Vite bakes it into the bundle at build time, so changing it
+requires a new deployment.
+
+The repo also has `frontend/.env.production` with the public host as a
+build-time fallback. A Pages environment variable with the same name overrides
+it, so the build still points at the correct snapshot if the dashboard variable
+is missed.
 
 The live custom domain is `hk-housing.monitus.org`; add it under Pages →
 Custom domains. If the domain is in Cloudflare, the CNAME is created

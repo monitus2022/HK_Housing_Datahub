@@ -47,6 +47,9 @@ npm run dev
 A trailing slash is tolerated (the loader strips it). Leave the variable empty
 when the frontend and `/dashboard` are served from the same origin.
 
+`frontend/.env.production` provides the live R2 host as a build-time fallback.
+A Cloudflare Pages environment variable with the same name overrides it.
+
 ## Local development without R2
 
 Use the repo's snapshot server, which adds CORS and gzip headers:
