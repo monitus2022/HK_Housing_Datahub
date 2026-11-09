@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-core.txt
+            requirements-dev.txt
+
+      - name: Install core and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-core.txt -r requirements-dev.txt
+
+      - name: Verify config imports without .env
+        run: python -c "import sys; sys.path.insert(0, 'src'); import config; print('config import ok')"
+
+      - name: Compile sources
+        run: python -m compileall -q src scripts tests
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Lint touched modules
+        run: |
+          ruff check \
+            src/main.py \
+            src/quality \
+            src/processors/agency \
+            src/models/agency/sql_db.py \
+            src/orchestrators \
+            scripts \
+            tests
