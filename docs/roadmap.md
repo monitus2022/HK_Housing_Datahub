@@ -29,9 +29,10 @@ baseline. This file tracks work beyond it.
 
 ## Serving and frontend
 
-- **Frontend** — a separate static site that reads `dashboard/manifest.json`.
-  Planned views: estate list/search, estate detail, district price trends,
-  coverage/data-freshness, and a clear error/fallback state.
+- **Frontend v1** — `frontend/` now has the dataset overview, estate search,
+  estate detail, and loading/error/empty states, driven by the manifest.
+  Remaining views: district price trends, map, recent-transactions table, and
+  broader accessibility/performance testing.
 - **R2 public access and CORS** — configure the bucket/custom domain for the
   frontend origin. The CLI upload is verified; browser access is not.
 - **Parquet exports** — add `mart_estate_monthly` (~592k rows) and
