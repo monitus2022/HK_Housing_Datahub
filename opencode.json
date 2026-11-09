@@ -18,12 +18,22 @@
         { "action": "shell", "resource": "git log*", "effect": "allow" },
         { "action": "shell", "resource": "git rev-parse*", "effect": "allow" },
         { "action": "shell", "resource": "git merge-base*", "effect": "allow" },
-        { "action": "shell", "resource": "git diff*--output*", "effect": "deny" },
-        { "action": "shell", "resource": "git show*--output*", "effect": "deny" },
-        { "action": "shell", "resource": "git log*--output*", "effect": "deny" },
         { "action": "shell", "resource": "pytest*", "effect": "allow" },
+        { "action": "shell", "resource": "venv/bin/pytest*", "effect": "allow" },
         { "action": "shell", "resource": "python -m pytest*", "effect": "allow" },
-        { "action": "shell", "resource": "python3 -m pytest*", "effect": "allow" }
+        { "action": "shell", "resource": "python3 -m pytest*", "effect": "allow" },
+        { "action": "shell", "resource": "venv/bin/ruff check*", "effect": "allow" },
+        { "action": "shell", "resource": "python scripts/baseline_stats.py*", "effect": "allow" },
+        { "action": "shell", "resource": "python3 scripts/baseline_stats.py*", "effect": "allow" },
+        { "action": "shell", "resource": "*>*", "effect": "deny" },
+        { "action": "shell", "resource": "*|*", "effect": "deny" },
+        { "action": "shell", "resource": "*;*", "effect": "deny" },
+        { "action": "shell", "resource": "*&&*", "effect": "deny" },
+        { "action": "shell", "resource": "*||*", "effect": "deny" },
+        { "action": "shell", "resource": "*tee*", "effect": "deny" },
+        { "action": "shell", "resource": "*xargs*", "effect": "deny" },
+        { "action": "shell", "resource": "*--output*", "effect": "deny" },
+        { "action": "shell", "resource": "*--fix*", "effect": "deny" }
       ]
     }
   }
