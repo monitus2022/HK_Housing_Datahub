@@ -50,7 +50,7 @@ Source: `data/agency/agency_data.db` (not committed).
 | Transactions joining unit → building → estate → district | 1,071,268 |
 | Transactions with `price > 0` and `net_area > 0` | 1,056,973 |
 | Units | 1,229,204 |
-| Units with `net_area <= 0` or null | 302,085 |
+| Units with `net_area <= 0` or null | 302,139 (302,085 `<= 0` + 54 null) |
 | Units with null `bedroom` | 591,313 (48%) |
 | Estates with null `first_op_date` | 892 (417 with transactions) |
 | Estates with null coordinates | 632 |

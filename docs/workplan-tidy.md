@@ -27,7 +27,7 @@ Repository: `HK_Housing_Datahub`
 
 - Active branch: `dev` @ `92bc704`. `origin/main` already contains `dev` plus
   the merge commits through PR #12; `origin/main` is 3 commits ahead of `dev`
-  and `dev..origin/main` is empty. The local `main` ref is stale (33 commits
+  and `origin/main..dev` is empty. The local `main` ref is stale (33 commits
   behind `origin/main`), so run `git fetch` and compare against `origin/main`.
   The default branch is `main`.
 - There was an uncommitted change in `src/main.py` that enables the RAG
