@@ -110,7 +110,9 @@ issue #17.
 
 - ~~No `tests/` directory.~~ Fixed in Phase 2: `tests/test_upsert.py` covers
   upserts, composite keys, `pk_map` consistency, and run metadata.
-- `.github/workflows/ci-cd.yml` is empty (CI is Phase 4).
+- ~~`.github/workflows/ci-cd.yml` is empty (CI is Phase 4).~~ Fixed in Phase 4:
+  the workflow installs core + dev deps, verifies config import, compiles, runs
+  pytest, and lints the touched modules.
 - ~~`bulk_insert_cache_into_db_tables()` uses `bulk_save_objects()` with no
   upsert.~~ Fixed in Phase 2: writes use SQLite upserts keyed on the model
   primary key.
@@ -119,8 +121,9 @@ issue #17.
 - ~~`src/config/settings.py` instantiates `CloudStorageSecrets()` at import time,
   so importing the config requires cloud credentials.~~ Fixed in Phase 1:
   credential fields are optional and validated only on upload.
-- The old cloud uploader walks all of `data/`, including the SQLite DB and
-  Chroma store.
+- ~~The old cloud uploader walks all of `data/`, including the SQLite DB and
+  Chroma store.~~ Fixed in Phase 6: raw upload is gated behind
+  `allow_raw_upload=True` and hidden files/directories are skipped.
 - ~~No `.dockerignore`; the Dockerfile uses `COPY . .`.~~ Fixed in Phase 1.
 
 ## Reproduce
@@ -135,3 +138,31 @@ It opens the agency database with SQLite's `mode=ro` URI and the Chroma
 database read-only, so it cannot modify either one. Pass `--db PATH` to point
 at a different copy of the agency database; the wiki and Chroma paths are
 resolved from the current working directory, so run it from the repo root.
+
+## Final handoff checks — 2026-11-10
+
+- **Tests:** `pytest -q` → 57 passed. Core-only venv (no RAG/cloud extras) →
+  56 passed, 1 skipped (boto3-only legacy-upload gate).
+- **Lint:** `ruff check src/main.py src/analytics src/quality src/serving
+  src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts
+  tests` → all checks passed.
+- **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
+- **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
+  (Phase 3), #28 (Phase 4), #29 (Phase 5), #30 (Phase 6).
+- **Marts on the reference DB:** estate summary 9,748; district monthly 19,352;
+  estate monthly 591,904; recent transactions 72,900; coverage 9,748.
+- **Quality:** status `fail`; 1 critical (160
+  `buildings.phase_id -> phases.phase_id` orphans) and 3 warnings
+  (non-positive areas, estate coverage, transaction estates without market
+  data). The local entrypoint runs quality in report-only mode.
+- **Serving:** build `20261109T164834Z-ea1321`, ~948 KB; verifier passed; all
+  six files uploaded to the `hk-housing-datahub` bucket and the remote manifest
+  read back successfully. Gzip `Content-Encoding` and cache headers verified.
+- **Branch state:** `origin/dev` has 53 commits not in `origin/main`;
+  `origin/main` has 3 merge commits not in `dev`. The final `dev` → `main` merge
+  is a human step.
+- **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
+- **Remaining backlog:** optional Phase 7 sample DB; frontend plus R2 public
+  access/CORS; RAG idempotency (#17); the 160 phase orphans; Parquet export for
+  the large marts; incremental crawls, RVD, and monitoring (see
+  [`roadmap.md`](roadmap.md)).

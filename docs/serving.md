@@ -29,6 +29,14 @@ The three large JSON files are gzip-compressed and uploaded with
 `Content-Encoding: gzip`; browsers decompress them transparently. `manifest.json`
 and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
+## Published snapshot
+
+The Phase 6 build `20261109T164834Z-ea1321` was published to the
+`hk-housing-datahub` bucket on 2026-11-10. The remote `dashboard/manifest.json`
+and every referenced file were read back successfully, and the gzip/cache
+headers were verified. The bucket still needs public read access (or a custom
+domain) and CORS for the frontend origin.
+
 ## Publish
 
 ```bash

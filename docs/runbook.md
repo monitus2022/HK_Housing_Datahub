@@ -113,8 +113,9 @@ orchestrator = AgencyOrchestrator(debug_mode=True)
 
 For a truly offline smoke test, use the payload fixtures under
 `docs/api_responses/` and the processor methods directly. The current `tests/`
-suite covers upserts, composite keys, `pk_map` consistency, and run metadata
-with a temporary SQLite database; broader fixture coverage is Phase 4.
+suite covers response parsing, table mapping, duplicate-input dedupe, upserts,
+run metadata, quality checks, mart builds, and serving manifest/publish
+planning, all with fixtures and temporary SQLite databases.
 
 ## Resume and rerun behaviour
 
@@ -285,6 +286,29 @@ CI workflow
 (`.github/workflows/ci-cd.yml`) installs core + dev dependencies, checks that
 `config` imports without `.env`, compiles, runs `pytest`, and runs ruff on the
 touched modules.
+
+## Release handoff
+
+Before merging `dev` → `main`:
+
+```bash
+make test
+make lint
+make quality
+make marts
+make publish-dry
+python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}
+```
+
+Optionally publish:
+
+```bash
+python scripts/publish_dashboard.py --db data/agency/agency_data.db
+```
+
+A human performs the `dev` → `main` merge. Agents never merge `main` or
+force-push it. Architecture decisions and remaining work are in
+[`decisions.md`](decisions.md) and [`roadmap.md`](roadmap.md).
 
 ## Common failures
 

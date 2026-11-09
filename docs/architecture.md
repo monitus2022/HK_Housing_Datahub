@@ -235,7 +235,9 @@ credentials.
 - Phase 5 added `src/analytics/`, the five marts, and dashboard indexes.
 - Phase 6 added `src/serving/`, the versioned snapshot/publish path, and gated
   the legacy raw uploader.
-- Phase 7–8 add optional sample data and the final handoff.
+- Phase 7 (optional sample database) is deferred.
+- Phase 8 added the handoff documentation; see [`decisions.md`](decisions.md)
+  and [`roadmap.md`](roadmap.md).
 - The ML workplan is deferred.
 
 ## Failure modes
