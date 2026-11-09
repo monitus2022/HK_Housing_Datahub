@@ -23,12 +23,18 @@ async function fetchJson<T>(path: string): Promise<T> {
 
   // R2 serves gzip with Content-Encoding, so the browser decodes it. If a
   // local static server returns the .gz bytes without that header, fall back to
-  // manual decompression.
-  const clone = response.clone();
+  // manual decompression. Only clone when that fallback could be needed.
+  const encoding = (
+    response.headers.get("content-encoding") ?? ""
+  ).toLowerCase();
+  const needsGzipFallback =
+    path.endsWith(".gz") && !encoding.includes("gzip");
+  const clone = needsGzipFallback ? response.clone() : null;
+
   try {
     return (await response.json()) as T;
   } catch (parseError) {
-    if (!path.endsWith(".gz") || !clone.body) {
+    if (!needsGzipFallback || !clone?.body) {
       throw parseError;
     }
     try {

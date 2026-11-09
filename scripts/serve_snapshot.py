@@ -25,6 +25,17 @@ def content_type_for(path: Path) -> str:
     return "application/octet-stream"
 
 
+def resolve_snapshot_path(snapshot_dir: Path, relative: str) -> Path | None:
+    """Resolve a requested snapshot file without escaping the snapshot root."""
+    if not relative or relative.startswith(("/", "\\")):
+        return None
+    root = snapshot_dir.resolve()
+    candidate = (root / relative).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return None
+    return candidate
+
+
 class SnapshotHandler(BaseHTTPRequestHandler):
     snapshot_dir: Path
     build_id: str
@@ -38,8 +49,8 @@ class SnapshotHandler(BaseHTTPRequestHandler):
             target = self.snapshot_dir / "manifest.json"
         elif request_path.startswith(f"/dashboard/{self.build_id}/"):
             relative = request_path[len(f"/dashboard/{self.build_id}/") :]
-            target = self.snapshot_dir / relative
-            if ".." in Path(relative).parts:
+            target = resolve_snapshot_path(self.snapshot_dir, relative)
+            if target is None:
                 self._not_found()
                 return
         else:
