@@ -88,6 +88,8 @@ Data sources:
 - [Rating and Valuation Department (RVD)](https://www.rvd.gov.hk/en/publications/property_market_statistics.html)
   — not implemented yet.
 
+API payload notes: [`docs/api_endpoints.md`](docs/api_endpoints.md).
+
 ## Quickstart
 
 ```bash
@@ -105,6 +107,25 @@ python src/main.py
 pipeline. The agency pipeline, wiki pipeline, and cloud upload are commented
 out. See [`docs/runbook.md`](docs/runbook.md) for how to run each stage and for
 the known RAG rerun caveat.
+
+### Debug mode
+
+`AgencyOrchestrator(debug_mode=True)` limits the estate list to the first 20
+estates for a faster run. It still uses the network and writes to the configured
+database, so point it at a copy if you do not want to touch the reference data.
+See [`docs/runbook.md`](docs/runbook.md#debug-mode) for the example and caveats.
+
+### Docker
+
+The repository includes a `Dockerfile` and `docker-compose.yml`:
+
+```bash
+docker-compose up --build
+```
+
+The compose file mounts `./data` and `./logs` into the container. `.dockerignore`
+keeps `.env`, `data/`, `logs/`, `venv/`, and local databases out of the image
+build context.
 
 ### Local data
 
@@ -190,13 +211,16 @@ serving path — see Phase 6.
 # Read-only database audit
 python3 scripts/baseline_stats.py
 
-# Available after Phase 4
+# Dev tooling: pytest and ruff
+pip install -r requirements-dev.txt
+
+# After Phase 4
 pytest -q
 ruff check src tests
 ```
 
-There is no `tests/` directory or CI yet. Adding fixture-based tests, CI, and
-`requirements-dev.txt` is Phase 4.
+`requirements-dev.txt` is available now. There is no `tests/` directory or CI
+yet; fixture-based tests, the test layout, and the CI workflow are Phase 4.
 
 ## Known limitations
 

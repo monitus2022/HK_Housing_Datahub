@@ -47,8 +47,9 @@ class AgencyApiConfig(BaseModel):
     urls: AgencyApiUrls
     headers: Dict[str, str]
 
-    # Load cookies from env file
-    cookies_token: Optional[str] = Field(None, env="AGENCY_API_COOKIES_TOKEN")
+    # Placeholder for a future authenticated mode. The crawler currently
+    # obtains fresh cookies from the HKP homepage, so this is not read today.
+    cookies_token: Optional[str] = None
 
 
 class WikiApiConfig(BaseModel):
