@@ -182,6 +182,33 @@ phases.phase_id` orphans) and three warnings (non-positive areas, estate
 coverage, transaction estates without market data). See
 [`quality.md`](quality.md) for the check list and thresholds.
 
+## Build analytics marts
+
+The mart builder writes derived tables and indexes to the agency database:
+
+```bash
+python scripts/build_marts.py --db data/agency/agency_data.db --wiki-dir data/wiki
+# or
+make marts
+```
+
+It rebuilds:
+
+```text
+mart_estate_summary       one row per estate
+mart_district_monthly     district x month
+mart_estate_monthly       estate x month (full history, ~592k rows)
+mart_transaction_recent   last 24 months
+mart_coverage             one row per estate
+```
+
+The builder drops and recreates the `mart_*` tables and creates idempotent raw
+and mart indexes. Raw data and columns are not modified; only indexes are added
+to raw tables. `has_wiki` comes from the wiki JSON estate names; missing wiki
+data simply sets it to 0. Windows are relative to the latest transaction date
+in the snapshot. Grains and columns are in
+[`data-dictionary.md`](data-dictionary.md#analytics-marts).
+
 ## Publish serving data
 
 Phase 6 will add:
@@ -206,8 +233,9 @@ pip install -r requirements-core.txt -r requirements-dev.txt
 # Available now
 python3 scripts/baseline_stats.py
 python scripts/run_quality.py --db data/agency/agency_data.db --fail-on none
+python scripts/build_marts.py --db data/agency/agency_data.db
 pytest -q
-ruff check src/main.py src/quality src/processors/agency \
+ruff check src/main.py src/analytics src/quality src/processors/agency \
   src/models/agency/sql_db.py src/orchestrators scripts tests
 
 # Shortcuts
@@ -215,13 +243,14 @@ make test
 make lint
 make quality
 make quality-strict
+make marts
 ```
 
-`tests/` contains the Phase 2–4 tests (44 total): upserts, run metadata,
-quality checks, response models, table mapping, and duplicate-input dedupe. The
-CI workflow (`.github/workflows/ci-cd.yml`) installs core + dev dependencies,
-checks that `config` imports without `.env`, compiles, runs `pytest`, and runs
-ruff on the touched modules.
+`tests/` contains the Phase 2–5 tests (48 total): upserts, run metadata,
+quality checks, response models, table mapping, duplicate-input dedupe, and
+synthetic mart builds. The CI workflow (`.github/workflows/ci-cd.yml`) installs
+core + dev dependencies, checks that `config` imports without `.env`, compiles,
+runs `pytest`, and runs ruff on the touched modules.
 
 ## Common failures
 

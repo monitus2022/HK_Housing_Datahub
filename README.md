@@ -165,7 +165,7 @@ The phase plan, guardrails, and acceptance criteria are in
 
 ## Data model
 
-The relational model has six groups:
+The data model has the following groups:
 
 | Group | Tables |
 |---|---|
@@ -175,6 +175,7 @@ The relational model has six groups:
 | Units and transactions | `units`, `unit_features`, `transactions` |
 | Lookup | `facilities` |
 | Run metadata | `pipeline_runs` |
+| Analytics marts | `mart_estate_summary`, `mart_district_monthly`, `mart_estate_monthly`, `mart_transaction_recent`, `mart_coverage` |
 
 - ER diagram: [`docs/db.dbml`](docs/db.dbml)
 - Column-level dictionary and caveats: [`docs/data-dictionary.md`](docs/data-dictionary.md)
@@ -192,10 +193,12 @@ src/
   processors/     # response-to-table mapping, wiki parsing, RAG embeddings
   models/         # Pydantic response/output models and SQLAlchemy tables
   orchestrators/  # pipeline entry points
+  analytics/      # mart builder and ordered SQL files
+  quality/        # read-only data-quality checks and reports
   config/         # YAML config, Pydantic settings, env loading
   main.py         # current runnable entry point
 docs/             # workplans, API docs, schema, baseline, runbook
-scripts/          # read-only utilities (baseline audit)
+scripts/          # baseline, quality, and mart CLIs
 data/             # local data, ignored
 ```
 
@@ -220,26 +223,32 @@ python3 scripts/baseline_stats.py
 # Data quality (read-only; writes data/quality/)
 python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
 
+# Analytics marts (writes mart_* tables and indexes to the DB)
+python scripts/build_marts.py --db data/agency/agency_data.db
+
 # Dev tooling: pytest and ruff
 pip install -r requirements-dev.txt
 
-# Fixture/DB tests: upserts, run metadata, quality, response models, and mapping
+# Fixture/DB tests: upserts, run metadata, quality, response models, mapping, marts
 pytest -q
 
 # Lint the files touched by the tidy-up so far
-ruff check src/main.py src/quality src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
+ruff check src/main.py src/analytics src/quality src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
 
 # Optional shortcuts
 make test
 make lint
 make quality
+make marts
 ```
 
-`tests/` contains the Phase 2–4 tests (44 total): upserts, run metadata,
-quality checks, response-model parsing, table mapping, and duplicate-input
-dedupe. The CI workflow in `.github/workflows/ci-cd.yml` installs
-`requirements-core.txt` + `requirements-dev.txt` and runs the same tests and
-lint. Quality details and thresholds are in [`docs/quality.md`](docs/quality.md).
+`tests/` contains the Phase 2–5 tests (48 total): upserts, run metadata,
+quality checks, response-model parsing, table mapping, duplicate-input dedupe,
+and synthetic mart builds. The CI workflow in `.github/workflows/ci-cd.yml`
+installs `requirements-core.txt` + `requirements-dev.txt` and runs the same
+tests and lint. Quality details and thresholds are in
+[`docs/quality.md`](docs/quality.md); mart grains and columns are in
+[`docs/data-dictionary.md`](docs/data-dictionary.md#analytics-marts).
 
 ## Known limitations
 
@@ -267,17 +276,20 @@ lint. Quality details and thresholds are in [`docs/quality.md`](docs/quality.md)
   schedule yet.
 - CI installs core dependencies only; the optional RAG and cloud-upload code is
   not exercised in CI.
+- The 12- and 24-month mart windows are relative to the latest transaction date
+  in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
+- `mart_estate_monthly` is large (~592k rows); the serving layer should export
+  it as Parquet rather than JSON.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap
 
-1. Phase 0–4: baseline, repo presentation, config safety, idempotent upserts,
-   data-quality checks, fixture tests, and CI. *(implemented; see PRs #24–#27
-   and the Phase 4 PR)*
-2. Phase 5: analytics marts.
-3. Phase 6: versioned serving snapshot and R2 publish.
-4. Phase 7–8: optional sample data and final handoff.
-5. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+1. Phase 0–5: baseline, repo presentation, config safety, idempotent upserts,
+   data-quality checks, fixture tests/CI, and analytics marts. *(implemented;
+   see PRs #24–#28 and the Phase 5 PR)*
+2. Phase 6: versioned serving snapshot and R2 publish.
+3. Phase 7–8: optional sample data and final handoff.
+4. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 
 ## Disclaimer
 
