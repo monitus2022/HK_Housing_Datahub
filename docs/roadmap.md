@@ -1,6 +1,7 @@
 # Roadmap
 
-The tidy-up (Phases 0–8) is the baseline. This file tracks work beyond it.
+The tidy-up (Phases 0–6 and 8; Phase 7 is optional and deferred) is the
+baseline. This file tracks work beyond it.
 
 ## Data pipeline
 

@@ -328,9 +328,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 
 ## Roadmap
 
-1. Phase 0–8: baseline, repo presentation, config safety, idempotent upserts,
-   quality checks, tests/CI, analytics marts, serving snapshot/publish, and
-   final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
+1. Phases 0–6 and 8: baseline, repo presentation, config safety, idempotent
+   upserts, quality checks, tests/CI, analytics marts, serving snapshot/publish,
+   and final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
 2. Phase 7: optional sample database. *(deferred)*
 3. Frontend and R2 public access/CORS.
 4. Incremental crawls, RVD integration, monitoring, and Parquet serving
