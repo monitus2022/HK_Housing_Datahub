@@ -364,7 +364,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   every stored ID that is not in the current wiki source is pruned after a
   complete run. Chunk IDs are a SHA-1 of estate name, section title, and chunk
   index, so edited text refreshes in place and removed sections are deleted.
-  Pruning is skipped if any wiki file fails to load (issue #17).
+  Pruning is skipped if any wiki file fails to load or if a run produces no
+  chunks at all (issue #17).
 - The reference DB currently has 160 `buildings.phase_id -> phases.phase_id`
   orphan rows. The quality CLI with `--fail-on critical` exits non-zero until
   the mapping or data is repaired; `src/main.py` runs the checks in report-only

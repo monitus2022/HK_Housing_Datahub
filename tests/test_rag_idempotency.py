@@ -210,3 +210,25 @@ def test_empty_input_does_not_prune(pipeline, tmp_path):
     pipeline.process_wiki_files(batch_size=10)
 
     assert pipeline.collection.count() == 1
+
+
+def test_partitions_without_chunks_do_not_prune(pipeline, tmp_path, monkeypatch):
+    wiki_dir = tmp_path / "wiki"
+    wiki_dir.mkdir()
+    pipeline.data_dir = wiki_dir
+    monkeypatch.setattr(
+        pipeline, "generate_embeddings", lambda texts: _fake_embeddings(len(texts))
+    )
+
+    documents = _make_documents(["a"])
+    pipeline.store_documents(documents, _fake_embeddings(len(documents)))
+
+    # Valid JSON, but the expected ``sections`` key is missing (schema drift).
+    (wiki_dir / "wiki_data_partition_1.json").write_text(
+        json.dumps({"Estate One": {"title": "Estate One"}}), encoding="utf-8"
+    )
+
+    pipeline.process_wiki_files(batch_size=10)
+
+    # A run that yields no chunks must not interpret that as "delete all".
+    assert pipeline.collection.count() == 1

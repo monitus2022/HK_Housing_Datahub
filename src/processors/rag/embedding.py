@@ -410,6 +410,14 @@ class TextEmbeddingPipeline(BaseProcessor):
                 "Skipping orphan prune because "
                 f"{len(failed_files)} file(s) failed: {', '.join(failed_files)}"
             )
+        elif not expected_ids:
+            # Valid JSON that produced no chunks usually means a schema drift
+            # (for example the ``sections`` key was renamed). Pruning here
+            # would wipe the collection, so require an explicit manual reset.
+            housing_logger.warning(
+                "No chunks produced from the wiki files; skipping prune. "
+                "Delete data/chroma_db/ manually if the corpus is truly empty."
+            )
         else:
             self.prune_documents(expected_ids)
 

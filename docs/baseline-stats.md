@@ -105,7 +105,7 @@ Phase 0 commit. RAG reruns are idempotent: chunks are written with Chroma
 `upsert()` and IDs that are no longer in the wiki source are pruned after a
 complete run. Chunk IDs are a SHA-1 of estate name, section title, and chunk
 index, so edited text refreshes in place. Pruning is skipped when any input
-file fails to load (issue #17).
+file fails to load or when a run produces no chunks (issue #17).
 
 ## Known gaps confirmed at snapshot time
 
@@ -142,7 +142,7 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff checks — 2026-11-10
 
-- **Tests:** `pytest -q` → 67 passed, including 8 offline RAG idempotency tests
+- **Tests:** `pytest -q` → 68 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
   `chromadb` skips the RAG test module and the boto3 legacy-upload test.
 - **Lint:** `ruff check src/main.py src/analytics src/quality src/serving

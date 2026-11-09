@@ -154,8 +154,8 @@ Notes:
    `paraphrase-multilingual-MiniLM-L12-v2` on CPU.
 4. Write batches (default 100) to the `hk_housing_wiki` Chroma collection using
    `upsert`, so reruns refresh existing chunks in place. After a complete run,
-   stored IDs that are no longer in the wiki source are pruned. If any input
-   file fails to load, pruning is skipped.
+   stored IDs that are no longer in the wiki source are pruned. Pruning is
+   skipped if any input file fails to load or if the run yields no chunks.
 
 ### Analytics path
 

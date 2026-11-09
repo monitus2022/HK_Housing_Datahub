@@ -21,7 +21,9 @@ but does not refresh the SQLite database. The quality step is report-only in
 current wiki source. Chunk IDs are a SHA-1 of estate name, section title, and
 chunk index, so edited text refreshes in place and removed sections disappear.
 If any wiki file fails to load, pruning is skipped so valid chunks are not
-deleted; the log reports which files failed. See issue #17.
+deleted; the log reports which files failed. Pruning is also skipped when a
+run produces no chunks at all, which usually signals a schema drift rather
+than an empty corpus. See issue #17.
 
 ## Local setup
 
@@ -283,7 +285,7 @@ The legacy raw-data uploader now raises unless constructed with
 ## Tests and checks
 
 ```bash
-# Core test environment (no RAG/cloud extras)
+# Test environment (core + dev; includes ChromaDB, no embedding model)
 pip install -r requirements-core.txt -r requirements-dev.txt
 
 # Available now
@@ -293,7 +295,8 @@ python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
 ruff check src/main.py src/analytics src/quality src/serving \
-  src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
+  src/processors/agency src/processors/rag src/models/agency/sql_db.py \
+  src/orchestrators scripts tests
 
 # Shortcuts
 make test
@@ -304,14 +307,14 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains the Phase 2–6 tests (59 total): upserts, run metadata,
-quality checks, response models, table mapping, duplicate-input dedupe,
-synthetic mart builds, and serving manifest/publish planning. The
-boto3-only legacy-upload gate test skips in the core-only CI environment. The
-CI workflow
-(`.github/workflows/ci-cd.yml`) installs core + dev dependencies, checks that
-`config` imports without `.env`, compiles, runs `pytest`, and runs ruff on the
-touched modules.
+`tests/` contains 68 tests: Phase 2–6 coverage (upserts, run metadata, quality
+checks, response models, table mapping, duplicate-input dedupe, synthetic mart
+builds, serving manifest/publish planning) plus offline RAG storage tests for
+upsert/prune idempotency. The boto3-only legacy-upload gate test skips because
+CI does not install the cloud extra. The CI workflow
+(`.github/workflows/ci-cd.yml`) installs core + dev (including ChromaDB),
+checks that `config` imports without `.env`, compiles, runs `pytest`, and runs
+ruff on the touched modules.
 
 ## Release handoff
 

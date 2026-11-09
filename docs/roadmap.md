@@ -46,7 +46,7 @@ baseline. This file tracks work beyond it.
 
 - **RAG idempotency** — implemented (issue #17): chunks are upserted and IDs not
   present in the current wiki source are pruned after a complete run. Pruning is
-  skipped when any input file fails to load.
+  skipped when any input file fails to load or when a run yields no chunks.
 
 ## Modeling
 
