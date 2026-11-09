@@ -8,11 +8,11 @@ Current public deployment:
 The frontend is a static Vite build. The snapshot is a separate R2 public host.
 The two are connected by the build-time `VITE_DASHBOARD_BASE_URL` value.
 
-> **Current status:** R2 public read and CORS for
-> `https://hk-housing.monitus.org` are verified. The first Pages production
-> bundle was built before `VITE_DASHBOARD_BASE_URL` was set, so it currently
-> shows the “Could not load the snapshot” error card. Confirm the variable is
-> set for Production and Preview, then redeploy.
+> **Current status:** live and verified on 2026-11-10. The production page
+> loads 9,748 estates, search/filtering, and the estate detail drawer with no
+> console errors. R2 public read and CORS for
+> `https://hk-housing.monitus.org` are verified, and the Pages build includes
+> `VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org`.
 
 ## Before redeploying
 
@@ -122,7 +122,8 @@ the existing bundle. Redeploy after changing it.
 | Symptom | Likely cause | Action |
 |---|---|---|
 | Site loads but shows “Could not load the snapshot” | `VITE_DASHBOARD_BASE_URL` was empty at build time | Confirm it is set for Production and Preview, then redeploy |
-| Error card with a JSON parse error / “Unexpected token '<'” | Empty base URL; Pages returned `index.html` for `/dashboard/manifest.json` | Set `VITE_DASHBOARD_BASE_URL` and redeploy |
+| Error card with a JSON parse error / “Unexpected token '<'” | Empty base URL, or a bare host without `https://`; Pages returned `index.html` for the manifest path | Set exactly `https://hk-housing-datahub.monitus.org` and redeploy |
+| Network request goes to `https://hk-housing.monitus.org/hk-housing-datahub.monitus.org/...` | Env var is a bare host, so the browser treats it as a relative path | Prefix the value with `https://` and redeploy |
 | Only the error card with `Request failed (404)` | Wrong snapshot host or manifest path | Check `https://hk-housing-datahub.monitus.org/dashboard/manifest.json` |
 | Browser blocks the request (CORS) | R2 CORS lacks the Pages origin | Add `https://hk-housing.monitus.org` to `AllowedOrigins` |
 | Gzip data fails to parse | Snapshot host is not serving `Content-Encoding: gzip` / CORS exposes it incorrectly | Prefer the R2 custom domain; ensure the publisher uploaded the `.json.gz` files |
