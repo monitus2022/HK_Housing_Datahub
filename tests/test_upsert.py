@@ -85,6 +85,80 @@ def test_upsert_is_idempotent_and_updates_non_key_columns(estates_processor):
     ) == "Estate A updated"
 
 
+def test_partial_upsert_preserves_unmentioned_columns(estates_processor):
+    full = make_estate_row()
+    full["address_zh"] = "地址"
+    full["latitude"] = 22.3
+    full["longitude"] = 114.1
+    estates_processor.caches["estate_info_cache"] = [full]
+    estates_processor.upsert_cache_into_db_tables(
+        [estates_processor.table_configs]
+    )
+
+    # Required (NOT NULL) columns are present; nullable columns are omitted.
+    estates_processor.caches["estate_info_cache"] = [
+        {
+            "estate_id": "E1",
+            "estate_name_zh": "屋苑 A",
+            "estate_name_en": "Partial update",
+            "region_id": "R1",
+            "subregion_id": "S1",
+            "district_id": "D1",
+            "address_en": "1 Test Road",
+        }
+    ]
+    estates_processor.upsert_cache_into_db_tables(
+        [estates_processor.table_configs]
+    )
+
+    assert scalar(
+        estates_processor, "SELECT estate_name_en FROM estates WHERE estate_id='E1'"
+    ) == "Partial update"
+    assert scalar(
+        estates_processor, "SELECT estate_name_zh FROM estates WHERE estate_id='E1'"
+    ) == "屋苑 A"
+    assert scalar(
+        estates_processor, "SELECT address_en FROM estates WHERE estate_id='E1'"
+    ) == "1 Test Road"
+    assert scalar(
+        estates_processor, "SELECT address_zh FROM estates WHERE estate_id='E1'"
+    ) == "地址"
+    assert scalar(
+        estates_processor, "SELECT latitude FROM estates WHERE estate_id='E1'"
+    ) == 22.3
+
+
+def test_upsert_rejects_missing_required_columns(estates_processor):
+    estates_processor.caches["estate_info_cache"] = [
+        {"estate_id": "E1", "estate_name_en": "Only a name"}
+    ]
+    with pytest.raises(ValueError, match="missing required columns"):
+        estates_processor.upsert_cache_into_db_tables(
+            [estates_processor.table_configs]
+        )
+
+
+def test_upsert_rejects_unknown_columns(estates_processor):
+    row = make_estate_row()
+    row["not_a_column"] = "nope"
+    estates_processor.caches["estate_info_cache"] = [row]
+    with pytest.raises(ValueError, match="Unknown columns"):
+        estates_processor.upsert_cache_into_db_tables(
+            [estates_processor.table_configs]
+        )
+
+
+def test_upsert_rejects_inconsistent_row_keys(estates_processor):
+    estates_processor.caches["estate_info_cache"] = [
+        make_estate_row(),
+        {"estate_id": "E2", "estate_name_en": "Only a name"},
+    ]
+    with pytest.raises(ValueError, match="same keys"):
+        estates_processor.upsert_cache_into_db_tables(
+            [estates_processor.table_configs]
+        )
+
+
 def test_upsert_handles_duplicate_keys_in_same_batch(estates_processor):
     first = make_estate_row(name_en="First")
     second = make_estate_row(name_en="Second")

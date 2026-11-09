@@ -103,20 +103,63 @@ class AgencyProcessor(BaseProcessor):
 
         table = db_table_class.__table__
         columns = [column.name for column in table.columns]
+        column_set = set(columns)
         primary_keys = [column.name for column in table.primary_key.columns]
         if not primary_keys:
             raise ValueError(
                 f"Table {table.name} has no primary key; cannot upsert safely."
             )
 
+        for row in rows:
+            unknown = set(row) - column_set
+            if unknown:
+                raise ValueError(
+                    f"Unknown columns for {table.name}: {sorted(unknown)}"
+                )
+
+        key_sets = {frozenset(row) for row in rows}
+        if len(key_sets) != 1:
+            raise ValueError(
+                f"All rows for {table.name} must have the same keys; "
+                f"got {len(key_sets)} different key sets."
+            )
+        present_columns = key_sets.pop()
+        missing_primary_keys = [
+            name for name in primary_keys if name not in present_columns
+        ]
+        if missing_primary_keys:
+            raise ValueError(
+                f"Rows for {table.name} are missing primary keys: "
+                f"{missing_primary_keys}"
+            )
+
+        required_columns = [
+            column.name
+            for column in table.columns
+            if column.name not in primary_keys
+            and not column.nullable
+            and column.default is None
+            and column.server_default is None
+        ]
+        missing_required = [
+            name for name in required_columns if name not in present_columns
+        ]
+        if missing_required:
+            raise ValueError(
+                f"Rows for {table.name} are missing required columns: "
+                f"{missing_required}"
+            )
+
         cleaned_rows = [
             {key: row[key] for key in columns if key in row} for row in rows
         ]
         statement = sqlite_insert(table)
+        # Only update columns that the caller actually supplied. This keeps a
+        # partial upsert from nulling out existing values it did not mention.
         update_columns = {
             name: getattr(statement.excluded, name)
             for name in columns
-            if name not in primary_keys
+            if name not in primary_keys and name in present_columns
         }
         if update_columns:
             statement = statement.on_conflict_do_update(
