@@ -1,4 +1,12 @@
-// ER Diagram for HK Housing Crawler Database
+// ER diagram for HK_Housing_Datahub.
+// Source of truth: src/models/agency/sql_db.py.
+// Baseline snapshot: docs/baseline-stats.md (2026-11-09).
+
+TableGroup location_hierarchy {
+  regions
+  subregions
+  districts
+}
 
 TableGroup estate_info {
   estates
@@ -8,74 +16,23 @@ TableGroup estate_info {
   estate_monthly_market_info
 }
 
-Table estates {
-  estate_id text [pk]
-  estate_name_zh text [not null]
-  estate_name_en text [not null]
-  region_id text [not null]
-  subregion_id text [not null]
-  district_id text [not null]
-  latitude real
-  longitude real
-  Note: "Other attributes: school net, operation date, etc."
+TableGroup buildings {
+  phases
+  buildings
 }
 
-Table estate_school_nets {
-  estate_id text [not null]
-  school_net_id text [not null]
-  school_net_name_zh text [not null]
-  school_net_name_en text [not null]
-  PRIMARY KEY (estate_id, school_net_id)
-  Note: "ID obtained from primary school, name obtained from secondary school."
+TableGroup property_units {
+  units
+  unit_features
+  transactions
 }
 
-Ref: estate_school_nets.estate_id > estates.estate_id
-
-Table estate_facilities {
-  estate_id text [not null]
-  facility_id text [not null]
-  PRIMARY KEY (estate_id, facility_id)
+TableGroup lookup {
+  facilities
 }
 
-Table facilities {
-  facility_id text [pk]
-  facility_name_zh text
-  facility_name_en text [not null]
-  Note: "Contain facilities from estates, buildings and units."
-}
-
-Ref: estate_facilities.estate_id > estates.estate_id
-Ref: estate_facilities.facility_id > facilities.facility_id
-
-Table estate_mtr_lines {
-  estate_id text [not null]
-  mtr_line_name_zh text
-  mtr_line_name_en text [not null]
-  PRIMARY KEY (estate_id, mtr_line_name_en)
-}
-
-Ref: estate_mtr_lines.estate_id > estates.estate_id
-
-Table estate_monthly_market_info {
-  estate_id text [not null]
-  record_date datetime [not null]
-  avg_net_ft_price real
-  avg_net_ft_rent real
-  total_tx_count int
-  total_rent_tx_count int
-  total_tx_amount real
-  total_rent_tx_amount real
-  PRIMARY KEY (estate_id, record_date)
-  note: "Monthly aggregated market info for each estate, contains more fields."
-}
-
-Ref: estate_monthly_market_info.estate_id > estates.estate_id
-
-TableGroup location_hierarchy {
-  regions
-  subregions
-  districts
-  note: "Subregions belong to regions; districts belong to subregions."
+TableGroup run_metadata {
+  pipeline_runs
 }
 
 Table regions {
@@ -98,12 +55,84 @@ Table districts {
   subregion_id text [not null]
 }
 
-Ref: subregions.region_id > regions.region_id
-Ref: districts.subregion_id > subregions.subregion_id
+Table estates {
+  estate_id text [pk]
+  estate_name_zh text [not null]
+  estate_name_en text [not null]
+  region_id text [not null]
+  subregion_id text [not null]
+  district_id text [not null]
+  address_zh text
+  address_en text [not null]
+  first_op_date datetime
+  last_op_date datetime
+  latitude real
+  longitude real
+}
 
-Ref: estates.region_id > regions.region_id
-Ref: estates.subregion_id > subregions.subregion_id
-Ref: estates.district_id > districts.district_id
+Table estate_school_nets {
+  estate_id text [not null]
+  school_net_id text [not null]
+  school_net_name_zh text [not null]
+  school_net_name_en text [not null]
+
+  indexes {
+    (estate_id, school_net_id) [pk]
+  }
+  Note: 'Primary key is (estate_id, school_net_id). The ID is the primary-school net; the name comes from the secondary-school net.'
+}
+
+Table estate_facilities {
+  estate_id text [not null]
+  facility_id text [not null]
+
+  indexes {
+    (estate_id, facility_id) [pk]
+  }
+}
+
+Table facilities {
+  facility_id text [pk]
+  facility_name_zh text
+  facility_name_en text [not null]
+}
+
+Table estate_mtr_lines {
+  estate_id text [not null]
+  mtr_line_name_zh text
+  mtr_line_name_en text [not null]
+
+  indexes {
+    (estate_id, mtr_line_name_en) [pk]
+  }
+  Note: 'Only the first MTR line per estate is captured by the current mapper.'
+}
+
+Table estate_monthly_market_info {
+  estate_id text [not null]
+  record_date datetime [not null]
+  avg_ft_price real
+  avg_net_ft_price real
+  max_ft_price real
+  min_ft_price real
+  max_net_ft_price real
+  min_net_ft_price real
+  avg_ft_rent real
+  avg_net_ft_rent real
+  max_ft_rent real
+  min_ft_rent real
+  max_net_ft_rent real
+  min_net_ft_rent real
+  total_tx_count integer
+  total_rent_tx_count integer
+  total_tx_amount real
+  total_rent_tx_amount real
+
+  indexes {
+    (estate_id, record_date) [pk]
+  }
+  Note: 'Grain: estate x month. Contains both sale and rent aggregates. Date range 1996-12 to 2025-08 in the baseline.'
+}
 
 Table phases {
   phase_id text [pk]
@@ -117,18 +146,8 @@ Table buildings {
   building_name_zh text [not null]
   building_name_en text [not null]
   estate_id text [not null]
-  phase_id text [null]
-  Note: "Small estates may have no phases."
-}
-
-Ref: phases.estate_id > estates.estate_id
-Ref: buildings.estate_id > estates.estate_id
-Ref: buildings.phase_id > phases.phase_id
-
-TableGroup property_units {
-  units
-  unit_facilities
-  transactions
+  phase_id text
+  Note: 'phase_id is nullable because small estates may have no phase.'
 }
 
 Table units {
@@ -137,20 +156,23 @@ Table units {
   flat text [not null]
   area real
   net_area real
-  bedroom int
-  sitting_room int
+  bedroom integer
+  sitting_room integer
   building_id text [not null]
+  Note: 'floor is raw text and may contain G, UG, LG, PH, -, or an empty value.'
 }
 
-Table unit_facilities {
+Table unit_features {
   unit_id text [not null]
-  facility_id text [not null]
-  PRIMARY KEY (unit_id, facility_id)
-}
+  feature_id text [not null]
+  feature_name_zh text
+  feature_name_en text [not null]
 
-Ref: units.building_id > buildings.building_id
-Ref: unit_facilities.unit_id > units.unit_id
-Ref: unit_facilities.facility_id > facilities.facility_id
+  indexes {
+    (unit_id, feature_id) [pk]
+  }
+  Note: 'Replaces the stale unit_facilities name. The source uses the English feature name as the ID.'
+}
 
 Table transactions {
   tx_id text [pk]
@@ -160,11 +182,33 @@ Table transactions {
   gain real
   net_ft_price real
   unit_id text [not null]
-
-  indexes {
-    unit_id
-    tx_date
-  }
+  Note: 'No transaction-type column exists; treat rows as sale transactions. The current database has only primary-key autoindexes; Phase 5 adds dashboard indexes.'
 }
 
+Table pipeline_runs {
+  run_id text [pk]
+  started_at datetime [not null]
+  finished_at datetime
+  mode text [not null]
+  status text [not null]
+  record_counts_json text
+  error_message text
+  Note: 'One row per agency pipeline run; status is running, success, or failed.'
+}
+
+Ref: subregions.region_id > regions.region_id
+Ref: districts.subregion_id > subregions.subregion_id
+Ref: estates.region_id > regions.region_id
+Ref: estates.subregion_id > subregions.subregion_id
+Ref: estates.district_id > districts.district_id
+Ref: estate_school_nets.estate_id > estates.estate_id
+Ref: estate_facilities.estate_id > estates.estate_id
+Ref: estate_facilities.facility_id > facilities.facility_id
+Ref: estate_mtr_lines.estate_id > estates.estate_id
+Ref: estate_monthly_market_info.estate_id > estates.estate_id
+Ref: phases.estate_id > estates.estate_id
+Ref: buildings.estate_id > estates.estate_id
+Ref: buildings.phase_id > phases.phase_id
+Ref: units.building_id > buildings.building_id
+Ref: unit_features.unit_id > units.unit_id
 Ref: transactions.unit_id > units.unit_id

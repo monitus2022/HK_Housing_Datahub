@@ -1,23 +1,5 @@
-# [Web Scraping]
-requests==2.31.0
-wikipedia-api==0.8.1
-mwparserfromhell==0.6.5
-aiohttp==3.9.1
-
-# [Data Processing]
-pandas==2.1.3
-sqlalchemy==2.0.44
-
-# [Configuration Management]
-pydantic==2.12.0
-pydantic-settings==2.11.0
-pyyaml==6.0.3
-
-# [Logging]
-colorlog==6.7.0
-psutil==7.1.1
-
-# [RAG and Embeddings]
-sentence-transformers>=2.7.0
-chromadb==0.5.5
-boto3==1.34.0
+# Full runtime: core processing plus optional RAG and cloud upload.
+# CI and fixture tests use requirements-core.txt + requirements-dev.txt.
+-r requirements-core.txt
+-r requirements-rag.txt
+-r requirements-cloud.txt

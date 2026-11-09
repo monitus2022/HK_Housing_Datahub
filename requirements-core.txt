@@ -1,0 +1,21 @@
+# Core runtime: crawling, parsing, storage, configuration, and logging.
+# CI and fixture tests install this file, not the optional RAG/cloud extras.
+
+# [Web Scraping]
+requests==2.31.0
+wikipedia-api==0.8.1
+mwparserfromhell==0.6.5
+aiohttp==3.9.1
+
+# [Data Processing]
+pandas==2.1.3
+sqlalchemy==2.0.44
+
+# [Configuration Management]
+pydantic==2.12.0
+pydantic-settings==2.11.0
+pyyaml==6.0.3
+
+# [Logging]
+colorlog==6.7.0
+psutil==7.1.1

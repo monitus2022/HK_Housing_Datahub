@@ -8,8 +8,9 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-COPY requirements.txt .
+# Install system dependencies. requirements.txt includes the core/RAG/cloud
+# files, so copy all requirement fragments before resolving them.
+COPY requirements*.txt ./
 RUN apt-get update && \
     apt-get install -y build-essential libpq-dev && \
     pip install --no-cache-dir -r requirements.txt

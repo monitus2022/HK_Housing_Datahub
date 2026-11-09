@@ -7,7 +7,8 @@ from models.agency.responses import (
 from processors.agency import EstatesProcessor, BuildingsProcessor
 from logger import housing_logger
 import time
-from utils import partition_ids, timer
+import uuid
+from utils import partition_ids
 
 
 class AgencyOrchestrator:
@@ -60,46 +61,71 @@ class AgencyOrchestrator:
             self.estates_processor.clean_local_db()
             self.buildings_processor.clean_local_db()
 
-        # Step 1: Fetch all estate IDs
-        housing_logger.info("#1 Fetching all estate IDs.")
-        self._estate_ids()
+        mode = "debug" if self.debug_mode else "full"
+        self.run_id = uuid.uuid4().hex
 
-        # Large volume data, partition processing required
-        partitioned_estate_ids = partition_ids(
-            self.estates_processor.caches["estate_ids_cache"], self.partition_size
-        )
-        # Step 2: Fetch and process single estate info for each estate ID in zh and en
-        # Step 3: Fetch estate monthly market info
-        housing_logger.info("#2 Fetching and processing single estate info.")
-        housing_logger.info("#3 Fetching and processing estate monthly market info.")
-        for idx, estate_id_partition in enumerate(partitioned_estate_ids):
-            housing_logger.info(
-                f"Processing estate info and monthly market info partition {idx + 1} / {len(partitioned_estate_ids)}."
+        try:
+            self.estates_processor.start_pipeline_run(self.run_id, mode=mode)
+            housing_logger.info(f"Pipeline run {self.run_id} started (mode={mode}).")
+            # Step 1: Fetch all estate IDs
+            housing_logger.info("#1 Fetching all estate IDs.")
+            self._estate_ids()
+
+            # Large volume data, partition processing required
+            partitioned_estate_ids = partition_ids(
+                self.estates_processor.caches["estate_ids_cache"], self.partition_size
             )
-            self._estate_infos(estate_ids=estate_id_partition)
-            self._estate_monthly_market_infos(estate_ids=estate_id_partition)
+            # Step 2: Fetch and process single estate info for each estate ID in zh and en
+            # Step 3: Fetch estate monthly market info
+            housing_logger.info("#2 Fetching and processing single estate info.")
+            housing_logger.info("#3 Fetching and processing estate monthly market info.")
+            for idx, estate_id_partition in enumerate(partitioned_estate_ids):
+                housing_logger.info(
+                    f"Processing estate info and monthly market info partition {idx + 1} / {len(partitioned_estate_ids)}."
+                )
+                self._estate_infos(estate_ids=estate_id_partition)
+                self._estate_monthly_market_infos(estate_ids=estate_id_partition)
+                housing_logger.info(
+                    f"Completed processing partition {idx + 1} / {len(partitioned_estate_ids)}."
+                )
+
+            # Step 4: Fetch buildings transaction info
+            housing_logger.info("#4 Fetching and processing buildings transaction info.")
+            partitioned_building_ids = partition_ids(
+                self.estates_processor.caches["building_ids_cache"], self.partition_size
+            )
+            for idx, building_id_partition in enumerate(partitioned_building_ids):
+                housing_logger.info(
+                    f"Processing building info partition {idx + 1} / {len(partitioned_building_ids)}."
+                )
+                self._buildings(building_ids=building_id_partition)
+                housing_logger.info(
+                    f"Completed processing partition {idx + 1} / {len(partitioned_building_ids)}."
+                )
             housing_logger.info(
-                f"Completed processing partition {idx + 1} / {len(partitioned_estate_ids)}."
+                "#4 Completed fetching and processing buildings transaction info."
             )
 
-        # Step 4: Fetch buildings transaction info
-        housing_logger.info("#4 Fetching and processing buildings transaction info.")
-        partitioned_building_ids = partition_ids(
-            self.estates_processor.caches["building_ids_cache"], self.partition_size
-        )
-        for idx, building_id_partition in enumerate(partitioned_building_ids):
-            housing_logger.info(
-                f"Processing building info partition {idx + 1} / {len(partitioned_building_ids)}."
+            self.estates_processor.finish_pipeline_run(
+                self.run_id,
+                status="success",
+                record_counts=self.estates_processor.table_counts(),
             )
-            self._buildings(building_ids=building_id_partition)
             housing_logger.info(
-                f"Completed processing partition {idx + 1} / {len(partitioned_building_ids)}."
+                f"Completed estates data pipeline. Run {self.run_id} succeeded."
             )
-        housing_logger.info(
-            "#4 Completed fetching and processing buildings transaction info."
-        )
-
-        housing_logger.info("Completed estates data pipeline.")
+        except Exception as exc:
+            housing_logger.error(
+                f"Estates data pipeline run {self.run_id} failed: {exc}"
+            )
+            self.estates_processor.finish_pipeline_run(
+                self.run_id, status="failed", error_message=str(exc)
+            )
+            raise
+        finally:
+            # Close the sessions once, at the end of the pipeline.
+            self.estates_processor.close_session()
+            self.buildings_processor.close_session()
 
     def _estate_ids(self) -> None:
         if not self.estates_processor.caches["estate_ids_cache"]:
@@ -141,7 +167,7 @@ class AgencyOrchestrator:
         self.estates_processor.create_building_ids_cache_from_building_cache()
 
         # Push to db and clear caches
-        self.estates_processor.bulk_insert_cache_into_db_tables(
+        self.estates_processor.upsert_cache_into_db_tables(
             config_maps=[
                 self.estates_processor.zh_table_configs,
                 self.estates_processor.table_configs,
@@ -171,7 +197,7 @@ class AgencyOrchestrator:
             time.sleep(0.1)
 
         # Push to db and clear caches
-        self.estates_processor.bulk_insert_cache_into_db_tables(
+        self.estates_processor.upsert_cache_into_db_tables(
             config_maps=[
                 self.estates_processor.zh_table_configs,
                 self.estates_processor.table_configs,
@@ -199,11 +225,7 @@ class AgencyOrchestrator:
             )
 
         # Push to db and clear caches
-        self.buildings_processor.bulk_insert_cache_into_db_tables(
+        self.buildings_processor.upsert_cache_into_db_tables(
             config_maps=[self.buildings_processor.zh_table_configs]
         )
         self.buildings_processor.clear_data_caches(cache_excluded=[])
-
-        # Close database sessions
-        self.estates_processor.close_session()
-        self.buildings_processor.close_session()
