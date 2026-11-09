@@ -101,6 +101,25 @@ skips hidden files/directories. It is not the serving path. Use
 `scripts/publish_dashboard.py` for the versioned snapshot, and do not point the
 raw uploader at a public bucket.
 
+## Frontend development
+
+```bash
+# Serve a local snapshot with CORS/gzip headers
+python scripts/serve_snapshot.py \
+  --snapshot-dir data/serving/{build_id} \
+  --port 8787
+
+# In another terminal
+cd frontend
+cp .env.example .env.local
+# set VITE_DASHBOARD_BASE_URL=http://localhost:8787
+npm ci
+npm run dev
+```
+
+Use the public custom domain instead of localhost when the snapshot is served
+from R2 and CORS is configured. See [`../frontend/README.md`](../frontend/README.md).
+
 ## Debug mode
 
 `AgencyOrchestrator(debug_mode=True)` limits the estate list to the first 20

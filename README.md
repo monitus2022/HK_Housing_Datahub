@@ -7,8 +7,9 @@ relational SQLite model, and builds text embeddings for retrieval-augmented
 applications. The long-term goal is a small, reproducible analytics and serving
 layer for a public dashboard.
 
-> **Status:** backend tidy-up complete through Phase 8. The static frontend is a
-> separate project. See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
+> **Status:** backend tidy-up complete through Phase 8. The first static
+> frontend lives in [`frontend/`](frontend/) and covers the overview and estate
+> search. See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
 > [`docs/decisions.md`](docs/decisions.md), and
 > [`docs/roadmap.md`](docs/roadmap.md). The ML workplan is deferred.
 
@@ -21,8 +22,9 @@ layer for a public dashboard.
 - Loads agency data into a normalized SQLite schema.
 - Chunks wiki text and stores Sentence Transformer embeddings in ChromaDB.
 - Provides read-only baseline and quality audits, five materialized analytics
-  marts, and a versioned serving snapshot published to R2 for a static
-  dashboard.
+  marts, and a versioned serving snapshot published to R2.
+- Includes a static React frontend for the dataset overview and searchable
+  estate list.
 
 ## Architecture
 
@@ -230,8 +232,32 @@ python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}
 python scripts/publish_dashboard.py --db data/agency/agency_data.db
 ```
 
-Full contract: [`docs/serving.md`](docs/serving.md). A static frontend has **not**
-been built yet; public R2 access and CORS still need to be configured for it.
+Full contract: [`docs/serving.md`](docs/serving.md). Public R2 access and CORS
+still need to be configured for the frontend origin.
+
+### Frontend
+
+```bash
+cd frontend
+npm ci
+cp .env.example .env.local   # set VITE_DASHBOARD_BASE_URL
+npm run dev
+```
+
+For local development without R2, serve a snapshot and point the app at it:
+
+```bash
+# Terminal 1, repo root
+python scripts/serve_snapshot.py --snapshot-dir data/serving/{build_id} --port 8787
+
+# Terminal 2
+cd frontend
+echo 'VITE_DASHBOARD_BASE_URL=http://localhost:8787' > .env.local
+npm run dev
+```
+
+The first version covers the overview and estate search. See
+[`frontend/README.md`](frontend/README.md).
 
 ## Repository layout
 
@@ -246,8 +272,9 @@ src/
   serving/        # versioned snapshot builder, verifier, and publisher
   config/         # YAML config, Pydantic settings, env loading
   main.py         # current runnable entry point
+frontend/         # Vite + React + TypeScript static dashboard
 docs/             # workplans, decisions, roadmap, API docs, schema, runbooks
-scripts/          # baseline, quality, mart, and serving CLIs
+scripts/          # baseline, quality, mart, serving, and snapshot-dev CLIs
 data/             # local data, ignored
 ```
 
@@ -288,12 +315,20 @@ pytest -q
 # Lint the files touched by the tidy-up so far
 ruff check src/main.py src/analytics src/quality src/serving src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
 
+# Frontend checks
+cd frontend
+npm ci
+npm run typecheck
+npm test
+npm run build
+
 # Optional shortcuts
 make test
 make lint
 make quality
 make marts
 make publish-dry
+make frontend-check
 ```
 
 `tests/` contains the Phase 2–6 tests (57 total): upserts, run metadata,
@@ -329,8 +364,10 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
 - No live API. The serving layer is a versioned snapshot, not a query service.
-- No frontend is included in this repository. The R2 bucket still needs public
-  read access (or a custom domain) and CORS for the frontend origin.
+- The frontend v1 covers the overview and estate search only; map, district
+  trend charts, and recent-transactions views are not implemented yet.
+- The R2 bucket still needs public read access (or a custom domain) and CORS for
+  the frontend origin.
 - The reference snapshot ends 2025-10-21; the project does not run on a
   schedule yet.
 - CI installs core dependencies only; the optional RAG and cloud-upload code is
@@ -349,10 +386,11 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
    upserts, quality checks, tests/CI, analytics marts, serving snapshot/publish,
    and final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
 2. Phase 7: optional sample database. *(deferred)*
-3. Frontend and R2 public access/CORS.
-4. Incremental crawls, RVD integration, monitoring, and Parquet serving
+3. Frontend v1: overview and estate search. *(implemented in `frontend/`)*
+4. R2 public access/CORS, map and trend views, and recent transactions.
+5. Incremental crawls, RVD integration, monitoring, and Parquet serving
    exports. See [`docs/roadmap.md`](docs/roadmap.md).
-5. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+6. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 
 Architecture trade-offs are recorded in
 [`docs/decisions.md`](docs/decisions.md).

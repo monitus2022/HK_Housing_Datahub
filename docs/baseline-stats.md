@@ -158,6 +158,10 @@ resolved from the current working directory, so run it from the repo root.
 - **Serving:** build `20261109T164834Z-ea1321`, ~948 KB; verifier passed; all
   six files uploaded to the `hk-housing-datahub` bucket and the remote manifest
   read back successfully. Gzip `Content-Encoding` and cache headers verified.
+- **Frontend:** `frontend/` Vite + React + TypeScript; `npm run typecheck`,
+  `npm test` (7 tests), and `npm run build` pass; `npm audit` reports zero
+  vulnerabilities. Browser smoke test against a local snapshot: 9,748 estates,
+  search filtering, and the detail panel verified.
 - **Branch state:** `origin/dev` has 53 commits not in `origin/main`;
   `origin/main` has 3 merge commits not in `dev`. The final `dev` → `main` merge
   is a human step.
