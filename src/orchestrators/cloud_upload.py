@@ -13,7 +13,8 @@ class CloudUploadOrchestrator:
         self.s3_client = None
         self.service_type = housing_datahub_config.cloud_storage.service_type
 
-        # Get configuration based on service type
+        # Get configuration based on service type. Credentials are deliberately
+        # not read here so importing/constructing this class works without .env.
         if self.service_type == 'aws':
             self.bucket_name = housing_datahub_config.aws.bucket_name
             self.region = housing_datahub_config.aws.region
@@ -21,13 +22,21 @@ class CloudUploadOrchestrator:
         elif self.service_type == 'cloudflare':
             self.bucket_name = housing_datahub_config.cloudflare.bucket_name
             self.region = housing_datahub_config.cloudflare.region
-            self.account_id = cloud_storage_secrets.account_id
+            self.account_id = None
         else:
             raise ValueError(f"Unsupported service type: {self.service_type}")
 
+        self.access_key_id = None
+        self.secret_access_key = None
+
+    def _ensure_s3_client(self):
+        """Validate credentials and create the S3 client on first upload."""
+        if self.s3_client is not None:
+            return
+        cloud_storage_secrets.require_credentials(service_type=self.service_type)
+        self.account_id = cloud_storage_secrets.account_id
         self.access_key_id = cloud_storage_secrets.access_key_id
         self.secret_access_key = cloud_storage_secrets.secret_access_key
-
         self._initialize_s3_client()
 
     def _initialize_s3_client(self):
@@ -62,6 +71,7 @@ class CloudUploadOrchestrator:
         Upload all files from the data folder to the configured S3-compatible bucket.
         """
         try:
+            self._ensure_s3_client()
             service_name = "AWS S3" if self.service_type == 'aws' else "Cloudflare R2"
             housing_logger.info(f"Starting upload of files from data folder to {service_name}")
 

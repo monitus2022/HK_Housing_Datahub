@@ -69,15 +69,53 @@ class AWSConfig(BaseModel):
 
 
 class CloudStorageSecrets(BaseSettings):
-    account_id: Optional[str] = Field(None, alias="cloudflare_account_id")  # Only needed for Cloudflare
-    access_key_id: str = Field(alias="cloud_storage_access_key_id")
-    secret_access_key: str = Field(alias="cloud_storage_secret_access_key")
+    account_id: Optional[str] = Field(
+        None, alias="cloudflare_account_id"
+    )  # Only needed for Cloudflare
+    access_key_id: Optional[str] = Field(None, alias="cloud_storage_access_key_id")
+    secret_access_key: Optional[str] = Field(
+        None, alias="cloud_storage_secret_access_key"
+    )
 
     model_config = SettingsConfigDict(
         env_file=env_path if env_path.exists() else None,
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    def missing_keys(self, service_type: str = "cloudflare") -> list[str]:
+        """Return the credential keys required for the configured service."""
+        required = [
+            "cloud_storage_access_key_id",
+            "cloud_storage_secret_access_key",
+        ]
+        if service_type == "cloudflare":
+            required.append("cloudflare_account_id")
+        return [key for key in required if not getattr(self, _field_for(key))]
+
+    def require_credentials(self, service_type: str = "cloudflare") -> None:
+        """Raise a clear error when an upload is attempted without credentials.
+
+        Importing the config must not require cloud credentials. Call this only
+        on the path that actually creates an S3 client.
+        """
+        missing = self.missing_keys(service_type=service_type)
+        if missing:
+            raise ValueError(
+                "Missing cloud storage credentials: "
+                + ", ".join(missing)
+                + ". Set them in .env (see .env.template) or disable the "
+                "cloud upload step."
+            )
+
+
+def _field_for(env_key: str) -> str:
+    """Map an env key to the matching CloudStorageSecrets attribute."""
+    return {
+        "cloudflare_account_id": "account_id",
+        "cloud_storage_access_key_id": "access_key_id",
+        "cloud_storage_secret_access_key": "secret_access_key",
+    }[env_key]
 
 
 class BaseStorageConfig(BaseModel):
