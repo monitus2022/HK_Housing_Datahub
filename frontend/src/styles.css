@@ -103,7 +103,7 @@ h1 {
 
 .overview {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
   gap: 12px;
 }
 
@@ -133,6 +133,12 @@ h1 {
 
 .card-value-small {
   font-size: 1.25rem;
+}
+
+.card-mono {
+  font-size: 0.82rem;
+  font-weight: 650;
+  word-break: break-all;
 }
 
 .card-note {

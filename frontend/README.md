@@ -40,8 +40,8 @@ cp .env.example .env.local
 npm run dev
 ```
 
-`VITE_DASHBOARD_BASE_URL` must not have a trailing slash. Leave it empty when
-the frontend and `/dashboard` are served from the same origin.
+A trailing slash is tolerated (the loader strips it). Leave the variable empty
+when the frontend and `/dashboard` are served from the same origin.
 
 ## Local development without R2
 

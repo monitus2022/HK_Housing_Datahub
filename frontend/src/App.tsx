@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { DashboardData, EstateSummary } from "./types";
 import { loadDashboard } from "./lib/dashboard";
 import { formatDate } from "./lib/format";
@@ -12,6 +12,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
+  const closeDetail = useCallback(() => setSelected(null), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +109,7 @@ export default function App() {
       </footer>
 
       {selected ? (
-        <EstateDetail estate={selected} onClose={() => setSelected(null)} />
+        <EstateDetail estate={selected} onClose={closeDetail} />
       ) : null}
     </div>
   );

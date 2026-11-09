@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { EstateSummary } from "../types";
 import { formatDate, formatHkd, formatNumber } from "../lib/format";
 
@@ -23,12 +23,19 @@ function Stat({
 }
 
 export function EstateDetail({ estate, onClose }: Props) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      previouslyFocused?.focus();
+    };
   }, [onClose]);
 
   return (
@@ -46,6 +53,7 @@ export function EstateDetail({ estate, onClose }: Props) {
         aria-labelledby="estate-detail-title"
       >
         <button
+          ref={closeRef}
           type="button"
           className="drawer-close"
           onClick={onClose}

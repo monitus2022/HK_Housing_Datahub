@@ -47,6 +47,15 @@ export function OverviewCards({ manifest }: Props) {
           Market data through {formatDate(dataThrough.market)}
         </p>
       </article>
+      <article className="card">
+        <p className="card-label">Snapshot build</p>
+        <p className="card-value card-value-small card-mono">
+          {manifest.build_id}
+        </p>
+        <p className="card-note">
+          Generated {formatDate(manifest.generated_at.slice(0, 10))}
+        </p>
+      </article>
     </section>
   );
 }
