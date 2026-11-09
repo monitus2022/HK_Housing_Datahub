@@ -29,6 +29,7 @@
         { "action": "shell", "resource": "npm --prefix frontend run typecheck*", "effect": "allow" },
         { "action": "shell", "resource": "npm --prefix frontend test*", "effect": "allow" },
         { "action": "shell", "resource": "npm --prefix frontend run build*", "effect": "allow" },
+        { "action": "shell", "resource": "npm --prefix frontend audit*", "effect": "allow" },
         { "action": "shell", "resource": "*>*", "effect": "deny" },
         { "action": "shell", "resource": "*|*", "effect": "deny" },
         { "action": "shell", "resource": "*;*", "effect": "deny" },

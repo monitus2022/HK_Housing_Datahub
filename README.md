@@ -56,7 +56,7 @@ flowchart LR
     subgraph Serving
         MART[Analytics marts]
         SNAP[Versioned snapshot<br/>R2]
-        DASH[Static dashboard<br/>separate frontend]
+        DASH[Static frontend<br/>Vite + React]
     end
 
     HKP --> AC --> AP --> DB
@@ -331,7 +331,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (57 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (59 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
 synthetic mart builds, and serving manifest/publish planning. The
 boto3-only legacy-upload gate test is skipped in the core-only CI environment.

@@ -297,7 +297,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains the Phase 2–6 tests (57 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (59 total): upserts, run metadata,
 quality checks, response models, table mapping, duplicate-input dedupe,
 synthetic mart builds, and serving manifest/publish planning. The
 boto3-only legacy-upload gate test skips in the core-only CI environment. The

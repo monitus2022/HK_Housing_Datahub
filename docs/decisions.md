@@ -60,8 +60,7 @@ CORS must be configured on the bucket.
 ## ADR-005: Gzip JSON rather than Parquet for the v1 snapshot
 
 **Context:** The three raw JSON data files were ~13 MB total, above the ~5 MB
-serving target. The frontend is not built yet, so the contract can be defined
-now.
+serving target. The frontend reads the manifest and the files it names.
 
 **Decision:** Gzip `estate_summary`, `district_monthly`, and `coverage` JSON;
 serve them with `Content-Encoding: gzip`. Keep `manifest.json` and

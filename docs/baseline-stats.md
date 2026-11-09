@@ -141,8 +141,8 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff checks — 2026-11-10
 
-- **Tests:** `pytest -q` → 57 passed. Core-only venv (no RAG/cloud extras) →
-  56 passed, 1 skipped (boto3-only legacy-upload gate).
+- **Tests:** `pytest -q` → 59 passed. Core-only venv (no RAG/cloud extras) →
+  58 passed, 1 skipped (boto3-only legacy-upload gate).
 - **Lint:** `ruff check src/main.py src/analytics src/quality src/serving
   src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts
   tests` → all checks passed.
@@ -159,14 +159,14 @@ resolved from the current working directory, so run it from the repo root.
   six files uploaded to the `hk-housing-datahub` bucket and the remote manifest
   read back successfully. Gzip `Content-Encoding` and cache headers verified.
 - **Frontend:** `frontend/` Vite + React + TypeScript; `npm run typecheck`,
-  `npm test` (7 tests), and `npm run build` pass; `npm audit` reports zero
+  `npm test` (11 tests), and `npm run build` pass; `npm audit` reports zero
   vulnerabilities. Browser smoke test against a local snapshot: 9,748 estates,
   search filtering, and the detail panel verified.
 - **Branch state:** `origin/dev` has 53 commits not in `origin/main`;
   `origin/main` has 3 merge commits not in `dev`. The final `dev` → `main` merge
   is a human step.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
-- **Remaining backlog:** optional Phase 7 sample DB; frontend plus R2 public
-  access/CORS; RAG idempotency (#17); the 160 phase orphans; Parquet export for
-  the large marts; incremental crawls, RVD, and monitoring (see
-  [`roadmap.md`](roadmap.md)).
+- **Remaining backlog:** optional Phase 7 sample DB; map/trend/recent-transaction
+  frontend views plus R2 public access/CORS; RAG idempotency (#17); the 160
+  phase orphans; Parquet export for the large marts; incremental crawls, RVD,
+  and monitoring (see [`roadmap.md`](roadmap.md)).
