@@ -164,7 +164,8 @@ resolved from the current working directory, so run it from the repo root.
   frontend origin are verified. `npm run typecheck`, `npm test` (11 tests), and
   `npm run build` pass; `npm audit` reports zero vulnerabilities. Browser smoke
   test against a local snapshot: 9,748 estates, search filtering, and the detail
-  panel verified. Cloudflare Pages/R2 setup is in
+  panel verified. Live production was also verified in the browser: 9,748
+  estates, 25 rows/page, no console errors. Cloudflare Pages/R2 setup is in
   [`deployment.md`](deployment.md).
 - **Branch state:** `main` contains `dev` through merge PR #35. This deployment
   documentation change targets `main` intentionally so merging it triggers a

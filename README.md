@@ -8,8 +8,8 @@ applications. The long-term goal is a small, reproducible analytics and serving
 layer for a public dashboard.
 
 > **Status:** backend tidy-up complete through Phase 8. The static frontend is
-> deployed at <https://hk-housing.monitus.org>; see
-> [`docs/deployment.md`](docs/deployment.md) for the current build/env status.
+> deployed and verified at <https://hk-housing.monitus.org>; see
+> [`docs/deployment.md`](docs/deployment.md) for deployment details.
 > See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
 > [`docs/decisions.md`](docs/decisions.md), and
 > [`docs/roadmap.md`](docs/roadmap.md). The ML workplan is deferred.
