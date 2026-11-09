@@ -1,8 +1,13 @@
 venv/
 testing.*
 __pycache__/
+.pytest_cache/
+.ruff_cache/
 data/
 .DS_Store
 .vscode
 .env
 *.log
+*.db
+*.sqlite
+*.sqlite3
