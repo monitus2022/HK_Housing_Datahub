@@ -113,8 +113,9 @@ orchestrator = AgencyOrchestrator(debug_mode=True)
 
 For a truly offline smoke test, use the payload fixtures under
 `docs/api_responses/` and the processor methods directly. The current `tests/`
-suite covers upserts, composite keys, `pk_map` consistency, and run metadata
-with a temporary SQLite database; broader fixture coverage is Phase 4.
+suite covers response parsing, table mapping, duplicate-input dedupe, upserts,
+run metadata, quality checks, mart builds, and serving manifest/publish
+planning, all with fixtures and temporary SQLite databases.
 
 ## Resume and rerun behaviour
 

@@ -108,12 +108,28 @@ cp .env.template .env
 python src/main.py
 ```
 
+> **Data prerequisite:** `data/` is not committed. A bare clone cannot build a
+> serving snapshot without the reference `data/agency/agency_data.db` and
+> `data/wiki/` (or a full crawl). The optional Phase 7 sample database is
+> deferred.
+
 **Current entrypoint:** `src/main.py` runs the read-only data-quality checks,
 then the RAG embedding pipeline. The agency pipeline, wiki pipeline, and cloud
 upload are commented out. The quality step is report-only in `main.py`; use
 `scripts/run_quality.py --fail-on critical` to gate. See
 [`docs/runbook.md`](docs/runbook.md) for how to run each stage and for the
 known RAG rerun caveat.
+
+### From clone to snapshot
+
+1. Clone, create the venv, and install `requirements.txt` (or core + dev for
+   tests).
+2. Place the reference `data/agency/agency_data.db` and `data/wiki/` locally, or
+   run the crawler and wiki pipeline.
+3. Build marts: `make marts`.
+4. Build the local snapshot: `make publish-dry`.
+5. Verify it: `python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}`.
+6. Optionally publish to R2: `python scripts/publish_dashboard.py`.
 
 ### Debug mode
 
@@ -201,9 +217,10 @@ dashboard/{build_id}/coverage.json.gz
 ```
 
 The manifest is authoritative; the frontend fetches it first and then the files
-in `manifest.files`. Data files are gzip-compressed, immutable, and long-cached;
-the manifest pointer is short-cached. The manifest includes build ID, data-through
-dates, coverage, and mart row counts.
+in `manifest.files`. The three large data files are gzip-compressed; all
+versioned files are immutable and long-cached, while the manifest pointer is
+short-cached. `overview.json` remains plain. The manifest includes build ID,
+data-through dates, coverage, and mart row counts.
 
 Build/verify/publish:
 

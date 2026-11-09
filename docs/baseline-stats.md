@@ -110,7 +110,9 @@ issue #17.
 
 - ~~No `tests/` directory.~~ Fixed in Phase 2: `tests/test_upsert.py` covers
   upserts, composite keys, `pk_map` consistency, and run metadata.
-- `.github/workflows/ci-cd.yml` is empty (CI is Phase 4).
+- ~~`.github/workflows/ci-cd.yml` is empty (CI is Phase 4).~~ Fixed in Phase 4:
+  the workflow installs core + dev deps, verifies config import, compiles, runs
+  pytest, and lints the touched modules.
 - ~~`bulk_insert_cache_into_db_tables()` uses `bulk_save_objects()` with no
   upsert.~~ Fixed in Phase 2: writes use SQLite upserts keyed on the model
   primary key.
