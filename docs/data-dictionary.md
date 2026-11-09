@@ -2,9 +2,9 @@
 
 This document explains the grain, keys, and caveats of the current SQLite
 model. The ER diagram is [`db.dbml`](db.dbml); the SQLAlchemy models in
-`src/models/agency/sql_db.py` are the source of truth. Planned tables
-(`pipeline_runs`, marts) are listed at the end and are not in the current
-database.
+`src/models/agency/sql_db.py` are the source of truth. `pipeline_runs` is now a
+current table; the planned marts (and deferred ML tables) are listed at the
+end.
 
 All row counts below are from the 2026-11-09 baseline snapshot in
 [`baseline-stats.md`](baseline-stats.md).

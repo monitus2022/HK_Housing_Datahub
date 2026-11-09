@@ -160,7 +160,7 @@ The phase plan, guardrails, and acceptance criteria are in
 
 ## Data model
 
-The relational model has five groups:
+The relational model has six groups:
 
 | Group | Tables |
 |---|---|

@@ -87,7 +87,7 @@ Notes:
 | Module | Responsibility |
 |---|---|
 | `src/processors/base.py` | Working-directory resolution, data-root creation, and cache clearing. |
-| `src/processors/agency/agency_base.py` | SQLite engine/session, table creation, bulk insert, cache-to-JSON export, and session cleanup. |
+| `src/processors/agency/agency_base.py` | SQLite engine/session, table creation, idempotent upserts, run metadata, cache-to-JSON export, and session cleanup. |
 | `src/processors/agency/estates.py` | Maps bilingual estate responses to location, estate, school-net, facility, MTR, phase, building, and market rows. Deduplicates by primary key within the process. |
 | `src/processors/agency/buildings.py` | Maps building/unit/transaction payloads into `units`, `unit_features`, and `transactions`; optionally keeps only the latest transaction per unit. |
 | `src/processors/wiki/wiki.py` | Parses wiki sections and tables, expands rowspan/colspan, and emits CSV table strings alongside section text. |
@@ -122,12 +122,12 @@ Notes:
    - fetch single-estate info in `zh-hk` and `en`;
    - map both responses into bilingual rows and single-language rows;
    - fetch monthly market statistics;
-   - bulk-insert the partition and clear caches.
+   - upsert the partition and clear caches.
 3. Build the building ID list from the estate caches.
 4. For each partition of building IDs:
    - fetch the building transaction payload;
    - map units, features, and transactions;
-   - bulk-insert and clear caches.
+   - upsert and clear caches.
 5. Close the processor sessions.
 
 ### Wiki path
