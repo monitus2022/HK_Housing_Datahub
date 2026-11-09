@@ -1,22 +1,53 @@
 from requests import Response
 from typing import Optional
 import os
-import json
 
 from utils import parse_response
 from logger import housing_logger
 from .agency_base import AgencyProcessor
 from models.agency.responses import (
     EstateInfoResponse,
+    EstateMonthlyMarketInfoResponse,
     SingleEstateInfoResponse,
 )
-from models.agency.outputs import *
-from models.agency.sql_db import *
+from models.agency.outputs import (
+    BilingualBaseModel,
+    SingleLanguageBaseModel,
+    BuildingsTableModel,
+    DistrictsTableModel,
+    EstateFacilitiesTableModel,
+    EstateInfoTableModel,
+    EstateMonthlyMarketInfoTableModel,
+    EstateMtrLineTableModel,
+    EstateSchoolNetTableModel,
+    FacilitiesTableModel,
+    PhasesTableModel,
+    RegionsTableModel,
+    SubregionsTableModel,
+)
+from models.agency.sql_db import (
+    Base,
+    Building,
+    District,
+    Estate,
+    EstateFacility,
+    EstateMonthlyMarketInfo,
+    EstateMtrLine,
+    EstateSchoolNet,
+    Facility,
+    Phase,
+    Region,
+    Subregion,
+)
 
 
 class EstatesProcessor(AgencyProcessor):
-    def __init__(self, force_refetch_estate_ids: bool = False):
-        super().__init__()
+    def __init__(
+        self,
+        force_refetch_estate_ids: bool = False,
+        db_path: Optional[str] = None,
+    ):
+        super().__init__(db_path=db_path)
         self.force_refetch_estate_ids = force_refetch_estate_ids
 
         # Table config: cache name to (Pydantic Model, SQLAlchemy Model)
@@ -55,8 +86,6 @@ class EstatesProcessor(AgencyProcessor):
         self._create_data_cache()
         # Create tables if not exist
         self._create_tables()
-        # Initialize persistent PK sets for deduplication across partitions
-        self._init_pk_sets()
 
     def _create_data_cache(self) -> None:
         self.caches = {
@@ -83,14 +112,6 @@ class EstatesProcessor(AgencyProcessor):
 
     def _create_tables(self):
         Base.metadata.create_all(self.engine)
-
-    def _init_pk_sets(self):
-        """Initialize persistent PK sets for deduplication across partitions"""
-        self.pk_sets = {}
-        for cache_name in self.table_configs.keys():
-            self.pk_sets[cache_name] = set()
-        for cache_name in self.zh_table_configs.keys():
-            self.pk_sets[cache_name] = set()
 
     def process_all_estate_info_response(self, estate_info_response: Response) -> int:
         """
@@ -146,11 +167,9 @@ class EstatesProcessor(AgencyProcessor):
         facilities = EstateFacilitiesTableModel.from_response(response=estate_info_zh)
         if facilities:
             for facility in facilities:
-                facility_dict = facility.model_dump()
-                pk_tuple = tuple(facility_dict[key] for key in self.pk_map["estate_facilities_cache"])
-                if pk_tuple not in self.pk_sets["estate_facilities_cache"]:
-                    self.pk_sets["estate_facilities_cache"].add(pk_tuple)
-                    self.caches["estate_facilities_cache"].append(facility_dict)
+                self.caches["estate_facilities_cache"].append(
+                    facility.model_dump()
+                )
 
         # Bilingual: get from both zh and en responses
         for cache_name, (table_model, _) in self.table_configs.items():
@@ -161,17 +180,9 @@ class EstatesProcessor(AgencyProcessor):
                 continue
             elif type(content) is list:
                 for item in content:
-                    item_dict = item.model_dump()
-                    pk_tuple = tuple(item_dict[key] for key in self.pk_map[cache_name])
-                    if pk_tuple not in self.pk_sets[cache_name]:
-                        self.pk_sets[cache_name].add(pk_tuple)
-                        self.caches[cache_name].append(item_dict)
+                    self.caches[cache_name].append(item.model_dump())
             else:
-                content_dict = content.model_dump()
-                pk_tuple = tuple(content_dict[key] for key in self.pk_map[cache_name])
-                if pk_tuple not in self.pk_sets[cache_name]:
-                    self.pk_sets[cache_name].add(pk_tuple)
-                    self.caches[cache_name].append(content_dict)
+                self.caches[cache_name].append(content.model_dump())
 
     def map_single_estate_market_info_responses_to_table_dicts(
         self, response: EstateMonthlyMarketInfoResponse
@@ -186,11 +197,9 @@ class EstatesProcessor(AgencyProcessor):
         )
         if month_records:
             for month_record in month_records:
-                record_dict = month_record.model_dump()
-                pk_tuple = tuple(record_dict[key] for key in self.pk_map["estate_monthly_market_info_cache"])
-                if pk_tuple not in self.pk_sets["estate_monthly_market_info_cache"]:
-                    self.pk_sets["estate_monthly_market_info_cache"].add(pk_tuple)
-                    self.caches["estate_monthly_market_info_cache"].append(record_dict)
+                self.caches["estate_monthly_market_info_cache"].append(
+                    month_record.model_dump()
+                )
 
     def create_building_ids_cache_from_building_cache(self) -> None:
         """

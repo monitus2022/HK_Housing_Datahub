@@ -87,8 +87,8 @@ Notes:
 | Module | Responsibility |
 |---|---|
 | `src/processors/base.py` | Working-directory resolution, data-root creation, and cache clearing. |
-| `src/processors/agency/agency_base.py` | SQLite engine/session, table creation, bulk insert, cache-to-JSON export, and session cleanup. |
-| `src/processors/agency/estates.py` | Maps bilingual estate responses to location, estate, school-net, facility, MTR, phase, building, and market rows. Deduplicates by primary key within the process. |
+| `src/processors/agency/agency_base.py` | SQLite engine/session, table creation, idempotent upserts, run metadata, cache-to-JSON export, and session cleanup. |
+| `src/processors/agency/estates.py` | Maps bilingual estate responses to location, estate, school-net, facility, MTR, phase, building, and market rows. Rows are upserted by model primary key; duplicate keys in a batch are absorbed by the SQLite upsert. |
 | `src/processors/agency/buildings.py` | Maps building/unit/transaction payloads into `units`, `unit_features`, and `transactions`; optionally keeps only the latest transaction per unit. |
 | `src/processors/wiki/wiki.py` | Parses wiki sections and tables, expands rowspan/colspan, and emits CSV table strings alongside section text. |
 | `src/processors/rag/embedding.py` | Cleans and chunks wiki text, generates normalized Sentence Transformer embeddings, and writes to ChromaDB. |
@@ -122,12 +122,12 @@ Notes:
    - fetch single-estate info in `zh-hk` and `en`;
    - map both responses into bilingual rows and single-language rows;
    - fetch monthly market statistics;
-   - bulk-insert the partition and clear caches.
+   - upsert the partition and clear caches.
 3. Build the building ID list from the estate caches.
 4. For each partition of building IDs:
    - fetch the building transaction payload;
    - map units, features, and transactions;
-   - bulk-insert and clear caches.
+   - upsert and clear caches.
 5. Close the processor sessions.
 
 ### Wiki path
@@ -162,6 +162,7 @@ Notes:
 | Quality reports | `data/quality/` | Planned Phase 3 |
 | Serving snapshot | `data/serving/{build_id}/` | Planned Phase 6 |
 
+Run metadata lives in the `pipeline_runs` table in the same SQLite database.
 `data/` is gitignored. The reference DB is about 320 MB and must be treated as
 read-only during development unless a temporary copy is used.
 
@@ -181,8 +182,8 @@ credentials.
 
 ## Current constraints and planned layers
 
-- The raw schema is the current contract; Phase 2 adds idempotent upserts and
-  run metadata without renaming tables.
+- The raw schema is the current contract; Phase 2 added idempotent upserts and
+  the `pipeline_runs` table without renaming existing tables.
 - Phase 3 adds `src/quality/` checks and reports.
 - Phase 4 adds fixtures, tests, and CI.
 - Phase 5 adds analytics marts and dashboard indexes.

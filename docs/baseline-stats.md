@@ -4,10 +4,11 @@ Reference snapshot for the tidy-up workplan. All database queries were
 read-only against `data/agency/agency_data.db`. No data or secrets were
 modified.
 
-> **Snapshot note:** this file records the Phase 0 state. Phase 1 subsequently
-> made cloud-storage secrets lazy, added `.dockerignore`, and reconciled the
-> schema diagram. See the README for current behavior; the numbers below remain
-> the reference data snapshot.
+> **Snapshot note:** this file records the Phase 0 state. Phases 1 and 2
+> subsequently made cloud-storage secrets lazy, added `.dockerignore`,
+> reconciled the schema diagram, added idempotent agency upserts, and added the
+> `pipeline_runs` table. See the README for current behavior; the numbers below
+> remain the reference data snapshot.
 
 - Repository: `monitus2022/HK_Housing_Datahub`
 - Base branch: `dev` @ `92bc704`. `origin/main` contains `dev` plus the merge
@@ -104,16 +105,20 @@ issue #17.
 
 ## Known gaps confirmed at snapshot time
 
-- No `tests/` directory.
-- `.github/workflows/ci-cd.yml` is empty.
-- `bulk_insert_cache_into_db_tables()` uses `bulk_save_objects()` with no
-  upsert.
-- Deduplication uses process-local `pk_sets` only.
-- `src/config/settings.py` instantiates `CloudStorageSecrets()` at import time,
-  so importing the config requires cloud credentials.
+- ~~No `tests/` directory.~~ Fixed in Phase 2: `tests/test_upsert.py` covers
+  upserts, composite keys, `pk_map` consistency, and run metadata.
+- `.github/workflows/ci-cd.yml` is empty (CI is Phase 4).
+- ~~`bulk_insert_cache_into_db_tables()` uses `bulk_save_objects()` with no
+  upsert.~~ Fixed in Phase 2: writes use SQLite upserts keyed on the model
+  primary key.
+- ~~Deduplication uses process-local `pk_sets` only.~~ Fixed in Phase 2:
+  `pk_sets` were removed; duplicate keys are absorbed by the upsert.
+- ~~`src/config/settings.py` instantiates `CloudStorageSecrets()` at import time,
+  so importing the config requires cloud credentials.~~ Fixed in Phase 1:
+  credential fields are optional and validated only on upload.
 - The old cloud uploader walks all of `data/`, including the SQLite DB and
   Chroma store.
-- No `.dockerignore`; the Dockerfile uses `COPY . .`.
+- ~~No `.dockerignore`; the Dockerfile uses `COPY . .`.~~ Fixed in Phase 1.
 
 ## Reproduce
 

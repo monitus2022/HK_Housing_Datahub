@@ -108,26 +108,32 @@ orchestrator = AgencyOrchestrator(debug_mode=True)
 ```
 
 For a truly offline smoke test, use the payload fixtures under
-`docs/api_responses/` and the processor methods directly. There is no fixture
-test harness yet; Phase 4 adds one.
+`docs/api_responses/` and the processor methods directly. The current `tests/`
+suite covers upserts, composite keys, `pk_map` consistency, and run metadata
+with a temporary SQLite database; broader fixture coverage is Phase 4.
 
 ## Resume and rerun behaviour
 
-Current limitations:
+Current behaviour:
 
 - Estate IDs are cached in `data/agency/estate_ids.txt`. If the file exists and
   `force_refetch_estate_ids` is false, the crawler reuses it.
-- Agency writes use `bulk_save_objects()` with no upsert. Rerunning a partition
-  can duplicate rows or fail on primary-key conflicts.
-- Deduplication (`pk_sets`) is process-local and resets between runs.
-- `close_session()` is currently called inside the building partition loop.
-- RAG writes are not idempotent: existing IDs are skipped, not refreshed
+- Agency writes use SQLite upserts keyed on the model primary key. Rerunning a
+  partition leaves row counts unchanged and refreshes non-key columns. Duplicate
+  keys inside one batch are handled by the upsert.
+- The old process-local `pk_sets` deduplication was removed; duplicate inputs
+  are now absorbed by the upsert instead of growing an in-memory set.
+- `close_session()` is called once at the end of the agency pipeline, not inside
+  the per-partition building loop.
+- Each pipeline run gets a UUID and a row in `pipeline_runs` with start/end
+  timestamps, mode, status, record counts, and any error message.
+- RAG writes are still not idempotent: existing IDs are skipped, not refreshed
   (issue #17).
 - Wiki partition files are overwritten per partition, but the aggregated file
   is overwritten at the end of a successful run.
 
-Phase 2 introduces SQLite upserts, run metadata, and safer reruns. Until then,
-prefer running against a copy of the DB and a fresh Chroma path.
+Reruns against the same SQLite database are safe for the agency tables. RAG
+rebuilds still need a fresh Chroma path or the issue #17 fix.
 
 ## Inspect data
 
@@ -185,14 +191,14 @@ legacy uploader only for private storage.
 ```bash
 # Available now
 python3 scripts/baseline_stats.py
-
-# Available after Phase 4
 pytest -q
-ruff check src tests
+
+# Lint the files touched by the tidy-up so far; full-tree cleanup is Phase 4
+ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py
 ```
 
-There is no `tests/` directory and `.github/workflows/ci-cd.yml` is empty at the
-Phase 0 baseline.
+`tests/` contains the Phase 2 upsert and run-metadata tests. The CI workflow is
+still empty; CI is Phase 4.
 
 ## Common failures
 
