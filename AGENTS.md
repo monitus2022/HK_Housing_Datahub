@@ -76,6 +76,12 @@ Run the checks that exist for the current phase. The target end state is:
 source venv/bin/activate
 pytest -q
 ruff check src tests
+
+# Frontend
+npm --prefix frontend ci
+npm --prefix frontend run typecheck
+npm --prefix frontend test
+npm --prefix frontend run build
 ```
 
 Until `tests/` and CI exist, at minimum run the phase-specific commands listed
