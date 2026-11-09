@@ -276,7 +276,9 @@ make publish-dry
 
 `tests/` contains the Phase 2–6 tests (56 total): upserts, run metadata,
 quality checks, response models, table mapping, duplicate-input dedupe,
-synthetic mart builds, and serving manifest/publish planning. The CI workflow
+synthetic mart builds, and serving manifest/publish planning. The
+boto3-only legacy-upload gate test skips in the core-only CI environment. The
+CI workflow
 (`.github/workflows/ci-cd.yml`) installs core + dev dependencies, checks that
 `config` imports without `.env`, compiles, runs `pytest`, and runs ruff on the
 touched modules.
