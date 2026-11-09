@@ -8,6 +8,7 @@ limitations and coverage gaps.
 from __future__ import annotations
 
 import sqlite3
+import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -341,7 +342,9 @@ def _check_transaction_dates(con: sqlite3.Connection) -> CheckResult:
     invalid = scalar(
         con,
         "SELECT count(*) FROM transactions "
-        "WHERE tx_date IS NULL OR date(tx_date) < ? OR date(tx_date) > ?",
+        "WHERE tx_date IS NULL "
+        "OR (tx_date IS NOT NULL AND date(tx_date) IS NULL) "
+        "OR date(tx_date) < ? OR date(tx_date) > ?",
         (lower, upper),
     )
     minimum, maximum = con.execute(
@@ -562,7 +565,8 @@ def _check_date_gaps(
         row[0]
         for row in con.execute(
             "SELECT DISTINCT date(tx_date) FROM transactions "
-            "WHERE tx_date IS NOT NULL ORDER BY 1"
+            "WHERE tx_date IS NOT NULL AND date(tx_date) IS NOT NULL "
+            "ORDER BY 1"
         )
     ]
     if len(values) < 2:
@@ -685,8 +689,10 @@ def run_checks(
             **thresholds["null_rates"],
         }
 
-    run_id = run_id or datetime.now(timezone.utc).strftime(
-        "%Y%m%dT%H%M%SZ"
+    run_id = run_id or (
+        datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        + "-"
+        + uuid.uuid4().hex[:8]
     )
     generated_at = datetime.now(timezone.utc).isoformat()
 

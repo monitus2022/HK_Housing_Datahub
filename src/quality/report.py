@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from .checks import QualityReport
+
+
+def _safe_run_id(run_id: str) -> str:
+    """Keep a run ID usable as a filename without allowing path traversal."""
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", run_id).strip("._")
+    return safe or "run"
 
 
 def write_reports(
@@ -17,7 +24,7 @@ def write_reports(
 
     payload = report.to_dict()
     latest_json = directory / "latest.json"
-    run_json = directory / f"{report.run_id}.json"
+    run_json = directory / f"{_safe_run_id(report.run_id)}.json"
     latest_md = directory / "latest.md"
 
     serialized = json.dumps(payload, indent=2, ensure_ascii=False)
