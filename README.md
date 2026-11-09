@@ -217,10 +217,10 @@ dashboard/{build_id}/coverage.json.gz
 ```
 
 The manifest is authoritative; the frontend fetches it first and then the files
-in `manifest.files`. The three large data files are gzip-compressed; all
-versioned files are immutable and long-cached, while the manifest pointer is
-short-cached. `overview.json` remains plain. The manifest includes build ID,
-data-through dates, coverage, and mart row counts.
+in `manifest.files`. The three large data files are gzip-compressed and
+versioned data files are immutable/long-cached; both the top-level and versioned
+manifests are short-cached (`max-age=60`). `overview.json` remains plain. The
+manifest includes build ID, data-through dates, coverage, and mart row counts.
 
 Build/verify/publish:
 

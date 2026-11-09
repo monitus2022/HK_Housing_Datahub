@@ -7,9 +7,10 @@ Short ADR-style notes for the trade-offs made during the tidy-up.
 **Context:** The batch pipeline is single-writer, the reference database is
 about 320 MB, and the target is a portfolio project with a static dashboard.
 
-**Decision:** Keep SQLite for raw data, quality-check results, marts, and run
-metadata. Document Postgres as the production alternative when concurrent
-writers, a live API, or multi-user access are required.
+**Decision:** Keep SQLite for raw data, marts, and run metadata. Quality checks
+read SQLite but write JSON/Markdown audit reports under `data/quality/`.
+Document Postgres as the production alternative when concurrent writers, a live
+API, or multi-user access are required.
 
 **Consequences:** Zero-ops local setup and simple backups. SQLite does not
 support concurrent writers or horizontal scaling; WAL helps readers only.
