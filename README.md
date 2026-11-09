@@ -103,10 +103,12 @@ cp .env.template .env
 python src/main.py
 ```
 
-**Current entrypoint:** `src/main.py` currently runs only the RAG embedding
-pipeline. The agency pipeline, wiki pipeline, and cloud upload are commented
-out. See [`docs/runbook.md`](docs/runbook.md) for how to run each stage and for
-the known RAG rerun caveat.
+**Current entrypoint:** `src/main.py` runs the read-only data-quality checks,
+then the RAG embedding pipeline. The agency pipeline, wiki pipeline, and cloud
+upload are commented out. The quality step is report-only in `main.py`; use
+`scripts/run_quality.py --fail-on critical` to gate. See
+[`docs/runbook.md`](docs/runbook.md) for how to run each stage and for the
+known RAG rerun caveat.
 
 ### Debug mode
 

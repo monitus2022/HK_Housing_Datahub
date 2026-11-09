@@ -7,13 +7,14 @@ architecture and schema details, see
 
 ## Current entrypoint
 
-`src/main.py` is a manual toggle board. The Phase 0 baseline state is:
+`src/main.py` is a manual toggle board. The current state is:
 
-- **Enabled:** RAG embedding pipeline.
+- **Enabled:** read-only data-quality checks, then the RAG embedding pipeline.
 - **Disabled:** agency pipeline, wiki pipeline, cloud upload.
 
-That is why `python src/main.py` currently only processes wiki embeddings. Do
-not assume it refreshes the SQLite database.
+That is why `python src/main.py` reports quality and processes wiki embeddings,
+but does not refresh the SQLite database. The quality step is report-only in
+`main.py`; use `scripts/run_quality.py --fail-on critical` to gate.
 
 **Known caveat:** RAG reruns are not idempotent. The embedding pipeline uses
 Chroma `collection.add()`. In Chroma 0.5.5, adding an existing ID logs a
