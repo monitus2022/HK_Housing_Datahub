@@ -34,8 +34,13 @@ and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 The Phase 6 build `20261109T164834Z-ea1321` was published to the
 `hk-housing-datahub` bucket on 2026-11-10. The remote `dashboard/manifest.json`
 and every referenced file were read back successfully, and the gzip/cache
-headers were verified. The bucket still needs public read access (or a custom
-domain) and CORS for the frontend origin.
+headers were verified.
+
+The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
+is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
+`VITE_DASHBOARD_BASE_URL`. R2 public read and CORS for that frontend origin are
+configured; see [`deployment.md`](deployment.md) for the current build/env
+status and troubleshooting.
 
 ## Publish
 
@@ -99,15 +104,16 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 The frontend should:
 
-1. Fetch `https://<r2-public-host>/dashboard/manifest.json`.
-2. Read `files` and fetch `https://<r2-public-host>/dashboard/{build_id}/{file}`.
+1. Fetch `https://hk-housing-datahub.monitus.org/dashboard/manifest.json`.
+2. Read `files` and fetch
+   `https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file}`.
 3. Use `data_through`, `coverage`, and `row_counts` for display labels and
    freshness warnings.
 4. Show a clear fallback/error state if the manifest or a referenced file is
    missing.
 
-The R2 bucket needs public read access (or a custom domain) and CORS for the
-static-site origin. Write credentials must never be shipped to the frontend.
+The R2 bucket allows public reads and CORS for the static-site origin. Write
+credentials must never be shipped to the frontend.
 
 ## What is not exported yet
 

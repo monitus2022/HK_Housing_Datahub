@@ -101,7 +101,9 @@ skips hidden files/directories. It is not the serving path. Use
 `scripts/publish_dashboard.py` for the versioned snapshot, and do not point the
 raw uploader at a public bucket.
 
-## Frontend development
+## Frontend development and deployment
+
+Live: <https://hk-housing.monitus.org>
 
 ```bash
 # Serve a local snapshot with CORS/gzip headers
@@ -117,8 +119,12 @@ npm ci
 npm run dev
 ```
 
-Use the public custom domain instead of localhost when the snapshot is served
-from R2 and CORS is configured. See [`../frontend/README.md`](../frontend/README.md).
+Cloudflare Pages production settings: React (Vite), root `frontend`, build
+`npm ci && npm run build`, output `dist`, Node 22, and
+`VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org`. Vite bakes the
+variable at build time, so changing it requires a redeploy. The snapshot host
+is <https://hk-housing-datahub.monitus.org>; full setup, CORS, and
+troubleshooting: [`deployment.md`](deployment.md).
 
 ## Debug mode
 

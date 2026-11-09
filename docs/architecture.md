@@ -182,12 +182,13 @@ The manifest and cache contract is in [`serving.md`](serving.md).
 
 ### Frontend
 
-`frontend/` is a Vite + React + TypeScript static app. It fetches
-`dashboard/manifest.json`, then uses `manifest.files.estate_summary`; it never
-hardcodes a build ID. There is no backend-for-frontend or live API. The first
-version covers the overview and estate search; map/trend/recent-transaction
-views remain roadmap items. For local development, `scripts/serve_snapshot.py`
-serves a snapshot with CORS and gzip headers.
+`frontend/` is a Vite + React + TypeScript static app deployed at
+<https://hk-housing.monitus.org>. It fetches `dashboard/manifest.json`, then uses
+`manifest.files.estate_summary`; it never hardcodes a build ID. There is no
+backend-for-frontend or live API. The first version covers the overview and
+estate search; map/trend/recent-transaction views remain roadmap items. For
+local development, `scripts/serve_snapshot.py` serves a snapshot with CORS and
+gzip headers. Deployment settings are in [`deployment.md`](deployment.md).
 
 ## Storage
 
