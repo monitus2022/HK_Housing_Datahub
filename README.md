@@ -228,7 +228,7 @@ ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestra
 ```
 
 `tests/` currently contains the Phase 2 upsert/run-metadata tests and Phase 3
-quality tests (28 total). Broader fixture coverage and the CI workflow are
+quality tests (31 total). Broader fixture coverage and the CI workflow are
 Phase 4. Quality check details and thresholds are in
 [`docs/quality.md`](docs/quality.md).
 
