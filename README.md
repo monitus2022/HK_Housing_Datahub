@@ -169,6 +169,7 @@ The relational model has five groups:
 | Buildings | `phases`, `buildings` |
 | Units and transactions | `units`, `unit_features`, `transactions` |
 | Lookup | `facilities` |
+| Run metadata | `pipeline_runs` |
 
 - ER diagram: [`docs/db.dbml`](docs/db.dbml)
 - Column-level dictionary and caveats: [`docs/data-dictionary.md`](docs/data-dictionary.md)
@@ -214,13 +215,15 @@ python3 scripts/baseline_stats.py
 # Dev tooling: pytest and ruff
 pip install -r requirements-dev.txt
 
-# After Phase 4
+# Phase 2 tests: idempotent upserts and run metadata, no network required
 pytest -q
-ruff check src tests
+
+# Lint the files touched by the tidy-up so far
+ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py
 ```
 
-`requirements-dev.txt` is available now. There is no `tests/` directory or CI
-yet; fixture-based tests, the test layout, and the CI workflow are Phase 4.
+`tests/` currently contains the Phase 2 upsert and run-metadata tests. Broader
+fixture coverage and the CI workflow are Phase 4.
 
 ## Known limitations
 
@@ -230,8 +233,9 @@ yet; fixture-based tests, the test layout, and the CI workflow are Phase 4.
 - Significant nulls: `net_area` (302,139 units null or `<= 0`), `bedroom`
   (591,313 null), missing coordinates (632 estates), missing `first_op_date`
   (892 estates).
-- SQLite writes are not idempotent yet: `bulk_save_objects()` is used without
-  upsert, and deduplication is process-local. Phase 2 fixes this.
+- Agency SQLite writes are idempotent as of Phase 2: they use SQLite upserts and
+  record run metadata in `pipeline_runs`. Rerunning a partition leaves row
+  counts unchanged and refreshes non-key columns.
 - RAG reruns are not idempotent: Chroma `collection.add()` skips IDs that
   already exist, so changed chunks are not refreshed. Use a fresh collection or
   `upsert` for a rebuild. Tracked in issue #17.
@@ -245,14 +249,14 @@ yet; fixture-based tests, the test layout, and the CI workflow are Phase 4.
 
 ## Roadmap
 
-1. Phase 0–1: baseline, repo presentation, config safety. *(in progress)*
-2. Phase 2: idempotent upserts and run metadata.
-3. Phase 3: data-quality checks and reports.
-4. Phase 4: fixtures, tests, and CI.
-5. Phase 5: analytics marts.
-6. Phase 6: versioned serving snapshot and R2 publish.
-7. Phase 7–8: optional sample data and final handoff.
-8. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+1. Phase 0–2: baseline, repo presentation, config safety, and idempotent
+   upserts. *(implemented; see PRs #24 and #25 plus the Phase 2 PR)*
+2. Phase 3: data-quality checks and reports.
+3. Phase 4: fixtures, tests, and CI.
+4. Phase 5: analytics marts.
+5. Phase 6: versioned serving snapshot and R2 publish.
+6. Phase 7–8: optional sample data and final handoff.
+7. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 
 ## Disclaimer
 

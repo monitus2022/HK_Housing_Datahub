@@ -162,6 +162,7 @@ Notes:
 | Quality reports | `data/quality/` | Planned Phase 3 |
 | Serving snapshot | `data/serving/{build_id}/` | Planned Phase 6 |
 
+Run metadata lives in the `pipeline_runs` table in the same SQLite database.
 `data/` is gitignored. The reference DB is about 320 MB and must be treated as
 read-only during development unless a temporary copy is used.
 
@@ -181,8 +182,8 @@ credentials.
 
 ## Current constraints and planned layers
 
-- The raw schema is the current contract; Phase 2 adds idempotent upserts and
-  run metadata without renaming tables.
+- The raw schema is the current contract; Phase 2 added idempotent upserts and
+  the `pipeline_runs` table without renaming existing tables.
 - Phase 3 adds `src/quality/` checks and reports.
 - Phase 4 adds fixtures, tests, and CI.
 - Phase 5 adds analytics marts and dashboard indexes.

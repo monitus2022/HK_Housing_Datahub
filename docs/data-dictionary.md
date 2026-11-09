@@ -267,6 +267,23 @@ column**; treat the table as sale transactions unless the source is re-audited.
 `last_tx_date` and `gain` are transaction outcomes and must not be used as
 predictors for earlier rows.
 
+## Run metadata
+
+### `pipeline_runs`
+
+Grain: one row per pipeline run. Primary key: `run_id`. This table is written by
+the agency orchestrator (Phase 2); it did not exist in the Phase 0 baseline.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `run_id` | text | no | UUID generated per run |
+| `started_at` | datetime | no | UTC start time |
+| `finished_at` | datetime | yes | UTC finish time |
+| `mode` | text | no | `debug` or `full` |
+| `status` | text | no | `running`, `success`, or `failed` |
+| `record_counts_json` | text | yes | JSON row counts for key tables at finish |
+| `error_message` | text | yes | Failure detail |
+
 ## Dates and timezone
 
 `DateTime` values are stored by SQLite as strings. Many rows display a
@@ -287,7 +304,6 @@ statements for the dashboard filters.
 
 | Table | Phase | Purpose |
 |---|---|---|
-| `pipeline_runs` | 2 | Run ID, timestamps, mode, status, counts, error message |
 | `mart_estate_summary` | 5 | One row per estate with latest price, 12-month stats, coverage flags |
 | `mart_district_monthly` | 5 | District × month price/rent/count aggregates |
 | `mart_estate_monthly` | 5 | Estate × month aggregates |
@@ -304,6 +320,7 @@ statements for the dashboard filters.
   missingness.
 - `estate_mtr_lines` is not exhaustive.
 - `unit_features` uses the source English name as both ID and name.
-- Idempotency and run metadata are not implemented yet (Phase 2).
+- Agency upserts and run metadata are implemented (Phase 2). RAG idempotency
+  remains open (issue #17).
 - Wiki JSON and Chroma are not relational tables; their counts are tracked in
   `baseline-stats.md`.

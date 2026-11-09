@@ -31,6 +31,10 @@ TableGroup lookup {
   facilities
 }
 
+TableGroup run_metadata {
+  pipeline_runs
+}
+
 Table regions {
   region_id text [pk]
   region_name_zh text [not null]
@@ -179,6 +183,17 @@ Table transactions {
   net_ft_price real
   unit_id text [not null]
   Note: 'No transaction-type column exists; treat rows as sale transactions. The current database has only primary-key autoindexes; Phase 5 adds dashboard indexes.'
+}
+
+Table pipeline_runs {
+  run_id text [pk]
+  started_at datetime [not null]
+  finished_at datetime
+  mode text [not null]
+  status text [not null]
+  record_counts_json text
+  error_message text
+  Note: 'One row per agency pipeline run; status is running, success, or failed.'
 }
 
 Ref: subregions.region_id > regions.region_id
