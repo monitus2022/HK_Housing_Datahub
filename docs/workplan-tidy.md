@@ -145,7 +145,8 @@ Tasks:
 6. Ensure `src/config/settings.py` can be imported with no `.env`.
 7. Add `requirements-dev.txt` with `pytest`, `ruff` (optional), and any test-only
    packages. Do not pollute runtime requirements.
-8. Add a `.env.example` if it is missing; ensure it documents every required key.
+8. Update the existing `.env.template` so it documents every required key;
+   add `.env.example` only if the project standardizes on that name.
 
 Acceptance:
 
