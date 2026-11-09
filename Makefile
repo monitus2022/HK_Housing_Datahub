@@ -1,5 +1,7 @@
 .PHONY: test quality quality-strict lint
 
+# `make publish-dry` is added in Phase 6 with scripts/publish_dashboard.py.
+
 test:
 	pytest -q
 
