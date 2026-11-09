@@ -169,6 +169,10 @@ def test_verify_detects_missing_and_empty_files(snapshot):
     errors = verify_snapshot(snapshot_dir)
     assert any("Empty file" in error for error in errors)
 
+    (snapshot_dir / "coverage.json.gz").write_bytes(b"\x1f\x8b")
+    errors = verify_snapshot(snapshot_dir)
+    assert any("gzipped JSON" in error for error in errors)
+
 
 def test_publish_dry_run_plans_versioned_files_and_manifest_last(snapshot):
     snapshot_dir, manifest = snapshot
@@ -195,6 +199,18 @@ def test_publish_dry_run_plans_versioned_files_and_manifest_last(snapshot):
     assert uploads[0]["content_encoding"] is None
     assert uploads[1]["content_encoding"] == "gzip"
     assert uploads[-1]["cache_control"] == "public, max-age=60"
+
+
+def test_publish_rejects_unsafe_manifest_paths(snapshot):
+    snapshot_dir, _ = snapshot
+    manifest = read_json(snapshot_dir / "manifest.json")
+    manifest["files"]["overview"] = "../escape.json"
+    (snapshot_dir / "manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="Unsafe manifest file path"):
+        publish_snapshot(snapshot_dir, "test-bucket", dry_run=True)
 
 
 def test_publish_with_fake_uploader(snapshot):
