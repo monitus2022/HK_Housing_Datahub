@@ -2,9 +2,8 @@
 
 This document explains the grain, keys, and caveats of the current SQLite
 model. The ER diagram is [`db.dbml`](db.dbml); the SQLAlchemy models in
-`src/models/agency/sql_db.py` are the source of truth. `pipeline_runs` is now a
-current table; the planned marts (and deferred ML tables) are listed at the
-end.
+`src/models/agency/sql_db.py` are the source of truth. `pipeline_runs` and the
+five analytics marts are current tables; only the deferred ML mart is planned.
 
 All row counts below are from the 2026-11-09 baseline snapshot in
 [`baseline-stats.md`](baseline-stats.md).
@@ -284,6 +283,117 @@ the agency orchestrator (Phase 2); it did not exist in the Phase 0 baseline.
 | `record_counts_json` | text | yes | JSON row counts for key tables at finish |
 | `error_message` | text | yes | Failure detail |
 
+## Analytics marts
+
+The marts are derived, denormalized tables built from the raw model by
+`python scripts/build_marts.py`. They are dropped and recreated on every build;
+the raw tables are never modified. The builder also creates the dashboard
+indexes. Row counts below are from the 2026-11-09 reference snapshot.
+
+### `mart_estate_summary`
+
+Grain: one row per estate. Unique key: `estate_id`. Rows: 9,748.
+
+| Column | Type | Notes |
+|---|---|---|
+| `estate_id` | text | Estate key |
+| `estate_name_zh` / `estate_name_en` | text | Estate names |
+| `region_id` / `region_name_en` | text | Region |
+| `subregion_id` / `subregion_name_en` | text | Subregion |
+| `district_id` / `district_name_en` / `district_name_zh` | text | District |
+| `latitude` / `longitude` | real | Coordinates |
+| `first_op_date` / `last_op_date` | date | Normalized dates |
+| `latest_tx_date` | date | Latest transaction date |
+| `latest_tx_price` | real | Price of the latest transaction |
+| `latest_tx_net_ft_price` | real | Net-ft price of the latest transaction |
+| `tx_count_12m` | integer | Transactions in the trailing 12 months |
+| `avg_net_ft_price_12m` | real | Average sale net-ft price, trailing 12 months |
+| `avg_net_ft_rent_12m` | real | Simple average of monthly estate rent averages, trailing 12 months |
+| `latest_market_date` | date | Latest monthly market record |
+| `has_market` | integer | 1 when market rows exist |
+| `has_transactions` | integer | 1 when transactions exist |
+| `has_wiki` | integer | 1 when the Chinese estate name matches a wiki JSON key |
+
+Caveats: 12-month windows are relative to `max(tx_date)` in the snapshot, not
+the wall-clock date. The rent average uses only positive monthly averages and
+does not weight by rent transaction count. `has_wiki` is an exact name match, so
+renamed or variant wiki titles are not linked.
+
+### `mart_district_monthly`
+
+Grain: one row per district × calendar month. Unique key:
+(`district_id`, `month`). Rows: 19,352.
+
+| Column | Type | Notes |
+|---|---|---|
+| `district_id` / `district_name_en` / `district_name_zh` | text | District |
+| `month` | text | `YYYY-MM` |
+| `tx_count` | integer | Sale transactions in the month |
+| `avg_net_ft_price` | real | Average sale net-ft price |
+| `total_tx_amount` | real | Total sale amount |
+| `rent_tx_count` | integer | Rent transactions, summed from estate monthly aggregates |
+| `avg_net_ft_rent` | real | Rent-count-weighted average, with a simple-average fallback |
+| `total_rent_tx_amount` | real | Total rent amount |
+
+Caveats: sale metrics come from unit transactions; rent metrics come from
+`estate_monthly_market_info` and are aggregated at the estate level before
+district roll-up. A month can contain sale data, rent data, or both.
+
+### `mart_estate_monthly`
+
+Grain: one row per estate × calendar month. Unique key:
+(`estate_id`, `month`). Rows: 591,904.
+
+| Column | Type | Notes |
+|---|---|---|
+| `estate_id` / `estate_name_en` / `district_id` | text | Estate and district |
+| `month` | text | `YYYY-MM` |
+| `tx_count` | integer | Sale transactions |
+| `avg_net_ft_price` | real | Average sale net-ft price |
+| `total_tx_amount` | real | Total sale amount |
+| `rent_tx_count` | integer | Rent transactions from estate monthly aggregates |
+| `avg_net_ft_rent` | real | Rent-count-weighted average, with fallback |
+| `total_rent_tx_amount` | real | Total rent amount |
+
+Caveats: this is the largest mart and keeps the full history. The serving layer
+should export it as Parquet rather than JSON if it needs the complete series.
+
+### `mart_transaction_recent`
+
+Grain: one row per transaction in the last 24 months. Unique key: `tx_id`.
+Rows: 72,900.
+
+| Column | Type | Notes |
+|---|---|---|
+| `tx_id` | text | Transaction key |
+| `tx_date` | date | Normalized transaction date |
+| `price` | real | Transaction price |
+| `net_ft_price` | real | Price per net sq ft |
+| `estate_id` / `estate_name_en` | text | Estate |
+| `district_id` / `district_name_en` | text | District |
+| `building_id` / `unit_id` | text | Building and unit |
+| `area` / `net_area` | real | Gross and net area |
+| `bedroom` | integer | Bedroom count, when present |
+
+Caveats: the 24-month window is relative to the latest transaction date in the
+snapshot, not the current date.
+
+### `mart_coverage`
+
+Grain: one row per estate. Unique key: `estate_id`. Rows: 9,748.
+
+| Column | Type | Notes |
+|---|---|---|
+| `estate_id` / `estate_name_en` / `district_id` | text | Estate and district |
+| `has_estate_info` | integer | Always 1 for an estate row |
+| `has_market` | integer | 1 when market rows exist |
+| `has_transactions` | integer | 1 when transactions exist |
+| `last_tx_date` | date | Latest transaction date |
+| `building_count` | integer | Buildings linked to the estate |
+| `unit_count` | integer | Units linked through buildings |
+| `tx_count` | integer | Transactions linked through units |
+| `has_wiki` | integer | 1 when the Chinese estate name matches a wiki JSON key |
+
 ## Dates and timezone
 
 `DateTime` values are stored by SQLite as strings. Many rows display a
@@ -294,21 +404,16 @@ the raw timestamps as if they were midnight UTC.
 
 ## Indexes
 
-The current database has only the autoindexes created for primary keys. There
-are no explicit secondary indexes on `transactions(unit_id)`,
-`transactions(tx_date)`, `units(building_id)`, or `buildings(estate_id)` despite
-the older `db.dbml` note. Phase 5 adds idempotent `CREATE INDEX IF NOT EXISTS`
-statements for the dashboard filters.
+Phase 5 added idempotent indexes for the dashboard filters:
+`transactions(tx_date)`, `transactions(unit_id)`,
+`estate_monthly_market_info(estate_id, record_date)`,
+`units(building_id)`, and `buildings(estate_id)`. The marts also have unique
+lookup indexes (`idx_mart_*`) on their grain keys.
 
 ## Planned tables (not current)
 
 | Table | Phase | Purpose |
 |---|---|---|
-| `mart_estate_summary` | 5 | One row per estate with latest price, 12-month stats, coverage flags |
-| `mart_district_monthly` | 5 | District × month price/rent/count aggregates |
-| `mart_estate_monthly` | 5 | Estate × month aggregates |
-| `mart_transaction_recent` | 5 | Recent transaction slice |
-| `mart_coverage` | 5 | One row per estate with coverage counts |
 | `mart_valuation` | ML (deferred) | Estate-level model estimates |
 
 ## Caveats that affect analysis
@@ -323,4 +428,6 @@ statements for the dashboard filters.
 - Agency upserts and run metadata are implemented (Phase 2). RAG idempotency
   remains open (issue #17).
 - Wiki JSON and Chroma are not relational tables; their counts are tracked in
-  `baseline-stats.md`.
+  `baseline-stats.md`. The marts use wiki JSON keys only for `has_wiki`.
+- Mart windows are relative to the latest transaction date in the snapshot, not
+  to today. A fresh crawl changes the windows.

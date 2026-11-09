@@ -112,6 +112,7 @@ Notes:
 | `src/orchestrators/rag.py` | Loads wiki partitions and runs the embedding pipeline. |
 | `src/orchestrators/cloud_upload.py` | Legacy raw-data uploader for an S3-compatible bucket (R2 or AWS S3). |
 | `src/quality/` | Read-only critical/warning checks and JSON/Markdown reports. |
+| `src/analytics/` | Ordered SQL files and a builder for the five `mart_*` tables and dashboard indexes. |
 
 ## Data flow in detail
 
@@ -152,11 +153,24 @@ Notes:
    `paraphrase-multilingual-MiniLM-L12-v2` on CPU.
 4. Write batches (default 100) to the `hk_housing_wiki` Chroma collection.
 
+### Analytics path
+
+1. The builder reads the raw SQLite tables and the wiki JSON estate names.
+2. It creates a connection-local `wiki_estates` temp table for `has_wiki`.
+3. It runs ordered SQL files: raw indexes, five mart definitions, then mart
+   lookup indexes.
+4. It drops/recreates the marts on every run; raw tables are unchanged.
+
+The resulting marts are documented in
+[`data-dictionary.md`](data-dictionary.md#analytics-marts) and are the source for
+the Phase 6 serving snapshot.
+
 ## Storage
 
 | Store | Path | Format |
 |---|---|---|
 | Raw relational model | `data/agency/agency_data.db` | SQLite, WAL mode |
+| Analytics marts | `data/agency/agency_data.db` (`mart_*` tables) | SQLite derived tables |
 | Estate ID cache | `data/agency/estate_ids.txt` | One ID per line |
 | Wiki partitions | `data/wiki/wiki_data_partition_*.json` | JSON keyed by estate name |
 | Embeddings | `data/chroma_db/` | ChromaDB persistent store |
@@ -203,7 +217,7 @@ credentials.
   the `pipeline_runs` table without renaming existing tables.
 - Phase 3 added `src/quality/` checks and JSON/Markdown reports.
 - Phase 4 added fixture-based tests, broader coverage, and CI.
-- Phase 5 adds analytics marts and dashboard indexes.
+- Phase 5 added `src/analytics/`, the five marts, and dashboard indexes.
 - Phase 6 adds a versioned serving snapshot and retires/gates the legacy raw
   uploader.
 - The ML workplan is deferred.
