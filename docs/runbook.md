@@ -82,7 +82,9 @@ RAGOrchestrator().run_text_embedding_pipeline()
 PY
 ```
 
-### Legacy cloud upload (requires credentials)
+### Legacy cloud upload (disabled by default)
+
+The raw uploader now refuses to run unless explicitly enabled:
 
 ```bash
 python - <<'PY'
@@ -90,13 +92,14 @@ import sys
 sys.path.insert(0, "src")
 from orchestrators import CloudUploadOrchestrator
 
-CloudUploadOrchestrator().upload_files_from_data_folder()
+CloudUploadOrchestrator(allow_raw_upload=True).upload_files_from_data_folder()
 PY
 ```
 
-This uploader walks all of `data/`, including the SQLite database and Chroma
-store. It is not the serving path; Phase 6 replaces it with a small versioned
-snapshot. Do not point it at a public bucket.
+It walks all of `data/`, including the SQLite database and Chroma store, and
+skips hidden files/directories. It is not the serving path. Use
+`scripts/publish_dashboard.py` for the versioned snapshot, and do not point the
+raw uploader at a public bucket.
 
 ## Debug mode
 
@@ -209,20 +212,46 @@ data simply sets it to 0. Windows are relative to the latest transaction date
 in the snapshot. Grains and columns are in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts).
 
-## Publish serving data
+## Build and publish serving data
 
-Phase 6 will add:
+Build the local snapshot without credentials:
 
 ```bash
-python scripts/publish_dashboard.py --dry-run
-python scripts/publish_dashboard.py
-python scripts/verify_serving.py
+python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
+# or
+make publish-dry
 ```
 
-The intended contract is a versioned snapshot under
-`data/serving/{build_id}/` with a `manifest.json`, then an R2 upload under
-`dashboard/{build_id}/` with the manifest updated last. Until Phase 6, use the
-legacy uploader only for private storage.
+Output is written under `data/serving/{build_id}/`:
+
+```text
+manifest.json
+overview.json
+estate_summary.json.gz
+district_monthly.json.gz
+coverage.json.gz
+```
+
+Verify every manifest reference:
+
+```bash
+python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}
+```
+
+Publish to the configured bucket:
+
+```bash
+python scripts/publish_dashboard.py --db data/agency/agency_data.db
+```
+
+The publisher needs cloud credentials, uploads versioned files first, then
+`dashboard/{build_id}/manifest.json`, and finally the short-cache
+`dashboard/manifest.json` pointer. Data files are cached immutably; the manifest
+is cached for 60 seconds. Gzip data files are uploaded with
+`Content-Encoding: gzip`. See [`serving.md`](serving.md) for the full contract.
+
+The legacy raw-data uploader now raises unless constructed with
+`allow_raw_upload=True`; use the serving publisher instead.
 
 ## Tests and checks
 
@@ -234,9 +263,10 @@ pip install -r requirements-core.txt -r requirements-dev.txt
 python3 scripts/baseline_stats.py
 python scripts/run_quality.py --db data/agency/agency_data.db --fail-on none
 python scripts/build_marts.py --db data/agency/agency_data.db
+python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
-ruff check src/main.py src/analytics src/quality src/processors/agency \
-  src/models/agency/sql_db.py src/orchestrators scripts tests
+ruff check src/main.py src/analytics src/quality src/serving \
+  src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
 
 # Shortcuts
 make test
@@ -244,13 +274,17 @@ make lint
 make quality
 make quality-strict
 make marts
+make publish-dry
 ```
 
-`tests/` contains the Phase 2–5 tests (48 total): upserts, run metadata,
-quality checks, response models, table mapping, duplicate-input dedupe, and
-synthetic mart builds. The CI workflow (`.github/workflows/ci-cd.yml`) installs
-core + dev dependencies, checks that `config` imports without `.env`, compiles,
-runs `pytest`, and runs ruff on the touched modules.
+`tests/` contains the Phase 2–6 tests (57 total): upserts, run metadata,
+quality checks, response models, table mapping, duplicate-input dedupe,
+synthetic mart builds, and serving manifest/publish planning. The
+boto3-only legacy-upload gate test skips in the core-only CI environment. The
+CI workflow
+(`.github/workflows/ci-cd.yml`) installs core + dev dependencies, checks that
+`config` imports without `.env`, compiles, runs `pytest`, and runs ruff on the
+touched modules.
 
 ## Common failures
 

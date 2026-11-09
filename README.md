@@ -157,8 +157,9 @@ or use the reference payloads in `docs/api_responses/` for transformation tests.
    partition to JSON.
 4. **RAG embeddings** — clean and chunk wiki text, embed with
    `paraphrase-multilingual-MiniLM-L12-v2`, and store in ChromaDB.
-5. **Cloud upload** — legacy uploader for the raw `data/` tree; it will be
-   replaced by the versioned serving snapshot in Phase 6.
+5. **Serving snapshot** — build a versioned snapshot from the marts and publish
+   it with `scripts/publish_dashboard.py`. The legacy raw uploader is gated
+   behind `allow_raw_upload=True`.
 
 The phase plan, guardrails, and acceptance criteria are in
 [`docs/workplan-tidy.md`](docs/workplan-tidy.md).
@@ -195,10 +196,11 @@ src/
   orchestrators/  # pipeline entry points
   analytics/      # mart builder and ordered SQL files
   quality/        # read-only data-quality checks and reports
+  serving/        # versioned snapshot builder, verifier, and publisher
   config/         # YAML config, Pydantic settings, env loading
   main.py         # current runnable entry point
 docs/             # workplans, API docs, schema, baseline, runbook
-scripts/          # baseline, quality, and mart CLIs
+scripts/          # baseline, quality, mart, and serving CLIs
 data/             # local data, ignored
 ```
 
@@ -226,29 +228,37 @@ python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
 # Analytics marts (writes mart_* tables and indexes to the DB)
 python scripts/build_marts.py --db data/agency/agency_data.db
 
+# Serving snapshot (local build only; no credentials)
+python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
+python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}
+
 # Dev tooling: pytest and ruff
 pip install -r requirements-dev.txt
 
-# Fixture/DB tests: upserts, run metadata, quality, response models, mapping, marts
+# Fixture/DB tests: upserts, run metadata, quality, mapping, marts, serving
 pytest -q
 
 # Lint the files touched by the tidy-up so far
-ruff check src/main.py src/analytics src/quality src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
+ruff check src/main.py src/analytics src/quality src/serving src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
 
 # Optional shortcuts
 make test
 make lint
 make quality
 make marts
+make publish-dry
 ```
 
-`tests/` contains the Phase 2–5 tests (48 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (57 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
-and synthetic mart builds. The CI workflow in `.github/workflows/ci-cd.yml`
-installs `requirements-core.txt` + `requirements-dev.txt` and runs the same
-tests and lint. Quality details and thresholds are in
-[`docs/quality.md`](docs/quality.md); mart grains and columns are in
-[`docs/data-dictionary.md`](docs/data-dictionary.md#analytics-marts).
+synthetic mart builds, and serving manifest/publish planning. The
+boto3-only legacy-upload gate test is skipped in the core-only CI environment.
+The CI workflow
+in `.github/workflows/ci-cd.yml` installs `requirements-core.txt` +
+`requirements-dev.txt` and runs the same tests and lint. Quality details are in
+[`docs/quality.md`](docs/quality.md); mart grains are in
+[`docs/data-dictionary.md`](docs/data-dictionary.md#analytics-marts); the
+serving contract is in [`docs/serving.md`](docs/serving.md).
 
 ## Known limitations
 
@@ -278,18 +288,21 @@ tests and lint. Quality details and thresholds are in
   not exercised in CI.
 - The 12- and 24-month mart windows are relative to the latest transaction date
   in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
-- `mart_estate_monthly` is large (~592k rows); the serving layer should export
-  it as Parquet rather than JSON.
+- `mart_estate_monthly` (~592k rows) and `mart_transaction_recent` (~73k rows)
+  are not in the v1 serving snapshot; a future Parquet export can add them.
+- The v1 snapshot gzips its three large JSON files (~950 KB total). The
+  frontend must use the manifest `files` mapping rather than hardcoding names.
+- The legacy raw-data uploader is disabled by default; use
+  `scripts/publish_dashboard.py`.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap
 
-1. Phase 0–5: baseline, repo presentation, config safety, idempotent upserts,
-   data-quality checks, fixture tests/CI, and analytics marts. *(implemented;
-   see PRs #24–#28 and the Phase 5 PR)*
-2. Phase 6: versioned serving snapshot and R2 publish.
-3. Phase 7–8: optional sample data and final handoff.
-4. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+1. Phase 0–6: baseline, repo presentation, config safety, idempotent upserts,
+   data-quality checks, fixture tests/CI, analytics marts, and the serving
+   snapshot/publish path. *(implemented; see PRs #24–#29 and the Phase 6 PR)*
+2. Phase 7–8: optional sample data and final handoff.
+3. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 
 ## Disclaimer
 

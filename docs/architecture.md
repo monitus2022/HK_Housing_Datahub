@@ -113,6 +113,7 @@ Notes:
 | `src/orchestrators/cloud_upload.py` | Legacy raw-data uploader for an S3-compatible bucket (R2 or AWS S3). |
 | `src/quality/` | Read-only critical/warning checks and JSON/Markdown reports. |
 | `src/analytics/` | Ordered SQL files and a builder for the five `mart_*` tables and dashboard indexes. |
+| `src/serving/` | Versioned snapshot builder, manifest verifier, and S3/R2 publisher. |
 
 ## Data flow in detail
 
@@ -164,7 +165,20 @@ Notes:
 
 The resulting marts are documented in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts) and are the source for
-the Phase 6 serving snapshot.
+the serving snapshot.
+
+### Serving path
+
+1. `scripts/publish_dashboard.py --dry-run` builds a snapshot from the marts
+   under `data/serving/{build_id}/`.
+2. The snapshot contains a `manifest.json`, `overview.json`, and gzipped
+   `estate_summary`, `district_monthly`, and `coverage` JSON files.
+3. `scripts/verify_serving.py` checks every manifest reference.
+4. Without `--dry-run`, versioned files upload first, then the versioned
+   manifest, then the short-cache `dashboard/manifest.json` pointer.
+5. The legacy raw-data uploader is gated behind `allow_raw_upload=True`.
+
+The manifest and cache contract is in [`serving.md`](serving.md).
 
 ## Storage
 
@@ -176,7 +190,7 @@ the Phase 6 serving snapshot.
 | Wiki partitions | `data/wiki/wiki_data_partition_*.json` | JSON keyed by estate name |
 | Embeddings | `data/chroma_db/` | ChromaDB persistent store |
 | Quality reports | `data/quality/` | JSON + Markdown (Phase 3) |
-| Serving snapshot | `data/serving/{build_id}/` | Planned Phase 6 |
+| Serving snapshot | `data/serving/{build_id}/` | Manifest + gzipped JSON (Phase 6) |
 
 Run metadata lives in the `pipeline_runs` table in the same SQLite database.
 `data/` is gitignored. The reference DB is about 320 MB and must be treated as
@@ -219,8 +233,9 @@ credentials.
 - Phase 3 added `src/quality/` checks and JSON/Markdown reports.
 - Phase 4 added fixture-based tests, broader coverage, and CI.
 - Phase 5 added `src/analytics/`, the five marts, and dashboard indexes.
-- Phase 6 adds a versioned serving snapshot and retires/gates the legacy raw
-  uploader.
+- Phase 6 added `src/serving/`, the versioned snapshot/publish path, and gated
+  the legacy raw uploader.
+- Phase 7–8 add optional sample data and the final handoff.
 - The ML workplan is deferred.
 
 ## Failure modes

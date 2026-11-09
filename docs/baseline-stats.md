@@ -4,14 +4,14 @@ Reference snapshot for the tidy-up workplan. All database queries were
 read-only against `data/agency/agency_data.db`. No data or secrets were
 modified.
 
-> **Snapshot note:** this file records the Phase 0 state. Phases 1–5
+> **Snapshot note:** this file records the Phase 0 state. Phases 1–6
 > subsequently made cloud-storage secrets lazy, added `.dockerignore`,
 > reconciled the schema diagram, added idempotent agency upserts, added the
 > `pipeline_runs` table, added read-only quality checks and reports, added
 > fixture tests, lazy orchestrator imports, a core/RAG/cloud requirements
-> split, and CI, and added the five analytics marts and dashboard indexes.
-> See the README for current behavior; the numbers below remain the reference
-> data snapshot.
+> split, and CI, added the five analytics marts and dashboard indexes, and
+> added the versioned serving snapshot and publisher. See the README for
+> current behavior; the numbers below remain the reference data snapshot.
 
 - Repository: `monitus2022/HK_Housing_Datahub`
 - Base branch: `dev` @ `92bc704`. `origin/main` contains `dev` plus the merge

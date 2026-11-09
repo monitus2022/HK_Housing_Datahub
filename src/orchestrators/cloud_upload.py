@@ -9,8 +9,9 @@ class CloudUploadOrchestrator:
     Orchestrator for uploading files to S3-compatible object storage (Cloudflare R2, AWS S3, etc.).
     """
 
-    def __init__(self):
+    def __init__(self, allow_raw_upload: bool = False):
         self.s3_client = None
+        self.allow_raw_upload = allow_raw_upload
         self.service_type = housing_datahub_config.cloud_storage.service_type
 
         # Get configuration based on service type. Credentials are deliberately
@@ -69,7 +70,16 @@ class CloudUploadOrchestrator:
     def upload_files_from_data_folder(self):
         """
         Upload all files from the data folder to the configured S3-compatible bucket.
+
+        Raw data upload is disabled by default. Use
+        ``scripts/publish_dashboard.py`` for the versioned serving snapshot.
         """
+        if not self.allow_raw_upload:
+            raise RuntimeError(
+                "Raw data upload is disabled. Use "
+                "scripts/publish_dashboard.py for the serving snapshot. "
+                "Pass allow_raw_upload=True only for a private legacy upload."
+            )
         try:
             self._ensure_s3_client()
             service_name = "AWS S3" if self.service_type == 'aws' else "Cloudflare R2"
@@ -81,14 +91,15 @@ class CloudUploadOrchestrator:
                 housing_logger.warning(f"Data folder {data_path} does not exist")
                 return
 
-            # Walk through all files in the data directory
+            # Walk through all files in the data directory, skipping hidden
+            # files and hidden directories (including .DS_Store).
             for file_path in data_path.rglob('*'):
-                if file_path.is_file() and file_path.name != '.DS_Store':
-                    # Get relative path for S3 key
+                relative_to_data = file_path.relative_to(data_path)
+                if file_path.is_file() and not any(
+                    part.startswith(".") for part in relative_to_data.parts
+                ):
                     relative_path = file_path.relative_to(data_path.parent)
-                    s3_key = str(relative_path)
-
-                    self._upload_file(str(file_path), s3_key)
+                    self._upload_file(str(file_path), str(relative_path))
 
             service_name = "AWS S3" if self.service_type == 'aws' else "Cloudflare R2"
             housing_logger.info(f"Upload of files from data folder to {service_name} completed successfully")
