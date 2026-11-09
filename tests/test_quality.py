@@ -170,6 +170,17 @@ def test_invalid_transaction_date_is_critical(tmp_path):
     assert check.details["invalid_rows"] == 1
 
 
+def test_malformed_date_is_critical_and_gap_check_survives(tmp_path):
+    db_path = tmp_path / "malformed_date.db"
+    seed_clean_db(db_path)
+    with sqlite3.connect(db_path) as con:
+        con.execute("UPDATE transactions SET tx_date = 'not-a-date'")
+    report = run_checks(db_path, run_id="malformed-date")
+    assert not get_check(report, "transaction_dates_sane").passed
+    # The gap check must not raise on an unparseable date.
+    assert get_check(report, "transaction_date_gaps").passed
+
+
 def test_foreign_key_orphan_is_critical(tmp_path):
     db_path = tmp_path / "orphan.db"
     seed_clean_db(db_path)
@@ -251,6 +262,55 @@ def test_reports_are_written(tmp_path):
     assert payload["run_id"] == "report-run"
     assert "Data Quality Report" in paths["latest_md"].read_text(
         encoding="utf-8"
+    )
+
+
+def test_run_id_is_sanitized(tmp_path):
+    db_path = tmp_path / "clean.db"
+    seed_clean_db(db_path)
+    report = run_checks(db_path, run_id="../escape")
+    output_dir = tmp_path / "reports"
+    paths = write_reports(report, output_dir)
+
+    assert paths["run_json"].parent == output_dir
+    assert paths["run_json"].name == "escape.json"
+    assert not (tmp_path / "escape.json").exists()
+
+
+def test_cli_warning_gate_and_missing_db(tmp_path):
+    db_path = tmp_path / "zero_area.db"
+    seed_clean_db(db_path)
+    with sqlite3.connect(db_path) as con:
+        con.execute("UPDATE units SET area = 0, net_area = 0")
+    output_dir = tmp_path / "reports"
+
+    assert (
+        main(
+            [
+                "--db",
+                str(db_path),
+                "--output-dir",
+                str(output_dir),
+                "--fail-on",
+                "warning",
+                "--run-id",
+                "cli-warning",
+            ]
+        )
+        == 1
+    )
+    assert (
+        main(
+            [
+                "--db",
+                str(tmp_path / "missing.db"),
+                "--output-dir",
+                str(output_dir),
+                "--fail-on",
+                "none",
+            ]
+        )
+        == 2
     )
 
 
