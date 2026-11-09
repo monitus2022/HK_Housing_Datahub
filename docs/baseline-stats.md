@@ -5,8 +5,10 @@ read-only against `data/agency/agency_data.db`. No data or secrets were
 modified.
 
 - Repository: `monitus2022/HK_Housing_Datahub`
-- Base branch: `dev` @ `92bc704` (`main` is 30 commits behind `dev`; `main` is
-  the default branch)
+- Base branch: `dev` @ `92bc704`. `origin/main` contains `dev` plus the merge
+  commits through PR #12: `origin/main` is 3 commits ahead of `dev`, and
+  `dev..origin/main` is empty. The local `main` ref was stale (33 commits behind
+  `origin/main`); compare against `origin/main` after `git fetch`.
 - Working tree at snapshot time: `src/main.py` modified; both workplans
   untracked
 - Database: `data/agency/agency_data.db` (~320 MB)
@@ -109,6 +111,8 @@ that belongs to a later phase.
 
 ## Reproduce
 
+Table counts:
+
 ```bash
 python3 - <<'PY'
 import sqlite3
@@ -118,5 +122,66 @@ for (t,) in con.execute(
 ):
     n = con.execute(f'select count(*) from "{t}"').fetchone()[0]
     print(f"{t:35s} {n:>12,}")
+PY
+```
+
+Date ranges, coverage, and target quantiles:
+
+```bash
+python3 - <<'PY'
+import sqlite3
+con = sqlite3.connect("file:data/agency/agency_data.db?mode=ro", uri=True)
+q = lambda s: con.execute(s).fetchone()[0]
+
+print("tx range", con.execute("select min(tx_date), max(tx_date) from transactions").fetchone())
+print("market range", con.execute("select min(record_date), max(record_date) from estate_monthly_market_info").fetchone())
+print("estates", q("select count(*) from estates"))
+print("with buildings", q("select count(distinct estate_id) from buildings"))
+print("with transactions", q("""
+  select count(distinct e.estate_id) from estates e
+  join buildings b on e.estate_id = b.estate_id
+  join units u on b.building_id = u.building_id
+  join transactions t on u.unit_id = t.unit_id
+"""))
+print("with market", q("select count(distinct estate_id) from estate_monthly_market_info"))
+print("with school nets", q("select count(distinct estate_id) from estate_school_nets"))
+print("with facilities", q("select count(distinct estate_id) from estate_facilities"))
+print("with mtr", q("select count(distinct estate_id) from estate_mtr_lines"))
+print("with first_op_date", q("select count(*) from estates where first_op_date is not null"))
+print("with coords", q("select count(*) from estates where latitude is not null and longitude is not null"))
+print("units net_area > 0", q("select count(*) from units where net_area > 0"))
+print("units bedroom present", q("select count(*) from units where bedroom is not null"))
+print("units with features", q("select count(distinct unit_id) from unit_features"))
+print("tx price>0 net_area>0", q("""
+  select count(*) from transactions t join units u on t.unit_id = u.unit_id
+  where t.price > 0 and u.net_area > 0
+"""))
+
+rows = con.execute("""
+  select t.price / u.net_area as p
+  from transactions t join units u on t.unit_id = u.unit_id
+  where t.price > 0 and u.net_area > 0
+  order by p
+""").fetchall()
+n = len(rows)
+for pct in (0.01, 0.50, 0.99):
+    print(f"p{int(pct*100):02d}", rows[int(n * pct)][0])
+print("max", rows[-1][0])
+PY
+```
+
+Wiki/Chroma counts:
+
+```bash
+python3 - <<'PY'
+import glob, json, sqlite3
+total = 0
+for path in sorted(glob.glob("data/wiki/*.json")):
+    n = len(json.load(open(path)))
+    total += n
+    print(path, n)
+print("wiki estates", total)
+con = sqlite3.connect("file:data/chroma_db/chroma.sqlite3?mode=ro", uri=True)
+print("chroma embeddings", con.execute("select count(*) from embeddings").fetchone()[0])
 PY
 ```

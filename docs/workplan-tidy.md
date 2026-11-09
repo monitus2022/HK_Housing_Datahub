@@ -1,8 +1,8 @@
 # Datahub Tidy-Up Workplan
 
-> **Agent instruction:** Read this file fully before changing code. Work on a new
-> branch `chore/tidy-up` created from `dev`. Complete phases in order. Make one
-> focused commit (or PR-sized change) per phase, run the listed checks, and stop
+> **Agent instruction:** Read this file fully before changing code. Work on a
+> per-phase branch `chore/tidy-phase-<N>-<slug>` created from `dev`. Complete
+> phases in order. Make one focused PR per phase, run the listed checks, and stop
 > to report after each phase. Do not refetch the full dataset. Do not commit
 > `data/`, `.env`, databases, logs, or secrets.
 
@@ -25,10 +25,14 @@ data model unless a change is required for the tasks below.
 
 Repository: `HK_Housing_Datahub`
 
-- Active branch: `dev`. `main` is ~30 commits behind `dev`; the default branch
-  is still `main`, so the public repo under-represents the work.
-- There is an uncommitted change in `src/main.py` that enables the RAG embedding
-  pipeline and disables the cloud upload. Preserve or commit it intentionally.
+- Active branch: `dev` @ `92bc704`. `origin/main` already contains `dev` plus
+  the merge commits through PR #12; `origin/main` is 3 commits ahead of `dev`
+  and `dev..origin/main` is empty. The local `main` ref is stale (33 commits
+  behind `origin/main`), so run `git fetch` and compare against `origin/main`.
+  The default branch is `main`.
+- There was an uncommitted change in `src/main.py` that enables the RAG
+  embedding pipeline and disables the cloud upload. It is preserved in the
+  Phase 0 commit; do not silently revert it.
 - Entry point: `src/main.py` (pipeline stages are commented in/out).
 - Structure:
   - `src/crawlers/agency/*`, `src/crawlers/wiki/*`
@@ -95,7 +99,8 @@ Repository: `HK_Housing_Datahub`
 
 Tasks:
 
-1. Create branch `chore/tidy-up` from `dev`.
+1. Create branch `chore/tidy-phase-0-baseline` from `dev` (one phase per
+   branch; see `AGENTS.md`).
 2. Record the current state:
    - `git status`, `git log --oneline -10`.
    - Run a read-only SQLite script that prints table counts and date ranges.
@@ -399,8 +404,9 @@ Tasks:
    - text-to-SQL (only if pursued),
    - monitoring/alerts.
 4. Run all checks and record the results in `docs/baseline-stats.md`.
-5. Open a PR from `chore/tidy-up` → `dev`. After review, merge `dev` → `main`
-   or open a second PR. Do not force-push `main`.
+5. Open a PR from the Phase 8 branch → `dev`. After human review, a human may
+   merge `dev` → `main` or open a second PR. Agents never merge `main` or
+   force-push `main`.
 
 Acceptance:
 

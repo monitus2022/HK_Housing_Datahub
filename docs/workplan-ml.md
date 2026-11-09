@@ -61,7 +61,7 @@ Source: `data/agency/agency_data.db` (not committed).
 | Units with more than one transaction | 351,373 |
 | Transaction date range | 1996-01 to 2025-10 |
 | Price per net sq ft, median | ~8,020 HKD |
-| Price per net sq ft, p1 / p99 | ~1,868 / ~30,596 |
+| Price per net sq ft, p1 / p99 | ~1,868 / ~30,597 |
 | Price per net sq ft, max | ~1,890,482 (outlier) |
 
 Non-numeric floor values exist: `G`, `UG`, `LG`, `PH`, `WB`, `-`, empty, etc.
