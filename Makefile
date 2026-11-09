@@ -1,4 +1,4 @@
-.PHONY: test quality quality-strict lint marts publish-dry
+.PHONY: test quality quality-strict lint marts publish-dry frontend-check
 
 test:
 	pytest -q
@@ -14,6 +14,12 @@ marts:
 
 publish-dry:
 	python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
+
+frontend-check:
+	npm --prefix frontend ci
+	npm --prefix frontend run typecheck
+	npm --prefix frontend test
+	npm --prefix frontend run build
 
 lint:
 	ruff check \
