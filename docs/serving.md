@@ -112,8 +112,8 @@ The frontend should:
 4. Show a clear fallback/error state if the manifest or a referenced file is
    missing.
 
-The R2 bucket needs public read access (or a custom domain) and CORS for the
-static-site origin. Write credentials must never be shipped to the frontend.
+The R2 bucket allows public reads and CORS for the static-site origin. Write
+credentials must never be shipped to the frontend.
 
 ## What is not exported yet
 

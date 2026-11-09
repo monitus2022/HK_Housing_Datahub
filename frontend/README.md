@@ -8,9 +8,9 @@ version covers:
 - estate detail panel with latest transaction, 12-month stats, market date, and
   coverage flags
 
-**Live deployment:** <https://hk-housing.monitus.org>  
-If the snapshot does not load, see the deployment troubleshooting in
-[`../docs/deployment.md`](../docs/deployment.md).
+- **Live deployment:** <https://hk-housing.monitus.org>
+- **If the snapshot does not load:** see the deployment troubleshooting in
+  [`../docs/deployment.md`](../docs/deployment.md).
 
 ## Stack
 

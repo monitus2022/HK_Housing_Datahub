@@ -240,8 +240,8 @@ are configured for the frontend origin; see
 
 ### Frontend
 
-**Live:** <https://hk-housing.monitus.org>  
-**Snapshot host:** <https://hk-housing-datahub.monitus.org>
+- **Live:** <https://hk-housing.monitus.org>
+- **Snapshot host:** <https://hk-housing-datahub.monitus.org>
 
 ```bash
 cd frontend
