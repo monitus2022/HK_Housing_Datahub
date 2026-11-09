@@ -7,9 +7,10 @@ relational SQLite model, and builds text embeddings for retrieval-augmented
 applications. The long-term goal is a small, reproducible analytics and serving
 layer for a public dashboard.
 
-> **Status:** working prototype being tidied into a portfolio-grade batch data
-> platform. See [`docs/workplan-tidy.md`](docs/workplan-tidy.md). The ML workplan
-> is deferred.
+> **Status:** backend tidy-up complete through Phase 8. The static frontend is a
+> separate project. See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
+> [`docs/decisions.md`](docs/decisions.md), and
+> [`docs/roadmap.md`](docs/roadmap.md). The ML workplan is deferred.
 
 ## What it does
 
@@ -19,8 +20,9 @@ layer for a public dashboard.
   stores partition JSON files.
 - Loads agency data into a normalized SQLite schema.
 - Chunks wiki text and stores Sentence Transformer embeddings in ChromaDB.
-- Provides a read-only baseline audit and a documented path to analytics marts,
-  a versioned serving snapshot, and a static dashboard.
+- Provides read-only baseline and quality audits, five materialized analytics
+  marts, and a versioned serving snapshot published to R2 for a static
+  dashboard.
 
 ## Architecture
 
@@ -50,9 +52,9 @@ flowchart LR
     end
 
     subgraph Serving
-        MART[Analytics marts<br/>Phase 5]
-        SNAP[Serving snapshot<br/>Phase 6]
-        DASH[Static dashboard]
+        MART[Analytics marts]
+        SNAP[Versioned snapshot<br/>R2]
+        DASH[Static dashboard<br/>separate frontend]
     end
 
     HKP --> AC --> AP --> DB
@@ -186,6 +188,34 @@ treated as sale transactions; `net_area` is null or non-positive for about
 24.6% of units; `bedroom` is missing for about 48%; and `estate_mtr_lines` keeps
 only the first MTR line per estate.
 
+## Serving layer
+
+The backend publishes a small versioned snapshot to R2:
+
+```text
+dashboard/manifest.json
+dashboard/{build_id}/overview.json
+dashboard/{build_id}/estate_summary.json.gz
+dashboard/{build_id}/district_monthly.json.gz
+dashboard/{build_id}/coverage.json.gz
+```
+
+The manifest is authoritative; the frontend fetches it first and then the files
+in `manifest.files`. Data files are gzip-compressed, immutable, and long-cached;
+the manifest pointer is short-cached. The manifest includes build ID, data-through
+dates, coverage, and mart row counts.
+
+Build/verify/publish:
+
+```bash
+make publish-dry
+python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}
+python scripts/publish_dashboard.py --db data/agency/agency_data.db
+```
+
+Full contract: [`docs/serving.md`](docs/serving.md). A static frontend has **not**
+been built yet; public R2 access and CORS still need to be configured for it.
+
 ## Repository layout
 
 ```text
@@ -199,7 +229,7 @@ src/
   serving/        # versioned snapshot builder, verifier, and publisher
   config/         # YAML config, Pydantic settings, env loading
   main.py         # current runnable entry point
-docs/             # workplans, API docs, schema, baseline, runbook
+docs/             # workplans, decisions, roadmap, API docs, schema, runbooks
 scripts/          # baseline, quality, mart, and serving CLIs
 data/             # local data, ignored
 ```
@@ -212,9 +242,9 @@ data/             # local data, ignored
 
 Cloud credentials are **lazy**: importing the config, constructing the upload
 orchestrator, and running local data processing do not require `.env`. The
-upload path validates credentials only when an upload is attempted and raises a
-clear error naming the missing keys. The legacy uploader is not the desired
-serving path — see Phase 6.
+serving publish path validates credentials only when an upload is attempted and
+raises a clear error naming the missing keys. The legacy raw-data uploader is
+gated behind `allow_raw_upload=True`.
 
 ## Checks
 
@@ -278,10 +308,12 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   orphan rows. The quality CLI with `--fail-on critical` exits non-zero until
   the mapping or data is repaired; `src/main.py` runs the checks in report-only
   mode.
-- The legacy cloud uploader walks all of `data/`, including the SQLite database
-  and Chroma store. Do not point it at a public bucket.
-- No live API. The serving layer will be a versioned snapshot, not a query
-  service.
+- The legacy raw uploader is disabled by default; when explicitly enabled it
+  walks all of `data/`, including the SQLite database and Chroma store. Do not
+  point it at a public bucket.
+- No live API. The serving layer is a versioned snapshot, not a query service.
+- No frontend is included in this repository. The R2 bucket still needs public
+  read access (or a custom domain) and CORS for the frontend origin.
 - The reference snapshot ends 2025-10-21; the project does not run on a
   schedule yet.
 - CI installs core dependencies only; the optional RAG and cloud-upload code is
@@ -292,17 +324,21 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   are not in the v1 serving snapshot; a future Parquet export can add them.
 - The v1 snapshot gzips its three large JSON files (~950 KB total). The
   frontend must use the manifest `files` mapping rather than hardcoding names.
-- The legacy raw-data uploader is disabled by default; use
-  `scripts/publish_dashboard.py`.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap
 
-1. Phase 0–6: baseline, repo presentation, config safety, idempotent upserts,
-   data-quality checks, fixture tests/CI, analytics marts, and the serving
-   snapshot/publish path. *(implemented; see PRs #24–#29 and the Phase 6 PR)*
-2. Phase 7–8: optional sample data and final handoff.
-3. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+1. Phase 0–8: baseline, repo presentation, config safety, idempotent upserts,
+   quality checks, tests/CI, analytics marts, serving snapshot/publish, and
+   final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
+2. Phase 7: optional sample database. *(deferred)*
+3. Frontend and R2 public access/CORS.
+4. Incremental crawls, RVD integration, monitoring, and Parquet serving
+   exports. See [`docs/roadmap.md`](docs/roadmap.md).
+5. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+
+Architecture trade-offs are recorded in
+[`docs/decisions.md`](docs/decisions.md).
 
 ## Disclaimer
 

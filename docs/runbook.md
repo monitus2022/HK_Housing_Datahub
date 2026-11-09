@@ -286,6 +286,29 @@ CI workflow
 `config` imports without `.env`, compiles, runs `pytest`, and runs ruff on the
 touched modules.
 
+## Release handoff
+
+Before merging `dev` → `main`:
+
+```bash
+make test
+make lint
+make quality
+make marts
+make publish-dry
+python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}
+```
+
+Optionally publish:
+
+```bash
+python scripts/publish_dashboard.py --db data/agency/agency_data.db
+```
+
+A human performs the `dev` → `main` merge. Agents never merge `main` or
+force-push it. Architecture decisions and remaining work are in
+[`decisions.md`](decisions.md) and [`roadmap.md`](roadmap.md).
+
 ## Common failures
 
 | Symptom | Likely cause | Action |
