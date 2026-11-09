@@ -16,13 +16,13 @@ def main():
     # wiki_orchestrator = WikiOrchestrator()
     # wiki_orchestrator.run_estate_wiki_data_pipeline()
 
-    # # Run RAG embedding pipeline
-    # rag_orchestrator = RAGOrchestrator()
-    # rag_orchestrator.run_text_embedding_pipeline()
+    # Run RAG embedding pipeline
+    rag_orchestrator = RAGOrchestrator()
+    rag_orchestrator.run_text_embedding_pipeline()
 
     # Upload data to Cloudflare R2
-    cloud_upload_orchestrator = CloudUploadOrchestrator()
-    cloud_upload_orchestrator.upload_files_from_data_folder()
+    # cloud_upload_orchestrator = CloudUploadOrchestrator()
+    # cloud_upload_orchestrator.upload_files_from_data_folder()
 
 
 if __name__ == "__main__":
