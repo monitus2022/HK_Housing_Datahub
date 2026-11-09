@@ -212,18 +212,23 @@ serving path — see Phase 6.
 # Read-only database audit
 python3 scripts/baseline_stats.py
 
+# Data quality (read-only; writes data/quality/)
+python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
+
 # Dev tooling: pytest and ruff
 pip install -r requirements-dev.txt
 
-# Phase 2 tests: idempotent upserts and run metadata, no network required
+# Phase 2/3 tests: upserts, run metadata, and quality checks; no network
 pytest -q
 
 # Lint the files touched by the tidy-up so far
-ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py
+ruff check tests src/models/agency/sql_db.py src/processors/agency src/orchestrators/agency.py src/quality
 ```
 
-`tests/` currently contains the Phase 2 upsert and run-metadata tests. Broader
-fixture coverage and the CI workflow are Phase 4.
+`tests/` currently contains the Phase 2 upsert/run-metadata tests and Phase 3
+quality tests (28 total). Broader fixture coverage and the CI workflow are
+Phase 4. Quality check details and thresholds are in
+[`docs/quality.md`](docs/quality.md).
 
 ## Known limitations
 
@@ -239,6 +244,10 @@ fixture coverage and the CI workflow are Phase 4.
 - RAG reruns are not idempotent: Chroma `collection.add()` skips IDs that
   already exist, so changed chunks are not refreshed. Use a fresh collection or
   `upsert` for a rebuild. Tracked in issue #17.
+- The reference DB currently has 160 `buildings.phase_id -> phases.phase_id`
+  orphan rows. The quality CLI with `--fail-on critical` exits non-zero until
+  the mapping or data is repaired; `src/main.py` runs the checks in report-only
+  mode.
 - The legacy cloud uploader walks all of `data/`, including the SQLite database
   and Chroma store. Do not point it at a public bucket.
 - No live API. The serving layer will be a versioned snapshot, not a query
@@ -249,14 +258,14 @@ fixture coverage and the CI workflow are Phase 4.
 
 ## Roadmap
 
-1. Phase 0–2: baseline, repo presentation, config safety, and idempotent
-   upserts. *(implemented; see PRs #24 and #25 plus the Phase 2 PR)*
-2. Phase 3: data-quality checks and reports.
-3. Phase 4: fixtures, tests, and CI.
-4. Phase 5: analytics marts.
-5. Phase 6: versioned serving snapshot and R2 publish.
-6. Phase 7–8: optional sample data and final handoff.
-7. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
+1. Phase 0–3: baseline, repo presentation, config safety, idempotent upserts,
+   and data-quality checks. *(implemented; see PRs #24, #25, #26, and the
+   Phase 3 PR)*
+2. Phase 4: fixtures, tests, and CI.
+3. Phase 5: analytics marts.
+4. Phase 6: versioned serving snapshot and R2 publish.
+5. Phase 7–8: optional sample data and final handoff.
+6. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 
 ## Disclaimer
 
