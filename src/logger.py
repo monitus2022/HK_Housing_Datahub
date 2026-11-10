@@ -5,10 +5,13 @@ import os
 class HousingLogger:
     def __init__(self, name: str):
         self.logger = colorlog.getLogger(name)
-        self.logger.setLevel(logging.DEBUG)
+        level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+        level = getattr(logging, level_name, logging.INFO)
+        self.logger.setLevel(level)
 
         # Colored handler
         handler = colorlog.StreamHandler()
+        handler.setLevel(level)
         handler.setFormatter(colorlog.ColoredFormatter(
             '%(log_color)s%(asctime)s - %(module)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
             log_colors={
@@ -27,7 +30,8 @@ class HousingLogger:
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         file_handler = logging.FileHandler(os.path.join(log_dir, 'hk_housing_datahub.log'))
-        file_handler.setLevel(logging.ERROR)
+        # Persist the same level as the console so progress survives the run.
+        file_handler.setLevel(level)
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s - %(module)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
         ))

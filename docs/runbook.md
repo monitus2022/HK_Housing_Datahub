@@ -128,6 +128,42 @@ variable at build time, so changing it requires a redeploy. The snapshot host
 is <https://hk-housing-datahub.monitus.org>; full setup, CORS, and
 troubleshooting: [`deployment.md`](deployment.md).
 
+## Pipeline progress and status
+
+The agency pipeline logs one INFO line after each estate/building partition:
+
+```text
+estate info: partition 32/98 (33%), 3,200/9,748 items, elapsed 24m 10s, ETA 49m 27s
+```
+
+Console output and `logs/hk_housing_datahub.log` use `LOG_LEVEL` (default
+`INFO`). Export it in the shell (the logger is configured before `.env` is
+loaded, so a `.env` entry will not take effect). `LOG_LEVEL=DEBUG` restores the
+full payload dumps. A failure line names the stage, partition, and current
+estate/building id.
+
+Watch a running crawl:
+
+```bash
+tail -f logs/hk_housing_datahub.log
+```
+
+The same progress is mirrored to `data/agency/pipeline_status.json` and updated
+atomically after each partition:
+
+```bash
+cat data/agency/pipeline_status.json
+```
+
+It contains `run_id`, `mode`, `status` (`running`/`success`/`failed`), `stage`,
+`partition`, `partitions`, `items_done`, `items_total`, `percent`,
+`started_at`, `updated_at`, `finished_at`, `elapsed_seconds` (run),
+`stage_elapsed_seconds`, `eta_seconds`, and `error`. The ETA is computed from
+the current stage's elapsed time, so it resets when the run moves from estates
+to buildings. The file is safe to read from another process and lives under the
+gitignored `data/` tree. A failure to write it logs a warning and never aborts
+the crawl.
+
 ## Debug mode
 
 `AgencyOrchestrator(debug_mode=True)` limits the estate list to the first 20
@@ -141,8 +177,9 @@ orchestrator = AgencyOrchestrator(debug_mode=True)
 For a truly offline smoke test, use the payload fixtures under
 `docs/api_responses/` and the processor methods directly. The current `tests/`
 suite covers response parsing, table mapping, duplicate-input dedupe, upserts,
-run metadata, quality checks, mart builds, and serving manifest/publish
-planning, all with fixtures and temporary SQLite databases.
+run metadata, quality checks, mart builds, pipeline progress/status reporting,
+and serving manifest/publish planning, all with fixtures and temporary SQLite
+databases.
 
 ## Resume and rerun behaviour
 
@@ -323,7 +360,7 @@ python scripts/run_quality.py --db data/agency/agency_data.db --fail-on none
 python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
-ruff check src/main.py src/analytics src/quality src/serving \
+ruff check src/main.py src/logger.py src/analytics src/quality src/serving \
   src/processors/agency src/processors/rag src/models/agency/sql_db.py \
   src/models/agency/outputs.py src/orchestrators scripts tests
 
@@ -336,7 +373,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 75 tests: Phase 2–6 coverage (upserts, run metadata, quality
+`tests/` contains 88 tests: Phase 2–6 coverage (upserts, run metadata, quality
 checks, response models, table mapping, duplicate-input dedupe, synthetic mart
 builds, serving manifest/publish planning), phase-id mapping and repair, plus
 offline RAG storage tests for upsert/prune idempotency. The boto3-only
@@ -386,8 +423,9 @@ force-push it. Architecture decisions and remaining work are in
 
 ## Logs
 
-Logs go to the console and to `logs/hk_housing_datahub.log` (ERROR level for the
-file). `logs/` is gitignored.
+Logs go to the console and to `logs/hk_housing_datahub.log`. Both use
+`LOG_LEVEL` (default `INFO`; set `LOG_LEVEL=DEBUG` for payload dumps). `logs/`
+is gitignored.
 
 ## Safety rules
 
