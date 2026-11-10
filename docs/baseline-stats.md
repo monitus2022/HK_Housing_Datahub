@@ -142,12 +142,13 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff checks — 2026-11-10
 
-- **Tests:** `pytest -q` → 68 passed, including 9 offline RAG idempotency tests
+- **Tests:** `pytest -q` → 75 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
   `chromadb` skips the RAG test module and the boto3 legacy-upload test.
 - **Lint:** `ruff check src/main.py src/analytics src/quality src/serving
   src/processors/agency src/processors/rag src/models/agency/sql_db.py
-  src/orchestrators scripts tests` → all checks passed.
+  src/models/agency/outputs.py src/orchestrators scripts tests` → all checks
+  passed.
 - **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
 - **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
   (Phase 3), #28 (Phase 4), #29 (Phase 5), #30 (Phase 6).
@@ -156,7 +157,10 @@ resolved from the current working directory, so run it from the repo root.
 - **Quality:** status `fail`; 1 critical (160
   `buildings.phase_id -> phases.phase_id` orphans) and 3 warnings
   (non-positive areas, estate coverage, transaction estates without market
-  data). The local entrypoint runs quality in report-only mode.
+  data). The mapper no longer writes pseudo-phase ids, and
+  `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
+  DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
+  runs quality in report-only mode.
 - **Serving:** build `20261110T044947Z-06a658` (`schema_version` 2), ~2.7 MB;
   verifier passed; all seven files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
@@ -177,6 +181,7 @@ resolved from the current working directory, so run it from the repo root.
   promotes it to `main`, and a merge to `main` triggers the Pages production
   build.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
-- **Remaining backlog:** optional Phase 7 sample DB; the 160 phase orphans;
-  Parquet export for `mart_estate_monthly`; incremental crawls, RVD, and
-  monitoring (see [`roadmap.md`](roadmap.md)).
+- **Remaining backlog:** optional Phase 7 sample DB; Parquet export for
+  `mart_estate_monthly`; incremental crawls, RVD, and monitoring (see
+  [`roadmap.md`](roadmap.md)). Run the phase-id repair once on existing DBs to
+  clear the critical quality gate.

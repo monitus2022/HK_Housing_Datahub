@@ -30,6 +30,7 @@ lint:
 		src/processors/agency \
 		src/processors/rag \
 		src/models/agency/sql_db.py \
+		src/models/agency/outputs.py \
 		src/orchestrators \
 		scripts \
 		tests
