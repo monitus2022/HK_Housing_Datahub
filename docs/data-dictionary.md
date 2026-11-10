@@ -84,7 +84,7 @@ Grain: one row per estate. Primary key: `estate_id`. Foreign keys to
 | `subregion_id` | text | no | Subregion |
 | `district_id` | text | no | District |
 | `address_zh` | text | yes | Chinese address |
-| `address_en` | text | no | English address |
+| `address_en` | text | no | English address; empty when the source omits it |
 | `first_op_date` | datetime | yes | First occupation date |
 | `last_op_date` | datetime | yes | Last occupation date |
 | `latitude` | real | yes | WGS84 latitude |
