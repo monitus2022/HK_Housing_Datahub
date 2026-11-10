@@ -409,8 +409,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 2. Phase 7: optional sample database. *(deferred)*
 3. Frontend v2: overview, estate search, district price trends, estate map, and
    recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
-4. Publish a v2 snapshot that includes `transaction_recent`, redeploy the
-   frontend, and add preview-origin CORS if preview deployments are needed.
+4. Deploy frontend v2 to production (release PR), then add preview-origin CORS
+   if preview deployments are needed. The v2 snapshot with
+   `transaction_recent` is published.
 5. Incremental crawls, RVD integration, monitoring, Parquet for
    `mart_estate_monthly`, and broader accessibility/performance testing. See
    [`docs/roadmap.md`](docs/roadmap.md).

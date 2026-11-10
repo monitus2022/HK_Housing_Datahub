@@ -32,15 +32,12 @@ and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
 ## Published snapshot
 
-The Phase 6 build `20261109T164834Z-ea1321` was published to the
-`hk-housing-datahub` bucket on 2026-11-10. The remote `dashboard/manifest.json`
-and every referenced file were read back successfully, and the gzip/cache
-headers were verified.
-
-That build is a v1 snapshot (`schema_version` 1) and does not contain
-`transaction_recent`. The frontend v2 build reads the new file lazily, so it
-stays usable against v1 but the transactions view shows a "snapshot does not
-include transaction_recent" message until a v2 snapshot is published.
+Build `20261110T044947Z-06a658` (`schema_version` 2) was published to the
+`hk-housing-datahub` bucket on 2026-11-10, replacing the v1
+`20261109T164834Z-ea1321` build. It adds `transaction_recent.json.gz` (~1.7 MB
+gzipped for 72,900 display rows), taking the snapshot to ~2.8 MB. The remote
+`dashboard/manifest.json` and every referenced file were read back successfully;
+the gzip, cache, and CORS headers were verified.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through

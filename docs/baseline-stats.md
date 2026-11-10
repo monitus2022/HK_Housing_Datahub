@@ -157,12 +157,12 @@ resolved from the current working directory, so run it from the repo root.
   `buildings.phase_id -> phases.phase_id` orphans) and 3 warnings
   (non-positive areas, estate coverage, transaction estates without market
   data). The local entrypoint runs quality in report-only mode.
-- **Serving:** build `20261109T164834Z-ea1321`, ~948 KB; verifier passed; all
-  six files uploaded to the `hk-housing-datahub` bucket and the remote manifest
-  read back successfully. Gzip `Content-Encoding` and cache headers verified.
-  The v2 snapshot (`schema_version` 2) adds `transaction_recent.json.gz`
-  (~1.6 MB gzipped for 72,900 display rows), taking a local build to ~2.8 MB;
-  it passes the snapshot verifier but has not been published yet.
+- **Serving:** build `20261110T044947Z-06a658` (`schema_version` 2), ~2.8 MB;
+  verifier passed; all seven files uploaded to the `hk-housing-datahub` bucket
+  and the remote manifest read back successfully. Gzip `Content-Encoding`,
+  cache, and CORS headers verified. It adds `transaction_recent.json.gz`
+  (~1.7 MB gzipped for 72,900 display rows). The earlier v1 build
+  `20261109T164834Z-ea1321` remains in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
