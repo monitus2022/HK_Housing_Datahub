@@ -39,7 +39,7 @@ baseline. This file tracks work beyond it.
   `https://hk-housing.monitus.org` origin. See [`deployment.md`](deployment.md).
 - **Parquet exports** — add `mart_estate_monthly` (~592k rows) if the dashboard
   needs full estate-monthly history. `mart_transaction_recent` is already
-  exported as trimmed JSON (~1.6 MB gzipped).
+  exported as trimmed JSON (~1.7 MB gzipped).
 - **Live API (optional)** — only if interactive querying is required. The
   static snapshot is the default.
 

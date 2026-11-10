@@ -157,7 +157,7 @@ resolved from the current working directory, so run it from the repo root.
   `buildings.phase_id -> phases.phase_id` orphans) and 3 warnings
   (non-positive areas, estate coverage, transaction estates without market
   data). The local entrypoint runs quality in report-only mode.
-- **Serving:** build `20261110T044947Z-06a658` (`schema_version` 2), ~2.8 MB;
+- **Serving:** build `20261110T044947Z-06a658` (`schema_version` 2), ~2.7 MB;
   verifier passed; all seven files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
   cache, and CORS headers verified. It adds `transaction_recent.json.gz`
@@ -173,9 +173,9 @@ resolved from the current working directory, so run it from the repo root.
   selection, and 72,900 recent transactions with search, filtering, pagination,
   and row selection. Cloudflare Pages/R2 setup is in
   [`deployment.md`](deployment.md).
-- **Branch state:** `main` contains `dev` through merge PR #35. This deployment
-  documentation change targets `main` intentionally so merging it triggers a
-  fresh Pages production build.
+- **Branch state:** `dev` holds the frontend v2 work (PR #41); release PR #42
+  promotes it to `main`, and a merge to `main` triggers the Pages production
+  build.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; the 160 phase orphans;
   Parquet export for `mart_estate_monthly`; incremental crawls, RVD, and

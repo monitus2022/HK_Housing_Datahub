@@ -395,7 +395,7 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - `mart_estate_monthly` (~592k rows) is not in the serving snapshot; a future
   Parquet export can add it. `mart_transaction_recent` (~73k rows) is exported
   as a trimmed, lazily loaded JSON file.
-- The snapshot gzips its four large JSON files (~2.8 MB total). The frontend
+- The snapshot gzips its four large JSON files (~2.7 MB total). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent averages in `estate_monthly_market_info` are all zero in the reference
   data, so the rent trend metric renders an explicit empty state.
