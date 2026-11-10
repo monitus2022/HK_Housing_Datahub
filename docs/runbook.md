@@ -209,10 +209,38 @@ means the selected gate failed; `2` means the database is missing. Use
 report-only run.
 
 `src/main.py` calls the checks in report-only mode before the RAG step. The
-reference DB currently has one critical finding (160 `buildings.phase_id ->
-phases.phase_id` orphans) and three warnings (non-positive areas, estate
-coverage, transaction estates without market data). See
-[`quality.md`](quality.md) for the check list and thresholds.
+reference DB still reports one critical finding (160 `buildings.phase_id ->
+phases.phase_id` orphans) until the repair below is run, plus three warnings
+(non-positive areas, estate coverage, transaction estates without market data).
+See [`quality.md`](quality.md) for the check list and thresholds.
+
+### Repair orphan phase IDs
+
+A non-null `buildings.phase_id` must reference a real `P…` phase (it is `NULL`
+for estates with no phase). Older ingests copied the API's pseudo-phase id
+(often the estate id) into `phase_id`, leaving `E…` orphans. The mapper no
+longer does this. Repair an existing database with:
+
+```bash
+# Back up first: --apply nulls rows.
+cp data/agency/agency_data.db data/agency/agency_data.db.bak
+
+# Inspect only; prints the orphan count and affected estates.
+python scripts/repair_orphan_phase_ids.py --db data/agency/agency_data.db
+
+# Null the orphan values in one transaction.
+python scripts/repair_orphan_phase_ids.py --db data/agency/agency_data.db --apply
+
+# Confirm the critical gate is clear.
+python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
+```
+
+The script is idempotent and only nulls `phase_id` values with no matching
+`phases` row. On the reference DB it reports 160 rows across 10 estates and
+leaves the three warnings unchanged. Exit codes: `0` means no orphans remain
+(including after a dry run on a clean DB), `1` means orphans remain (a dry run
+on the reference DB returns `1` by design), and `2` means the database is
+missing, unreadable, or lacks the `buildings`/`phases` tables.
 
 ## Build analytics marts
 
@@ -297,7 +325,7 @@ python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
 ruff check src/main.py src/analytics src/quality src/serving \
   src/processors/agency src/processors/rag src/models/agency/sql_db.py \
-  src/orchestrators scripts tests
+  src/models/agency/outputs.py src/orchestrators scripts tests
 
 # Shortcuts
 make test
@@ -308,10 +336,11 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 68 tests: Phase 2–6 coverage (upserts, run metadata, quality
+`tests/` contains 75 tests: Phase 2–6 coverage (upserts, run metadata, quality
 checks, response models, table mapping, duplicate-input dedupe, synthetic mart
-builds, serving manifest/publish planning) plus offline RAG storage tests for
-upsert/prune idempotency. The boto3-only legacy-upload gate test skips because
+builds, serving manifest/publish planning), phase-id mapping and repair, plus
+offline RAG storage tests for upsert/prune idempotency. The boto3-only
+legacy-upload gate test skips because
 CI does not install the cloud extra. The CI workflow
 (`.github/workflows/ci-cd.yml`) installs core + dev (including ChromaDB),
 checks that `config` imports without `.env`, compiles, runs `pytest`, and runs
@@ -347,7 +376,7 @@ force-push it. Architecture decisions and remaining work are in
 | `ModuleNotFoundError: config` | `src` is not on `sys.path` | Run from the repo root with `sys.path.insert(0, "src")`, or use `python src/main.py` (which puts `src` on the path). |
 | `Missing cloud storage credentials` | Upload attempted without `.env` keys | Set `cloud_storage_access_key_id`, `cloud_storage_secret_access_key`, and `cloudflare_account_id` (for R2) in `.env`. Local processing does not need them. |
 | RAG rerun leaves chunks from a wiki file that failed to load | Pruning is skipped when any input file fails | Fix the failing file (see the logged filename) and rerun; valid chunks are untouched |
-| Quality gate exits 1 with `buildings.phase_id -> phases.phase_id` orphans | Building rows use a source "phase" that is not a real phase | Inspect `data/quality/latest.md`; repair the mapping or accept report-only mode until fixed. |
+| Quality gate exits 1 with `buildings.phase_id -> phases.phase_id` orphans | Building rows use a source "phase" that is not a real phase | Run `python scripts/repair_orphan_phase_ids.py --db data/agency/agency_data.db --apply` (back up first); the mapper no longer writes pseudo-phase ids. |
 | `database is locked` | Concurrent SQLite writers | Use one writer at a time; WAL helps readers but does not allow concurrent writers. |
 | Estate returns 404 | Estate removed or unavailable | The crawler logs and skips; rerun later or inspect the ID list. |
 | Building returns 502 | Source API transient failure | The shared request wrapper retries 3 times with a 2 s pause; rerun the building partition later. |

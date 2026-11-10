@@ -96,36 +96,6 @@ class EstateFacilitiesTableModel(BaseModel):
         ]
 
 
-class FacilitiesTableModel(BilingualBaseModel):
-    facility_id: str
-    facility_name_zh: Optional[str] = None
-    facility_name_en: str
-
-    @classmethod
-    def from_both_responses(
-        cls,
-        zh_response: SingleEstateInfoResponse,
-        en_response: SingleEstateInfoResponse,
-    ) -> Optional["FacilitiesTableModel"]:
-        zh_facilities, en_facilities = (
-            zh_response.facilityGroup,
-            en_response.facilityGroup,
-        )
-        if not zh_facilities or not en_facilities:
-            return None
-        facilities = []
-        for zh_facility, en_facility in zip(zh_facilities, en_facilities):
-            if zh_facility.id == en_facility.id:
-                facilities.append(
-                    cls(
-                        facility_id=zh_facility.id,
-                        facility_name_zh=zh_facility.name if zh_facility.name else None,
-                        facility_name_en=en_facility.name if en_facility.name else None,
-                    )
-                )
-        return facilities
-
-
 class EstateSchoolNetTableModel(BilingualBaseModel):
     estate_id: str
     school_net_id: str
@@ -187,7 +157,7 @@ class FacilitiesTableModel(BilingualBaseModel):
         cls,
         zh_response: SingleEstateInfoResponse,
         en_response: SingleEstateInfoResponse,
-    ) -> "FacilitiesTableModel":
+    ) -> Optional[list["FacilitiesTableModel"]]:
         zh_facilities, en_facilities = (
             zh_response.facilityGroup,
             en_response.facilityGroup,
@@ -326,12 +296,21 @@ class BuildingsTableModel(BilingualBaseModel):
                 single_phase_zh.buildings, single_phase_en.buildings
             ):
                 if building_zh.id == building_en.id:
+                    # Estates without real phases expose a pseudo-phase entry
+                    # whose id can be the estate id. Only real phases may become
+                    # a building's phase_id, otherwise the FK points at a
+                    # non-existent phases row.
+                    phase_id = (
+                        single_phase_zh.id
+                        if single_phase_zh.is_phase and single_phase_en.is_phase
+                        else None
+                    )
                     building = cls(
                         building_id=building_zh.id,
                         building_name_zh=building_zh.name if building_zh.name else None,
                         building_name_en=building_en.name if building_en.name else None,
                         estate_id=zh_response.id,
-                        phase_id=single_phase_zh.id,
+                        phase_id=phase_id,
                     )
                     buildings.append(building)
         return buildings

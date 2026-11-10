@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import copy
+
 import pytest
 
+from models.agency.responses import SingleEstateInfoResponse
 from models.agency.outputs import (
     BuildingsTableModel,
     DistrictsTableModel,
@@ -132,6 +135,25 @@ def test_phase_and_building_mapping(
     assert len(no_phase_buildings) == 1
     assert no_phase_buildings[0].building_id == "B000073945"
     assert no_phase_buildings[0].phase_id is None
+
+
+def test_pseudo_phase_id_is_not_saved_on_buildings(single_no_phases_payload):
+    """Real payloads can use the estate id as the pseudo-phase id."""
+    payload = copy.deepcopy(single_no_phases_payload)
+    estate_id = payload["id"]
+    pseudo_phase = payload["phase"][0]
+    pseudo_phase["id"] = estate_id
+    pseudo_phase["is_phase"] = False
+
+    response = SingleEstateInfoResponse.model_validate(payload)
+
+    assert (
+        PhasesTableModel.from_both_responses(response, response) == []
+    )
+    buildings = BuildingsTableModel.from_both_responses(response, response)
+    assert len(buildings) == 1
+    assert buildings[0].estate_id == estate_id
+    assert buildings[0].phase_id is None
 
 
 def test_market_info_mapping(market_info_responses):

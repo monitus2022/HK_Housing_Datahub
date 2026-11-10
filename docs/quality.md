@@ -101,7 +101,11 @@ At the Phase 3 baseline, the reference database produces:
 - **Warnings:** 3 — non-positive areas, estate coverage, transaction estates
   without market data
 
-The orphan rows are likely caused by building rows whose source "phase" entry is
-not a real phase. Local `src/main.py` runs the checks in report-only mode
-(`--fail-on none`) so a known source-data issue does not block the RAG step. Use
+The orphan rows come from building rows whose source "phase" entry is not a real
+phase: the mapper used to copy the pseudo-phase id (often the estate id) into
+`buildings.phase_id`. The mapper now only sets `phase_id` for real phases, and
+`scripts/repair_orphan_phase_ids.py` clears existing orphans. Until that script
+runs, the reference DB keeps the critical finding. Local `src/main.py` runs the
+checks in report-only mode (`--fail-on none`) so a known source-data issue does
+not block the RAG step. Use
 `scripts/run_quality.py --fail-on critical` (or CI) to gate.

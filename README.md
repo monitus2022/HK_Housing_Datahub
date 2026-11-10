@@ -324,7 +324,7 @@ pip install -r requirements-dev.txt
 pytest -q
 
 # Lint the files touched by the tidy-up so far
-ruff check src/main.py src/analytics src/quality src/serving src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
+ruff check src/main.py src/analytics src/quality src/serving src/processors/agency src/processors/rag src/models/agency/sql_db.py src/models/agency/outputs.py src/orchestrators scripts tests
 
 # Frontend checks
 cd frontend
@@ -342,7 +342,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (68 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (75 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
 synthetic mart builds, serving manifest/publish planning, and offline RAG
 idempotency. The boto3-only legacy-upload gate test is skipped in the core-only
@@ -372,9 +372,10 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   Pruning is skipped if any wiki file fails to load or if a run produces no
   chunks at all (issue #17).
 - The reference DB currently has 160 `buildings.phase_id -> phases.phase_id`
-  orphan rows. The quality CLI with `--fail-on critical` exits non-zero until
-  the mapping or data is repaired; `src/main.py` runs the checks in report-only
-  mode.
+  orphan rows. The mapper now only writes real phase ids, and
+  `scripts/repair_orphan_phase_ids.py --apply` clears existing rows; until that
+  runs, the quality CLI with `--fail-on critical` exits non-zero and
+  `src/main.py` runs the checks in report-only mode.
 - The legacy raw uploader is disabled by default; when explicitly enabled it
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
