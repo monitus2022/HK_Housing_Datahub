@@ -32,15 +32,13 @@ and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
 ## Published snapshot
 
-The Phase 6 build `20261109T164834Z-ea1321` was published to the
-`hk-housing-datahub` bucket on 2026-11-10. The remote `dashboard/manifest.json`
-and every referenced file were read back successfully, and the gzip/cache
-headers were verified.
-
-That build is a v1 snapshot (`schema_version` 1) and does not contain
-`transaction_recent`. The frontend v2 build reads the new file lazily, so it
-stays usable against v1 but the transactions view shows a "snapshot does not
-include transaction_recent" message until a v2 snapshot is published.
+Build `20261110T044947Z-06a658` (`schema_version` 2) was published to the
+`hk-housing-datahub` bucket on 2026-11-10, superseding the v1
+`20261109T164834Z-ea1321` build as the current pointer. It adds
+`transaction_recent.json.gz` (~1.7 MB gzipped for 72,900 display rows), taking
+the snapshot to ~2.7 MB. The remote `dashboard/manifest.json` and every
+referenced file were read back successfully; the gzip, cache, and CORS headers
+were verified.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
@@ -124,18 +122,20 @@ The frontend should:
 The R2 bucket allows public reads and CORS for the static-site origin. Write
 credentials must never be shipped to the frontend.
 
-## What is not exported yet
+## Recent transactions export
 
-`mart_estate_monthly` (~592k rows) is not in the snapshot. It is the remaining
-candidate for a Parquet or per-estate export if the dashboard needs full
-estate-monthly history.
-
-`mart_transaction_recent` is exported as `transaction_recent.json.gz` (~1.6 MB
+`mart_transaction_recent` is exported as `transaction_recent.json.gz` (~1.7 MB
 gzipped for 72,900 rows). Only display columns are exported: `tx_date`, `price`,
 `net_ft_price`, `estate_id`, `estate_name_en`, `district_id`,
 `district_name_en`, `area`, `net_area`, and `bedroom`. Internal join keys
 (`tx_id`, `building_id`, `unit_id`) stay in SQLite. The manifest can add further
 files without changing the existing contract.
+
+## What is not exported yet
+
+`mart_estate_monthly` (~592k rows) is not in the snapshot. It is the remaining
+candidate for a Parquet or per-estate export if the dashboard needs full
+estate-monthly history.
 
 ## Legacy uploader
 

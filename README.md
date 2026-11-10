@@ -395,7 +395,7 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - `mart_estate_monthly` (~592k rows) is not in the serving snapshot; a future
   Parquet export can add it. `mart_transaction_recent` (~73k rows) is exported
   as a trimmed, lazily loaded JSON file.
-- The snapshot gzips its four large JSON files (~2.8 MB total). The frontend
+- The snapshot gzips its four large JSON files (~2.7 MB total). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent averages in `estate_monthly_market_info` are all zero in the reference
   data, so the rent trend metric renders an explicit empty state.
@@ -409,8 +409,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 2. Phase 7: optional sample database. *(deferred)*
 3. Frontend v2: overview, estate search, district price trends, estate map, and
    recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
-4. Publish a v2 snapshot that includes `transaction_recent`, redeploy the
-   frontend, and add preview-origin CORS if preview deployments are needed.
+4. Deploy frontend v2 to production (release PR), then add preview-origin CORS
+   if preview deployments are needed. The v2 snapshot with
+   `transaction_recent` is published.
 5. Incremental crawls, RVD integration, monitoring, Parquet for
    `mart_estate_monthly`, and broader accessibility/performance testing. See
    [`docs/roadmap.md`](docs/roadmap.md).

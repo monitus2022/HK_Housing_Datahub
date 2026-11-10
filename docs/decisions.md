@@ -67,7 +67,7 @@ and `coverage` JSON; serve them with `Content-Encoding: gzip`. Keep
 `manifest.json` and `overview.json` plain. `transaction_recent` exports display
 columns only. Defer Parquet for the large `mart_estate_monthly` export.
 
-**Consequences:** The snapshot is ~2.8 MB and browsers decompress transparently.
+**Consequences:** The snapshot is ~2.7 MB and browsers decompress transparently.
 The frontend must use `manifest.files` rather than hardcoded names. Parquet can
 be added later without changing the manifest shape. The trends and transactions
 files are loaded on demand, so the initial page load still only fetches the
