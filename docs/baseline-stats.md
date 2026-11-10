@@ -161,25 +161,25 @@ resolved from the current working directory, so run it from the repo root.
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261110T044947Z-06a658` (`schema_version` 2), ~2.7 MB;
+- **Serving:** build `20261110T094646Z-802e9b` (`schema_version` 2), ~3.1 MB;
   verifier passed; all seven files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
-  cache, and CORS headers verified. It adds `transaction_recent.json.gz`
-  (~1.7 MB gzipped for 72,900 display rows). The earlier v1 build
-  `20261109T164834Z-ea1321` remains in the bucket.
+  cache, and CORS headers verified. It carries refreshed data (transactions
+  through 2026-11-08, market through 2026-09-30, 9,750 estates) and
+  `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display rows).
+  Earlier v2 and v1 builds remain in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
   frontend origin are verified. `npm run typecheck`, `npm test` (49 tests), and
-  `npm run build` pass; `npm audit` reports zero vulnerabilities. Browser smoke
-  test against a local v2 snapshot verified 9,748 estates, the district sale and
-  volume trend chart, the 9,116-marker map with district filtering and marker
-  selection, and 72,900 recent transactions with search, filtering, pagination,
-  and row selection. Cloudflare Pages/R2 setup is in
-  [`deployment.md`](deployment.md).
-- **Branch state:** `dev` holds the frontend v2 work (PR #41); release PR #42
-  promotes it to `main`, and a merge to `main` triggers the Pages production
-  build.
+  `npm run build` pass; `npm audit` reports zero vulnerabilities. Production
+  smoke test on the refreshed snapshot verified 9,750 estates, the district
+  sale and volume trend chart (latest Nov 2026), the 9,117-marker map, and
+  87,393 recent transactions with pagination, with zero console errors.
+  Cloudflare Pages/R2 setup is in [`deployment.md`](deployment.md).
+- **Branch state:** `main` contains `dev` through release PR #46. PRs #48
+  (missing English addresses) and #50 (pipeline progress logging) have since
+  merged into `dev`; no PRs are open.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; Parquet export for
   `mart_estate_monthly`; incremental crawls, RVD, and monitoring (see

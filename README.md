@@ -71,7 +71,7 @@ More detail: [`docs/architecture.md`](docs/architecture.md).
 
 ## Data sources and current scale
 
-| Source | Data | Current snapshot |
+| Source | Data | Reference DB |
 |---|---|---:|
 | HKP | Estates | 9,748 |
 | HKP | Buildings | 29,911 |
@@ -342,7 +342,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (75 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (88 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
 synthetic mart builds, serving manifest/publish planning, and offline RAG
 idempotency. The boto3-only legacy-upload gate test is skipped in the core-only
@@ -386,17 +386,18 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
-- The reference snapshot ends 2025-10-21; the project does not run on a
-  schedule yet.
+- The published snapshot ends 2026-11-08 (market data 2026-09-30); the local
+  reference DB used for the Phase 8 baseline still ends 2025-10-21 until it is
+  swapped for the refreshed copy. The project does not run on a schedule yet.
 - CI installs core dependencies plus `chromadb` for the offline RAG storage
   tests. The embedding model (sentence-transformers/torch) and cloud upload are
   not exercised in CI.
 - The 12- and 24-month mart windows are relative to the latest transaction date
   in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
-- `mart_estate_monthly` (~592k rows) is not in the serving snapshot; a future
-  Parquet export can add it. `mart_transaction_recent` (~73k rows) is exported
+- `mart_estate_monthly` (~662k rows) is not in the serving snapshot; a future
+  Parquet export can add it. `mart_transaction_recent` (~87k rows) is exported
   as a trimmed, lazily loaded JSON file.
-- The snapshot gzips its four large JSON files (~2.7 MB total). The frontend
+- The snapshot gzips its four large JSON files (~3.1 MB total). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent averages in `estate_monthly_market_info` are all zero in the reference
   data, so the rent trend metric renders an explicit empty state.
@@ -410,9 +411,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 2. Phase 7: optional sample database. *(deferred)*
 3. Frontend v2: overview, estate search, district price trends, estate map, and
    recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
-4. Deploy frontend v2 to production (release PR), then add preview-origin CORS
-   if preview deployments are needed. The v2 snapshot with
-   `transaction_recent` is published.
+4. Add preview-origin CORS if preview deployments are needed. The refreshed
+   snapshot is published and the frontend is deployed.
 5. Incremental crawls, RVD integration, monitoring, Parquet for
    `mart_estate_monthly`, and broader accessibility/performance testing. See
    [`docs/roadmap.md`](docs/roadmap.md).

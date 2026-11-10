@@ -9,9 +9,10 @@ The frontend is a static Vite build. The snapshot is a separate R2 public host.
 The two are connected by the build-time `VITE_DASHBOARD_BASE_URL` value.
 
 > **Current status:** live and verified on 2026-11-10. The production page
-> loads 9,748 estates, search/filtering, and the estate detail drawer with no
-> console errors. R2 public read and CORS for
-> `https://hk-housing.monitus.org` are verified, and the Pages build includes
+> loads 9,750 estates, search/filtering, the estate detail drawer, trends, the
+> map, and 87,393 recent transactions with no console errors. R2 public read
+> and CORS for `https://hk-housing.monitus.org` are verified, and the Pages
+> build includes
 > `VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org`.
 
 ## Before redeploying
@@ -107,7 +108,7 @@ curl -I -H "Origin: https://hk-housing.monitus.org" \
 
 # Gzip data file (build ID from the current manifest)
 curl -I -H "Accept-Encoding: gzip" \
-  https://hk-housing-datahub.monitus.org/dashboard/20261110T044947Z-06a658/estate_summary.json.gz
+  https://hk-housing-datahub.monitus.org/dashboard/20261110T094646Z-802e9b/estate_summary.json.gz
 ```
 
 Expected: `200`, `cache-control` matching the snapshot contract,

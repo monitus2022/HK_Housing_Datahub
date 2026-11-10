@@ -30,17 +30,16 @@ baseline. This file tracks work beyond it.
 
 ## Serving and frontend
 
-- **Frontend v2** — implemented on `dev` with a release PR open to `main`:
-  dataset overview, estate search and detail, district price trends, an estate
-  map, and a recent-transactions table. The v2 snapshot with
-  `transaction_recent` is published. Remaining: merge/deploy, then run broader
-  accessibility/performance testing.
+- **Frontend v2** — deployed at <https://hk-housing.monitus.org> with the
+  refreshed snapshot (data through 2026-11-08): dataset overview, estate search
+  and detail, district price trends, an estate map, and a recent-transactions
+  table. Remaining: broader accessibility/performance testing.
 - **R2 public access and CORS** — configured: the snapshot is public at
   <https://hk-housing-datahub.monitus.org> and allows the
   `https://hk-housing.monitus.org` origin. See [`deployment.md`](deployment.md).
-- **Parquet exports** — add `mart_estate_monthly` (~592k rows) if the dashboard
+- **Parquet exports** — add `mart_estate_monthly` (~662k rows) if the dashboard
   needs full estate-monthly history. `mart_transaction_recent` is already
-  exported as trimmed JSON (~1.7 MB gzipped).
+  exported as trimmed JSON (~2.1 MB gzipped).
 - **Live API (optional)** — only if interactive querying is required. The
   static snapshot is the default.
 
