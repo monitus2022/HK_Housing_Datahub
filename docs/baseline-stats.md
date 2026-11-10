@@ -160,19 +160,23 @@ resolved from the current working directory, so run it from the repo root.
 - **Serving:** build `20261109T164834Z-ea1321`, ~948 KB; verifier passed; all
   six files uploaded to the `hk-housing-datahub` bucket and the remote manifest
   read back successfully. Gzip `Content-Encoding` and cache headers verified.
+  The v2 snapshot (`schema_version` 2) adds `transaction_recent.json.gz`
+  (~1.6 MB gzipped for 72,900 display rows), taking a local build to ~2.8 MB;
+  it passes the snapshot verifier but has not been published yet.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
-  frontend origin are verified. `npm run typecheck`, `npm test` (11 tests), and
+  frontend origin are verified. `npm run typecheck`, `npm test` (49 tests), and
   `npm run build` pass; `npm audit` reports zero vulnerabilities. Browser smoke
-  test against a local snapshot: 9,748 estates, search filtering, and the detail
-  panel verified. Live production was also verified in the browser: 9,748
-  estates, 25 rows/page, no console errors. Cloudflare Pages/R2 setup is in
+  test against a local v2 snapshot verified 9,748 estates, the district sale and
+  volume trend chart, the 9,116-marker map with district filtering and marker
+  selection, and 72,900 recent transactions with search, filtering, pagination,
+  and row selection. Cloudflare Pages/R2 setup is in
   [`deployment.md`](deployment.md).
 - **Branch state:** `main` contains `dev` through merge PR #35. This deployment
   documentation change targets `main` intentionally so merging it triggers a
   fresh Pages production build.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
-- **Remaining backlog:** optional Phase 7 sample DB; map/trend/recent-transaction
-  frontend views; the 160 phase orphans; Parquet export for the large marts;
-  incremental crawls, RVD, and monitoring (see [`roadmap.md`](roadmap.md)).
+- **Remaining backlog:** optional Phase 7 sample DB; the 160 phase orphans;
+  Parquet export for `mart_estate_monthly`; incremental crawls, RVD, and
+  monitoring (see [`roadmap.md`](roadmap.md)).

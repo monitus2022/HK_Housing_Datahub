@@ -376,7 +376,9 @@ Rows: 72,900.
 | `bedroom` | integer | Bedroom count, when present |
 
 Caveats: the 24-month window is relative to the latest transaction date in the
-snapshot, not the current date.
+snapshot, not the current date. The serving export keeps the display columns
+(`tx_date`, `price`, `net_ft_price`, estate and district names/IDs, `area`,
+`net_area`, `bedroom`) and drops `tx_id`, `building_id`, and `unit_id`.
 
 ### `mart_coverage`
 

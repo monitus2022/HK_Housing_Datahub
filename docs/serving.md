@@ -22,10 +22,11 @@ data/serving/{build_id}/
   overview.json
   estate_summary.json.gz
   district_monthly.json.gz
+  transaction_recent.json.gz
   coverage.json.gz
 ```
 
-The three large JSON files are gzip-compressed and uploaded with
+The four large JSON files are gzip-compressed and uploaded with
 `Content-Encoding: gzip`; browsers decompress them transparently. `manifest.json`
 and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
@@ -35,6 +36,11 @@ The Phase 6 build `20261109T164834Z-ea1321` was published to the
 `hk-housing-datahub` bucket on 2026-11-10. The remote `dashboard/manifest.json`
 and every referenced file were read back successfully, and the gzip/cache
 headers were verified.
+
+That build is a v1 snapshot (`schema_version` 1) and does not contain
+`transaction_recent`. The frontend v2 build reads the new file lazily, so it
+stays usable against v1 but the transactions view shows a "snapshot does not
+include transaction_recent" message until a v2 snapshot is published.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
@@ -72,7 +78,7 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "build_id": "20261109T155827Z-abc123",
   "generated_at": "2026-11-09T15:58:27+00:00",
   "data_through": {
@@ -96,6 +102,7 @@ Content types: JSON data is `application/json`; gzip files also carry
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
     "estate_summary": "estate_summary.json.gz",
+    "transaction_recent": "transaction_recent.json.gz",
     "coverage": "coverage.json.gz"
   },
   "source": ["HKP", "Wikipedia"]
@@ -107,20 +114,28 @@ The frontend should:
 1. Fetch `https://hk-housing-datahub.monitus.org/dashboard/manifest.json`.
 2. Read `files` and fetch
    `https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file}`.
-3. Use `data_through`, `coverage`, and `row_counts` for display labels and
+3. Load `estate_summary` eagerly; load `district_monthly` and
+   `transaction_recent` only when their views are opened.
+4. Use `data_through`, `coverage`, and `row_counts` for display labels and
    freshness warnings.
-4. Show a clear fallback/error state if the manifest or a referenced file is
-   missing.
+5. Show a clear fallback/error state if the manifest or a referenced file is
+   missing. A missing optional file should not take down the rest of the page.
 
 The R2 bucket allows public reads and CORS for the static-site origin. Write
 credentials must never be shipped to the frontend.
 
 ## What is not exported yet
 
-`mart_estate_monthly` (~592k rows) and `mart_transaction_recent` (~73k rows) are
-not in the v1 snapshot. They are good candidates for a future Parquet export if
-the dashboard needs full estate-monthly history or a recent-transactions table.
-The manifest can add them without changing the existing file contract.
+`mart_estate_monthly` (~592k rows) is not in the snapshot. It is the remaining
+candidate for a Parquet or per-estate export if the dashboard needs full
+estate-monthly history.
+
+`mart_transaction_recent` is exported as `transaction_recent.json.gz` (~1.6 MB
+gzipped for 72,900 rows). Only display columns are exported: `tx_date`, `price`,
+`net_ft_price`, `estate_id`, `estate_name_en`, `district_id`,
+`district_name_en`, `area`, `net_area`, and `bedroom`. Internal join keys
+(`tx_id`, `building_id`, `unit_id`) stay in SQLite. The manifest can add further
+files without changing the existing contract.
 
 ## Legacy uploader
 

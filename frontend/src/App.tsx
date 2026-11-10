@@ -5,10 +5,23 @@ import { formatDate } from "./lib/format";
 import { OverviewCards } from "./components/OverviewCards";
 import { EstateSearch } from "./components/EstateSearch";
 import { EstateDetail } from "./components/EstateDetail";
+import { DistrictTrends } from "./components/DistrictTrends";
+import { EstateMap } from "./components/EstateMap";
+import { RecentTransactions } from "./components/RecentTransactions";
+
+type View = "search" | "trends" | "map" | "transactions";
+
+const VIEWS: { id: View; label: string }[] = [
+  { id: "search", label: "Estates" },
+  { id: "trends", label: "Trends" },
+  { id: "map", label: "Map" },
+  { id: "transactions", label: "Transactions" },
+];
 
 export default function App() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [selected, setSelected] = useState<EstateSummary | null>(null);
+  const [view, setView] = useState<View>("search");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
@@ -49,7 +62,8 @@ export default function App() {
           <h1>HK Housing Datahub</h1>
           <p className="hero-lede">
             A static view of estate, transaction, and monthly market data.
-            Search estates, inspect recent activity, and check coverage.
+            Search estates, compare district price trends, explore the map, and
+            browse recent transactions.
           </p>
           {data ? (
             <p className="hero-meta">
@@ -90,7 +104,78 @@ export default function App() {
         {data && !error ? (
           <>
             <OverviewCards manifest={data.manifest} />
-            <EstateSearch estates={data.estates} onSelect={setSelected} />
+
+            <div
+              className="view-tabs"
+              role="tablist"
+              aria-label="Dashboard views"
+              onKeyDown={(event) => {
+                const currentIndex = VIEWS.findIndex(
+                  (item) => item.id === view,
+                );
+                let nextIndex: number | null = null;
+                if (event.key === "ArrowRight") {
+                  nextIndex = (currentIndex + 1) % VIEWS.length;
+                } else if (event.key === "ArrowLeft") {
+                  nextIndex =
+                    (currentIndex - 1 + VIEWS.length) % VIEWS.length;
+                } else if (event.key === "Home") {
+                  nextIndex = 0;
+                } else if (event.key === "End") {
+                  nextIndex = VIEWS.length - 1;
+                }
+                if (nextIndex === null) return;
+                event.preventDefault();
+                const next = VIEWS[nextIndex];
+                setView(next.id);
+                document.getElementById(`tab-${next.id}`)?.focus();
+              }}
+            >
+              {VIEWS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${item.id}`}
+                  aria-selected={view === item.id}
+                  aria-controls="view-panel"
+                  tabIndex={view === item.id ? 0 : -1}
+                  className={`view-tab ${view === item.id ? "view-tab-active" : ""}`}
+                  onClick={() => setView(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <div
+              role="tabpanel"
+              id="view-panel"
+              aria-labelledby={`tab-${view}`}
+            >
+              {view === "search" ? (
+                <EstateSearch
+                  estates={data.estates}
+                  onSelect={setSelected}
+                />
+              ) : null}
+              {view === "trends" ? (
+                <DistrictTrends manifest={data.manifest} />
+              ) : null}
+              {view === "map" ? (
+                <EstateMap
+                  estates={data.estates}
+                  onSelect={setSelected}
+                />
+              ) : null}
+              {view === "transactions" ? (
+                <RecentTransactions
+                  manifest={data.manifest}
+                  estates={data.estates}
+                  onSelectEstate={setSelected}
+                />
+              ) : null}
+            </div>
           </>
         ) : null}
       </main>
