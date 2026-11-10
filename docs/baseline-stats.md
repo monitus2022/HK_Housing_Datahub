@@ -4,6 +4,11 @@ Reference snapshot for the tidy-up workplan. All database queries were
 read-only against `data/agency/agency_data.db`. No data or secrets were
 modified.
 
+> **Refresh note (2026-11-10):** the reference DB was replaced with a fully
+> recrawled copy after this baseline was recorded. Numbers below are the
+> recorded Phase 0–8 baseline unless a section says otherwise; current counts
+> and dates are in [`serving.md`](serving.md) and [`../README.md`](../README.md).
+
 > **Snapshot note:** this file records the Phase 0 state. Phases 1–6
 > subsequently made cloud-storage secrets lazy, added `.dockerignore`,
 > reconciled the schema diagram, added idempotent agency upserts, added the
@@ -11,7 +16,7 @@ modified.
 > fixture tests, lazy orchestrator imports, a core/RAG/cloud requirements
 > split, and CI, added the five analytics marts and dashboard indexes, and
 > added the versioned serving snapshot and publisher. See the README for
-> current behavior; the numbers below remain the reference data snapshot.
+> current behavior; the numbers below remain the historical baseline snapshot.
 
 - Repository: `monitus2022/HK_Housing_Datahub`
 - Base branch: `dev` @ `92bc704`. `origin/main` contains `dev` plus the merge
@@ -152,9 +157,10 @@ resolved from the current working directory, so run it from the repo root.
 - **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
 - **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
   (Phase 3), #28 (Phase 4), #29 (Phase 5), #30 (Phase 6).
-- **Marts on the reference DB:** estate summary 9,748; district monthly 19,352;
-  estate monthly 591,904; recent transactions 72,900; coverage 9,748.
-- **Quality:** status `fail`; 1 critical (160
+- **Marts on the reference DB (pre-refresh):** estate summary 9,748;
+  district monthly 19,352; estate monthly 591,904; recent transactions
+  72,900; coverage 9,748.
+- **Quality (pre-refresh):** status `fail`; 1 critical (160
   `buildings.phase_id -> phases.phase_id` orphans) and 3 warnings
   (non-positive areas, estate coverage, transaction estates without market
   data). The mapper no longer writes pseudo-phase ids, and
@@ -183,5 +189,5 @@ resolved from the current working directory, so run it from the repo root.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; Parquet export for
   `mart_estate_monthly`; incremental crawls, RVD, and monitoring (see
-  [`roadmap.md`](roadmap.md)). Run the phase-id repair once on existing DBs to
-  clear the critical quality gate.
+  [`roadmap.md`](roadmap.md)). The phase-id repair remains available for older
+  databases; the refreshed DB reports 0 orphans.

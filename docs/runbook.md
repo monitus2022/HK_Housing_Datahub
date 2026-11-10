@@ -37,7 +37,7 @@ cp .env.template .env
 ```
 
 The reference data is in `data/` and is gitignored. The agency database is about
-320 MB.
+518 MB.
 
 ## Run the stages
 
@@ -133,7 +133,7 @@ troubleshooting: [`deployment.md`](deployment.md).
 The agency pipeline logs one INFO line after each estate/building partition:
 
 ```text
-estate info: partition 32/98 (33%), 3,200/9,748 items, elapsed 24m 10s, ETA 49m 27s
+estate info: partition 32/98 (33%), 3,200/9,750 items, elapsed 24m 10s, ETA 49m 28s
 ```
 
 Console output and `logs/hk_housing_datahub.log` use `LOG_LEVEL` (default
@@ -246,10 +246,11 @@ means the selected gate failed; `2` means the database is missing. Use
 report-only run.
 
 `src/main.py` calls the checks in report-only mode before the RAG step. The
-reference DB still reports one critical finding (160 `buildings.phase_id ->
-phases.phase_id` orphans) until the repair below is run, plus three warnings
-(non-positive areas, estate coverage, transaction estates without market data).
-See [`quality.md`](quality.md) for the check list and thresholds.
+refreshed reference DB reports 0 critical findings and three warnings
+(non-positive areas, estate coverage, transaction estates without market
+data). Older databases can still have the 160 `buildings.phase_id ->
+phases.phase_id` orphans cleared by the repair below. See
+[`quality.md`](quality.md) for the check list and thresholds.
 
 ### Repair orphan phase IDs
 
@@ -273,11 +274,12 @@ python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
 ```
 
 The script is idempotent and only nulls `phase_id` values with no matching
-`phases` row. On the reference DB it reports 160 rows across 10 estates and
-leaves the three warnings unchanged. Exit codes: `0` means no orphans remain
-(including after a dry run on a clean DB), `1` means orphans remain (a dry run
-on the reference DB returns `1` by design), and `2` means the database is
-missing, unreadable, or lacks the `buildings`/`phases` tables.
+`phases` row. On a pre-refresh database it reports 160 rows across 10 estates;
+the refreshed reference DB reports 0 and leaves the three warnings unchanged.
+Exit codes: `0` means no orphans remain (including a clean DB), `1` means
+orphans remain (for example a dry run on a pre-refresh database), and `2`
+means the database is missing, unreadable, or lacks the `buildings`/`phases`
+tables.
 
 ## Build analytics marts
 
@@ -294,7 +296,7 @@ It rebuilds:
 ```text
 mart_estate_summary       one row per estate
 mart_district_monthly     district x month
-mart_estate_monthly       estate x month (full history, ~592k rows)
+mart_estate_monthly       estate x month (full history, ~662k rows)
 mart_transaction_recent   last 24 months
 mart_coverage             one row per estate
 ```

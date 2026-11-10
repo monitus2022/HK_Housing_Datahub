@@ -209,7 +209,7 @@ with CORS and gzip headers. Deployment settings are in
 | Serving snapshot | `data/serving/{build_id}/` | Manifest + gzipped JSON (Phase 6) |
 
 Run metadata lives in the `pipeline_runs` table in the same SQLite database.
-`data/` is gitignored. The reference DB is about 320 MB and must be treated as
+`data/` is gitignored. The reference DB is about 518 MB and must be treated as
 read-only during development unless a temporary copy is used.
 
 ## Dependencies and CI

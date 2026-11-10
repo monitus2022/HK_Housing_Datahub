@@ -73,18 +73,19 @@ More detail: [`docs/architecture.md`](docs/architecture.md).
 
 | Source | Data | Reference DB |
 |---|---|---:|
-| HKP | Estates | 9,748 |
-| HKP | Buildings | 29,911 |
-| HKP | Units | 1,229,204 |
-| HKP | Transactions | 1,071,268 |
-| HKP | Estate monthly market rows | 476,986 |
-| HKP | Unit feature rows | 563,346 |
-| Wikipedia (zh) | Estates with wiki data | 822 across 9 partitions |
+| HKP | Estates | 9,750 |
+| HKP | Buildings | 30,501 |
+| HKP | Units | 1,236,321 |
+| HKP | Transactions | 1,122,622 |
+| HKP | Estate monthly market rows | 546,168 |
+| HKP | Unit feature rows | 586,041 |
+| Wikipedia (zh) | Estates with wiki data | 824 across 9 partitions |
 | ChromaDB | Embedded wiki chunks | 3,780 |
 
-Transaction dates span 1996-01 to 2025-10-21; monthly market data spans
-1996-12 to 2025-08. The database snapshot is about 320 MB. Full coverage and
-reproduction details are in [`docs/baseline-stats.md`](docs/baseline-stats.md).
+Transaction dates span 1996-01 to 2026-11-08; monthly market data spans
+1996-12 to 2026-09-30. The database snapshot is about 518 MB. Full coverage,
+reproduction details, and the pre-refresh baseline are in
+[`docs/baseline-stats.md`](docs/baseline-stats.md).
 
 Data sources:
 
@@ -159,7 +160,7 @@ The `data/` directory is ignored by git. A populated local checkout contains:
 
 ```text
 data/
-  agency/agency_data.db      # SQLite raw model (~320 MB in the reference snapshot)
+  agency/agency_data.db      # SQLite raw model (~518 MB in the reference snapshot)
   agency/estate_ids.txt      # estate ID cache
   wiki/wiki_data_partition_*.json
   chroma_db/                 # ChromaDB persistence
@@ -204,7 +205,7 @@ The data model has the following groups:
 
 Key caveats: the `transactions` table has no transaction-type column and is
 treated as sale transactions; `net_area` is null or non-positive for about
-24.6% of units; `bedroom` is missing for about 48%; and `estate_mtr_lines` keeps
+24.0% of units; `bedroom` is missing for about 47%; and `estate_mtr_lines` keeps
 only the first MTR line per estate.
 
 ## Serving layer
@@ -359,9 +360,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - Scraped third-party data; not an official or authoritative source.
 - RVD integration is not implemented.
 - The transaction table has no sale/rent type; it is treated as sales.
-- Significant nulls: `net_area` (302,139 units null or `<= 0`), `bedroom`
-  (591,313 null), missing coordinates (632 estates), missing `first_op_date`
-  (892 estates).
+- Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
+  (583,266 null), missing coordinates (633 estates), missing `first_op_date`
+  (887 estates).
 - Agency SQLite writes are idempotent as of Phase 2: they use SQLite upserts and
   record run metadata in `pipeline_runs`. Rerunning a partition leaves row
   counts unchanged and refreshes non-key columns.
@@ -371,11 +372,11 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   index, so edited text refreshes in place and removed sections are deleted.
   Pruning is skipped if any wiki file fails to load or if a run produces no
   chunks at all (issue #17).
-- The reference DB currently has 160 `buildings.phase_id -> phases.phase_id`
-  orphan rows. The mapper now only writes real phase ids, and
-  `scripts/repair_orphan_phase_ids.py --apply` clears existing rows; until that
-  runs, the quality CLI with `--fail-on critical` exits non-zero and
-  `src/main.py` runs the checks in report-only mode.
+- The reference DB previously had 160 `buildings.phase_id -> phases.phase_id`
+  orphan rows. The mapper now writes only real phase ids, the refresh produced
+  0 orphans, and `scripts/repair_orphan_phase_ids.py --apply` repairs older
+  databases. `scripts/run_quality.py --fail-on critical` passes; `src/main.py`
+  runs the checks in report-only mode by design.
 - The legacy raw uploader is disabled by default; when explicitly enabled it
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
@@ -386,9 +387,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
-- The published snapshot ends 2026-11-08 (market data 2026-09-30); the local
-  reference DB used for the Phase 8 baseline still ends 2025-10-21 until it is
-  swapped for the refreshed copy. The project does not run on a schedule yet.
+- The published snapshot and local reference DB both end 2026-11-08 (market
+  data 2026-09-30). The project does not run on a schedule yet.
 - CI installs core dependencies plus `chromadb` for the offline RAG storage
   tests. The embedding model (sentence-transformers/torch) and cloud upload are
   not exercised in CI.
