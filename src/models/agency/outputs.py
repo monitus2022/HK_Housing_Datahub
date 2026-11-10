@@ -68,7 +68,9 @@ class EstateInfoTableModel(BilingualBaseModel):
             subregion_id=zh_response.subregion.id if zh_response.subregion else None,
             district_id=zh_response.district.id if zh_response.district else None,
             address_zh=zh_response.address,
-            address_en=en_response.address,
+            # The English payload can omit the address while the SQL column is
+            # NOT NULL. Store an empty string rather than aborting the crawl.
+            address_en=en_response.address or "",
             first_op_date=zh_response.first_op_date,
             last_op_date=zh_response.last_op_date,
             latitude=zh_response.latitude,
