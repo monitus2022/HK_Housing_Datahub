@@ -1,4 +1,10 @@
-import type { DashboardData, EstateSummary, Manifest } from "../types";
+import type {
+  DashboardData,
+  DistrictMonthly,
+  EstateSummary,
+  Manifest,
+  RecentTransaction,
+} from "../types";
 
 const baseUrl = (import.meta.env.VITE_DASHBOARD_BASE_URL ?? "").replace(
   /\/+$/,
@@ -50,6 +56,33 @@ async function fetchJson<T>(path: string): Promise<T> {
   }
 }
 
+const fileCache = new Map<string, Promise<unknown>>();
+
+async function fetchVersionedJson<T>(
+  manifest: Manifest,
+  logicalName: string,
+): Promise<T> {
+  const cacheKey = `${manifest.build_id}:${logicalName}`;
+  const cached = fileCache.get(cacheKey);
+  if (cached) return cached as Promise<T>;
+
+  const file = manifest.files[logicalName];
+
+  if (!file) {
+    throw new Error(
+      `This snapshot does not include ${logicalName}. ` +
+        "Rebuild and republish the snapshot from the current backend.",
+    );
+  }
+
+  const promise = fetchJson<T>(`/dashboard/${manifest.build_id}/${file}`);
+  fileCache.set(cacheKey, promise);
+  // Drop failed requests so "Try again" can refetch.
+  promise.catch(() => fileCache.delete(cacheKey));
+  return promise;
+}
+
+/** Load the manifest and the required estate summary (the v1 contract). */
 export async function loadDashboard(): Promise<DashboardData> {
   const manifest = await fetchJson<Manifest>("/dashboard/manifest.json");
   const estateFile = manifest.files.estate_summary;
@@ -63,4 +96,21 @@ export async function loadDashboard(): Promise<DashboardData> {
   );
 
   return { manifest, estates };
+}
+
+/** District monthly trends. Loaded on demand by the trends view. */
+export async function loadDistrictMonthly(
+  manifest: Manifest,
+): Promise<DistrictMonthly[]> {
+  return fetchVersionedJson<DistrictMonthly[]>(manifest, "district_monthly");
+}
+
+/** Recent transactions. Loaded on demand by the transactions view. */
+export async function loadRecentTransactions(
+  manifest: Manifest,
+): Promise<RecentTransaction[]> {
+  return fetchVersionedJson<RecentTransaction[]>(
+    manifest,
+    "transaction_recent",
+  );
 }

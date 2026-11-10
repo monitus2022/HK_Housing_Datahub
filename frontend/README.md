@@ -1,12 +1,16 @@
 # HK Housing Dashboard (frontend)
 
-Static React frontend for the HK Housing Datahub serving snapshot. The first
-version covers:
+Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 
 - dataset overview cards
 - estate search with district filter, sorting, and pagination
 - estate detail panel with latest transaction, 12-month stats, market date, and
   coverage flags
+- district price trends (monthly average net-ft sale price, rent, and
+  transaction volume) with a 12-month change summary
+- estate map with district filtering and price-bucketed markers
+- recent-transactions table with search, district/date filters, sorting, and
+  pagination
 
 - **Live deployment:** <https://hk-housing.monitus.org>
 - **If the snapshot does not load:** see the deployment troubleshooting in
@@ -17,8 +21,9 @@ version covers:
 - Vite
 - React 18
 - TypeScript
+- Leaflet + OpenStreetMap tiles for the map
 - Plain CSS (no UI framework)
-- Vitest for the pure search/sort/pagination helpers
+- Vitest for the pure search, trend, map, and transaction helpers
 
 ## Data contract
 
@@ -29,10 +34,26 @@ The app fetches, in order:
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.estate_summary}
 ```
 
+The trends and transactions views then load their own files on demand, and each
+file is cached per build ID for the life of the page:
+
+```text
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_monthly}
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.transaction_recent}
+```
+
 It never hardcodes a build ID or file name. The published snapshot is described
 in [`../docs/serving.md`](../docs/serving.md). Large data files are gzipped; the
 loader lets the browser decode R2's `Content-Encoding: gzip`, and falls back to
-manual `DecompressionStream` for local servers that return raw `.gz` bytes.
+manual `DecompressionStream` for local servers that return raw `.gz` bytes. If a
+snapshot predates the trends or transactions file, only that view shows an
+error; the overview and estate search keep working.
+
+The map plots estate coordinates from `estate_summary` over OpenStreetMap
+tiles. Markers are coloured by the 12-month average net-ft price, with the
+latest transaction price as a fallback; the legend documents the buckets. Tiles
+are fetched from `tile.openstreetmap.org` at runtime and are not bundled or
+cached by the app; attribution is shown on the map.
 
 ## Quickstart
 
@@ -106,9 +127,12 @@ npm run build
 
 ## Current limitations
 
-- Only the overview and estate-search views are implemented.
-- No map, district trend charts, or recent-transactions table yet.
-- `mart_estate_monthly` and `mart_transaction_recent` are not in the v1 snapshot.
+- The map depends on OpenStreetMap tiles; without network access the markers
+  render on a blank background.
+- Rent averages in the source data are zero, so the rent trend metric shows an
+  explicit empty state until the source is fixed.
+- `mart_estate_monthly` is not in the snapshot; estate-level monthly history is
+  not available.
 - The snapshot is a batch-refreshed dataset, not a live feed.
 - Data is scraped from third-party sources; see the root README for the
   disclaimer.

@@ -1,8 +1,8 @@
 """Lazy orchestrator exports.
 
 Importing ``orchestrators.agency`` must not pull in the RAG/embedding or cloud
-upload stacks. CI installs only ``requirements-core.txt``; the optional
-orchestrators are imported on first access.
+upload stacks. The test environment includes ChromaDB but not the embedding
+model; the optional orchestrators are imported on first access.
 """
 
 from typing import TYPE_CHECKING

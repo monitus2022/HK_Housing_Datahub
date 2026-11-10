@@ -101,10 +101,11 @@ median ~8,020; p1 ~1,868; p99 ~30,597; max ~1,890,482.
 - has the cloud upload commented out.
 
 This was an uncommitted local choice and is preserved intentionally in the
-Phase 0 commit. RAG reruns are **not** idempotent today: the embedding pipeline
-uses Chroma `collection.add()`, which in Chroma 0.5.5 logs a warning and skips
-IDs that already exist, so reruns can leave stale chunks. Tracked separately in
-issue #17.
+Phase 0 commit. RAG reruns are idempotent: chunks are written with Chroma
+`upsert()` and IDs that are no longer in the wiki source are pruned after a
+complete run. Chunk IDs are a SHA-1 of estate name, section title, and chunk
+index, so edited text refreshes in place. Pruning is skipped when any input
+file fails to load or when a run produces no chunks (issue #17).
 
 ## Known gaps confirmed at snapshot time
 
@@ -141,11 +142,12 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff checks — 2026-11-10
 
-- **Tests:** `pytest -q` → 59 passed. Core-only venv (no RAG/cloud extras) →
-  58 passed, 1 skipped (boto3-only legacy-upload gate).
+- **Tests:** `pytest -q` → 68 passed, including 9 offline RAG idempotency tests
+  against a temporary Chroma store (issue #17). A core-only venv without
+  `chromadb` skips the RAG test module and the boto3 legacy-upload test.
 - **Lint:** `ruff check src/main.py src/analytics src/quality src/serving
-  src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts
-  tests` → all checks passed.
+  src/processors/agency src/processors/rag src/models/agency/sql_db.py
+  src/orchestrators scripts tests` → all checks passed.
 - **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
 - **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
   (Phase 3), #28 (Phase 4), #29 (Phase 5), #30 (Phase 6).
@@ -155,23 +157,26 @@ resolved from the current working directory, so run it from the repo root.
   `buildings.phase_id -> phases.phase_id` orphans) and 3 warnings
   (non-positive areas, estate coverage, transaction estates without market
   data). The local entrypoint runs quality in report-only mode.
-- **Serving:** build `20261109T164834Z-ea1321`, ~948 KB; verifier passed; all
-  six files uploaded to the `hk-housing-datahub` bucket and the remote manifest
-  read back successfully. Gzip `Content-Encoding` and cache headers verified.
+- **Serving:** build `20261110T044947Z-06a658` (`schema_version` 2), ~2.7 MB;
+  verifier passed; all seven files uploaded to the `hk-housing-datahub` bucket
+  and the remote manifest read back successfully. Gzip `Content-Encoding`,
+  cache, and CORS headers verified. It adds `transaction_recent.json.gz`
+  (~1.7 MB gzipped for 72,900 display rows). The earlier v1 build
+  `20261109T164834Z-ea1321` remains in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
-  frontend origin are verified. `npm run typecheck`, `npm test` (11 tests), and
+  frontend origin are verified. `npm run typecheck`, `npm test` (49 tests), and
   `npm run build` pass; `npm audit` reports zero vulnerabilities. Browser smoke
-  test against a local snapshot: 9,748 estates, search filtering, and the detail
-  panel verified. Live production was also verified in the browser: 9,748
-  estates, 25 rows/page, no console errors. Cloudflare Pages/R2 setup is in
+  test against a local v2 snapshot verified 9,748 estates, the district sale and
+  volume trend chart, the 9,116-marker map with district filtering and marker
+  selection, and 72,900 recent transactions with search, filtering, pagination,
+  and row selection. Cloudflare Pages/R2 setup is in
   [`deployment.md`](deployment.md).
-- **Branch state:** `main` contains `dev` through merge PR #35. This deployment
-  documentation change targets `main` intentionally so merging it triggers a
-  fresh Pages production build.
+- **Branch state:** `dev` holds the frontend v2 work (PR #41); release PR #42
+  promotes it to `main`, and a merge to `main` triggers the Pages production
+  build.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
-- **Remaining backlog:** optional Phase 7 sample DB; map/trend/recent-transaction
-  frontend views; RAG idempotency (#17); the 160 phase orphans; Parquet export
-  for the large marts; incremental crawls, RVD, and monitoring (see
-  [`roadmap.md`](roadmap.md)).
+- **Remaining backlog:** optional Phase 7 sample DB; the 160 phase orphans;
+  Parquet export for `mart_estate_monthly`; incremental crawls, RVD, and
+  monitoring (see [`roadmap.md`](roadmap.md)).

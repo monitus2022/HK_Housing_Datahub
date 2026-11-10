@@ -2,3 +2,7 @@
 # environment; requirements.txt installs the full runtime.
 pytest==8.3.4
 ruff==0.8.4
+
+# Offline RAG storage tests exercise a real temporary Chroma store (issue #17).
+# sentence-transformers/torch are still not installed: the tests skip the model.
+chromadb==0.5.5

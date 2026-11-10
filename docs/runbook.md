@@ -16,12 +16,14 @@ That is why `python src/main.py` reports quality and processes wiki embeddings,
 but does not refresh the SQLite database. The quality step is report-only in
 `main.py`; use `scripts/run_quality.py --fail-on critical` to gate.
 
-**Known caveat:** RAG reruns are not idempotent. The embedding pipeline uses
-Chroma `collection.add()`. In Chroma 0.5.5, adding an existing ID logs a
-warning and skips it rather than raising. A rerun can therefore appear to
-succeed while leaving stale chunks and embeddings in place. This is tracked in
-issue #17. Until it is fixed, delete or rename `data/chroma_db/` before a full
-rebuild, or run against a fresh Chroma path.
+**RAG reruns are idempotent.** The embedding pipeline writes chunks with Chroma
+`upsert()` and, after a complete run, deletes stored IDs that are not in the
+current wiki source. Chunk IDs are a SHA-1 of estate name, section title, and
+chunk index, so edited text refreshes in place and removed sections disappear.
+If any wiki file fails to load, pruning is skipped so valid chunks are not
+deleted; the log reports which files failed. Pruning is also skipped when a
+run produces no chunks at all, which usually signals a schema drift rather
+than an empty corpus. See issue #17.
 
 ## Local setup
 
@@ -157,13 +159,14 @@ Current behaviour:
   the per-partition building loop.
 - Each pipeline run gets a UUID and a row in `pipeline_runs` with start/end
   timestamps, mode, status, record counts, and any error message.
-- RAG writes are still not idempotent: existing IDs are skipped, not refreshed
-  (issue #17).
+- RAG writes are idempotent: chunks are upserted, and IDs that disappeared from
+  the wiki source are pruned after a complete run (issue #17).
 - Wiki partition files are overwritten per partition, but the aggregated file
   is overwritten at the end of a successful run.
 
 Reruns against the same SQLite database are safe for the agency tables. RAG
-rebuilds still need a fresh Chroma path or the issue #17 fix.
+reruns converge to the current wiki source; they no longer need a fresh Chroma
+path.
 
 ## Inspect data
 
@@ -255,6 +258,7 @@ manifest.json
 overview.json
 estate_summary.json.gz
 district_monthly.json.gz
+transaction_recent.json.gz
 coverage.json.gz
 ```
 
@@ -282,7 +286,7 @@ The legacy raw-data uploader now raises unless constructed with
 ## Tests and checks
 
 ```bash
-# Core test environment (no RAG/cloud extras)
+# Test environment (core + dev; includes ChromaDB, no embedding model)
 pip install -r requirements-core.txt -r requirements-dev.txt
 
 # Available now
@@ -292,7 +296,8 @@ python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
 ruff check src/main.py src/analytics src/quality src/serving \
-  src/processors/agency src/models/agency/sql_db.py src/orchestrators scripts tests
+  src/processors/agency src/processors/rag src/models/agency/sql_db.py \
+  src/orchestrators scripts tests
 
 # Shortcuts
 make test
@@ -303,14 +308,14 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains the Phase 2–6 tests (59 total): upserts, run metadata,
-quality checks, response models, table mapping, duplicate-input dedupe,
-synthetic mart builds, and serving manifest/publish planning. The
-boto3-only legacy-upload gate test skips in the core-only CI environment. The
-CI workflow
-(`.github/workflows/ci-cd.yml`) installs core + dev dependencies, checks that
-`config` imports without `.env`, compiles, runs `pytest`, and runs ruff on the
-touched modules.
+`tests/` contains 68 tests: Phase 2–6 coverage (upserts, run metadata, quality
+checks, response models, table mapping, duplicate-input dedupe, synthetic mart
+builds, serving manifest/publish planning) plus offline RAG storage tests for
+upsert/prune idempotency. The boto3-only legacy-upload gate test skips because
+CI does not install the cloud extra. The CI workflow
+(`.github/workflows/ci-cd.yml`) installs core + dev (including ChromaDB),
+checks that `config` imports without `.env`, compiles, runs `pytest`, and runs
+ruff on the touched modules.
 
 ## Release handoff
 
@@ -341,7 +346,7 @@ force-push it. Architecture decisions and remaining work are in
 |---|---|---|
 | `ModuleNotFoundError: config` | `src` is not on `sys.path` | Run from the repo root with `sys.path.insert(0, "src")`, or use `python src/main.py` (which puts `src` on the path). |
 | `Missing cloud storage credentials` | Upload attempted without `.env` keys | Set `cloud_storage_access_key_id`, `cloud_storage_secret_access_key`, and `cloudflare_account_id` (for R2) in `.env`. Local processing does not need them. |
-| RAG rerun appears to succeed but old chunks remain | Chroma 0.5.5 `add()` skips existing IDs | Delete/rename `data/chroma_db/` or use a fresh path; upsert is tracked in issue #17. |
+| RAG rerun leaves chunks from a wiki file that failed to load | Pruning is skipped when any input file fails | Fix the failing file (see the logged filename) and rerun; valid chunks are untouched |
 | Quality gate exits 1 with `buildings.phase_id -> phases.phase_id` orphans | Building rows use a source "phase" that is not a real phase | Inspect `data/quality/latest.md`; repair the mapping or accept report-only mode until fixed. |
 | `database is locked` | Concurrent SQLite writers | Use one writer at a time; WAL helps readers but does not allow concurrent writers. |
 | Estate returns 404 | Estate removed or unavailable | The crawler logs and skips; rerun later or inspect the ID list. |

@@ -59,7 +59,7 @@ commented in or out rather than driven by CLI flags:
 
 At the Phase 0 baseline, only the RAG block is enabled and the cloud upload is
 disabled. The agency and wiki blocks are also commented out. See the runbook for
-the current state and the RAG rerun caveat.
+the current state and the RAG rerun behavior.
 
 ## Module responsibilities
 
@@ -152,7 +152,10 @@ Notes:
    characters, 50 overlap).
 3. Generate 384-dimensional normalized embeddings with
    `paraphrase-multilingual-MiniLM-L12-v2` on CPU.
-4. Write batches (default 100) to the `hk_housing_wiki` Chroma collection.
+4. Write batches (default 100) to the `hk_housing_wiki` Chroma collection using
+   `upsert`, so reruns refresh existing chunks in place. After a complete run,
+   stored IDs that are no longer in the wiki source are pruned. Pruning is
+   skipped if any input file fails to load or if the run yields no chunks.
 
 ### Analytics path
 
@@ -172,7 +175,8 @@ the serving snapshot.
 1. `scripts/publish_dashboard.py --dry-run` builds a snapshot from the marts
    under `data/serving/{build_id}/`.
 2. The snapshot contains a `manifest.json`, `overview.json`, and gzipped
-   `estate_summary`, `district_monthly`, and `coverage` JSON files.
+   `estate_summary`, `district_monthly`, `transaction_recent`, and `coverage`
+   JSON files.
 3. `scripts/verify_serving.py` checks every manifest reference.
 4. Without `--dry-run`, versioned files upload first, then the versioned
    manifest, then the short-cache `dashboard/manifest.json` pointer.
@@ -184,11 +188,12 @@ The manifest and cache contract is in [`serving.md`](serving.md).
 
 `frontend/` is a Vite + React + TypeScript static app deployed at
 <https://hk-housing.monitus.org>. It fetches `dashboard/manifest.json`, then uses
-`manifest.files.estate_summary`; it never hardcodes a build ID. There is no
-backend-for-frontend or live API. The first version covers the overview and
-estate search; map/trend/recent-transaction views remain roadmap items. For
-local development, `scripts/serve_snapshot.py` serves a snapshot with CORS and
-gzip headers. Deployment settings are in [`deployment.md`](deployment.md).
+`manifest.files.estate_summary`; it never hardcodes a build ID. District trends
+and recent transactions load their data files on demand, and the map plots
+estate coordinates over OpenStreetMap tiles. There is no backend-for-frontend or
+live API. For local development, `scripts/serve_snapshot.py` serves a snapshot
+with CORS and gzip headers. Deployment settings are in
+[`deployment.md`](deployment.md).
 
 ## Storage
 
@@ -216,11 +221,12 @@ Runtime dependencies are split by concern:
 | `requirements-rag.txt` | Sentence Transformers and ChromaDB |
 | `requirements-cloud.txt` | boto3 |
 | `requirements.txt` | Full runtime: core + RAG + cloud |
-| `requirements-dev.txt` | pytest and ruff |
+| `requirements-dev.txt` | pytest, ruff, and ChromaDB for the offline RAG tests |
 
 `src/orchestrators/__init__.py` uses lazy exports, so importing
 `orchestrators.agency` does not pull in the RAG or cloud stacks. CI installs
-core + dev only; the optional RAG/cloud paths are not exercised there.
+core + dev, so the Chroma-backed RAG storage tests run but the embedding model
+(sentence-transformers/torch) and cloud upload are not exercised there.
 
 ## Configuration and secrets
 
@@ -248,8 +254,9 @@ credentials.
 - Phase 7 (optional sample database) is deferred.
 - Phase 8 added the handoff documentation; see [`decisions.md`](decisions.md)
   and [`roadmap.md`](roadmap.md).
-- The frontend v1 in `frontend/` covers the overview and estate search; further
-  views are tracked in [`roadmap.md`](roadmap.md).
+- The frontend in `frontend/` covers the overview, estate search, district
+  price trends, an estate map, and recent transactions. Further work is tracked
+  in [`roadmap.md`](roadmap.md).
 - The ML workplan is deferred.
 
 ## Failure modes

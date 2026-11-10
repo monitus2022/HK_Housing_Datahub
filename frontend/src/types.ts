@@ -48,6 +48,35 @@ export interface EstateSummary {
   has_wiki: number;
 }
 
+/** One row per district and calendar month (mart_district_monthly). */
+export interface DistrictMonthly {
+  district_id: string;
+  district_name_en: string;
+  district_name_zh: string;
+  /** Calendar month, formatted as `YYYY-MM`. */
+  month: string;
+  tx_count: number;
+  avg_net_ft_price: number | null;
+  total_tx_amount: number;
+  rent_tx_count: number;
+  avg_net_ft_rent: number | null;
+  total_rent_tx_amount: number;
+}
+
+/** One row per transaction in the last 24 months (mart_transaction_recent). */
+export interface RecentTransaction {
+  tx_date: string;
+  price: number | null;
+  net_ft_price: number | null;
+  estate_id: string;
+  estate_name_en: string;
+  district_id: string;
+  district_name_en: string;
+  area: number | null;
+  net_area: number | null;
+  bedroom: number | null;
+}
+
 export interface DashboardData {
   manifest: Manifest;
   estates: EstateSummary[];

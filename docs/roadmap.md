@@ -29,24 +29,25 @@ baseline. This file tracks work beyond it.
 
 ## Serving and frontend
 
-- **Frontend v1** — deployed at <https://hk-housing.monitus.org> with the
-  dataset overview, estate search, estate detail, and loading/error/empty
-  states. Remaining views: district price trends, map, recent-transactions
-  table, and broader accessibility/performance testing.
+- **Frontend v2** — implemented on `dev` with a release PR open to `main`:
+  dataset overview, estate search and detail, district price trends, an estate
+  map, and a recent-transactions table. The v2 snapshot with
+  `transaction_recent` is published. Remaining: merge/deploy, then run broader
+  accessibility/performance testing.
 - **R2 public access and CORS** — configured: the snapshot is public at
   <https://hk-housing-datahub.monitus.org> and allows the
   `https://hk-housing.monitus.org` origin. See [`deployment.md`](deployment.md).
-- **Parquet exports** — add `mart_estate_monthly` (~592k rows) and
-  `mart_transaction_recent` (~73k rows) if the dashboard needs full history or a
-  recent-transactions table.
+- **Parquet exports** — add `mart_estate_monthly` (~592k rows) if the dashboard
+  needs full estate-monthly history. `mart_transaction_recent` is already
+  exported as trimmed JSON (~1.7 MB gzipped).
 - **Live API (optional)** — only if interactive querying is required. The
   static snapshot is the default.
 
 ## RAG / retrieval
 
-- **RAG idempotency (#17)** — use Chroma `upsert()` or a versioned collection
-  per build; handle orphaned chunks when source text changes. Deferred because
-  the static dashboard does not depend on Chroma.
+- **RAG idempotency** — implemented (issue #17): chunks are upserted and IDs not
+  present in the current wiki source are pruned after a complete run. Pruning is
+  skipped when any input file fails to load or when a run yields no chunks.
 
 ## Modeling
 

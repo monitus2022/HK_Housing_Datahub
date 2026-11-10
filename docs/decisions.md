@@ -57,19 +57,21 @@ long-cache. The frontend reads the manifest first.
 querying, and a refresh requires rebuilding/publishing. Public read access and
 CORS must be configured on the bucket.
 
-## ADR-005: Gzip JSON rather than Parquet for the v1 snapshot
+## ADR-005: Gzip JSON rather than Parquet for the static snapshot
 
-**Context:** The three raw JSON data files were ~13 MB total, above the ~5 MB
-serving target. The frontend reads the manifest and the files it names.
+**Context:** The raw JSON data files were ~13 MB total, above the ~5 MB serving
+target. The frontend reads the manifest and the files it names.
 
-**Decision:** Gzip `estate_summary`, `district_monthly`, and `coverage` JSON;
-serve them with `Content-Encoding: gzip`. Keep `manifest.json` and
-`overview.json` plain. Defer Parquet for the large `mart_estate_monthly` and
-`mart_transaction_recent` exports.
+**Decision:** Gzip `estate_summary`, `district_monthly`, `transaction_recent`,
+and `coverage` JSON; serve them with `Content-Encoding: gzip`. Keep
+`manifest.json` and `overview.json` plain. `transaction_recent` exports display
+columns only. Defer Parquet for the large `mart_estate_monthly` export.
 
-**Consequences:** The snapshot is ~950 KB and browsers decompress transparently.
+**Consequences:** The snapshot is ~2.7 MB and browsers decompress transparently.
 The frontend must use `manifest.files` rather than hardcoded names. Parquet can
-be added later without changing the manifest shape.
+be added later without changing the manifest shape. The trends and transactions
+files are loaded on demand, so the initial page load still only fetches the
+manifest and estate summary.
 
 ## ADR-006: Gate the legacy raw uploader
 

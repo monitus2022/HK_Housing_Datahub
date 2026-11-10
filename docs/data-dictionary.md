@@ -376,7 +376,9 @@ Rows: 72,900.
 | `bedroom` | integer | Bedroom count, when present |
 
 Caveats: the 24-month window is relative to the latest transaction date in the
-snapshot, not the current date.
+snapshot, not the current date. The serving export keeps the display columns
+(`tx_date`, `price`, `net_ft_price`, estate and district names/IDs, `area`,
+`net_area`, `bedroom`) and drops `tx_id`, `building_id`, and `unit_id`.
 
 ### `mart_coverage`
 
@@ -425,8 +427,8 @@ lookup indexes (`idx_mart_*`) on their grain keys.
   missingness.
 - `estate_mtr_lines` is not exhaustive.
 - `unit_features` uses the source English name as both ID and name.
-- Agency upserts and run metadata are implemented (Phase 2). RAG idempotency
-  remains open (issue #17).
+- Agency upserts and run metadata are implemented (Phase 2). RAG writes are
+  idempotent and prune removed chunks (issue #17).
 - Wiki JSON and Chroma are not relational tables; their counts are tracked in
   `baseline-stats.md`. The marts use wiki JSON keys only for `has_wiki`.
 - Mart windows are relative to the latest transaction date in the snapshot, not

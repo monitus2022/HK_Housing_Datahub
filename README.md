@@ -24,8 +24,8 @@ layer for a public dashboard.
 - Chunks wiki text and stores Sentence Transformer embeddings in ChromaDB.
 - Provides read-only baseline and quality audits, five materialized analytics
   marts, and a versioned serving snapshot published to R2.
-- Includes a static React frontend for the dataset overview and searchable
-  estate list.
+- Includes a static React frontend with dataset overview, estate search,
+  district price trends, an estate map, and recent transactions.
 
 ## Architecture
 
@@ -121,7 +121,7 @@ then the RAG embedding pipeline. The agency pipeline, wiki pipeline, and cloud
 upload are commented out. The quality step is report-only in `main.py`; use
 `scripts/run_quality.py --fail-on critical` to gate. See
 [`docs/runbook.md`](docs/runbook.md) for how to run each stage and for the
-known RAG rerun caveat.
+RAG rerun behavior.
 
 ### From clone to snapshot
 
@@ -216,15 +216,18 @@ dashboard/manifest.json
 dashboard/{build_id}/overview.json
 dashboard/{build_id}/estate_summary.json.gz
 dashboard/{build_id}/district_monthly.json.gz
+dashboard/{build_id}/transaction_recent.json.gz
 dashboard/{build_id}/coverage.json.gz
 ```
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The manifest
 is authoritative; the frontend fetches it first and then the files in
-`manifest.files`. The three large data files are gzip-compressed and versioned
+`manifest.files`. The four large data files are gzip-compressed and versioned
 data files are immutable/long-cached; both the top-level and versioned manifests
 are short-cached (`max-age=60`). `overview.json` remains plain. The manifest
 includes build ID, data-through dates, coverage, and mart row counts.
+`transaction_recent` exports display columns only; internal join keys stay in
+SQLite.
 
 Build/verify/publish:
 
@@ -262,7 +265,8 @@ echo 'VITE_DASHBOARD_BASE_URL=http://localhost:8787' > .env.local
 npm run dev
 ```
 
-The first version covers the overview and estate search. See
+The frontend covers the overview, estate search and detail, district price
+trends, an estate map, and recent transactions. See
 [`frontend/README.md`](frontend/README.md) and
 [`docs/deployment.md`](docs/deployment.md) for Cloudflare Pages/R2 setup.
 
@@ -338,10 +342,11 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (59 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (68 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
-synthetic mart builds, and serving manifest/publish planning. The
-boto3-only legacy-upload gate test is skipped in the core-only CI environment.
+synthetic mart builds, serving manifest/publish planning, and offline RAG
+idempotency. The boto3-only legacy-upload gate test is skipped in the core-only
+CI environment.
 The CI workflow
 in `.github/workflows/ci-cd.yml` installs `requirements-core.txt` +
 `requirements-dev.txt` and runs the same tests and lint. Quality details are in
@@ -360,9 +365,12 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - Agency SQLite writes are idempotent as of Phase 2: they use SQLite upserts and
   record run metadata in `pipeline_runs`. Rerunning a partition leaves row
   counts unchanged and refreshes non-key columns.
-- RAG reruns are not idempotent: Chroma `collection.add()` skips IDs that
-  already exist, so changed chunks are not refreshed. Use a fresh collection or
-  `upsert` for a rebuild. Tracked in issue #17.
+- RAG reruns are idempotent: chunks are written with Chroma `upsert()` and
+  every stored ID that is not in the current wiki source is pruned after a
+  complete run. Chunk IDs are a SHA-1 of estate name, section title, and chunk
+  index, so edited text refreshes in place and removed sections are deleted.
+  Pruning is skipped if any wiki file fails to load or if a run produces no
+  chunks at all (issue #17).
 - The reference DB currently has 160 `buildings.phase_id -> phases.phase_id`
   orphan rows. The quality CLI with `--fail-on critical` exits non-zero until
   the mapping or data is repaired; `src/main.py` runs the checks in report-only
@@ -371,21 +379,26 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
 - No live API. The serving layer is a versioned snapshot, not a query service.
-- The frontend v1 covers the overview and estate search only; map, district
-  trend charts, and recent-transactions views are not implemented yet.
+- The frontend covers the overview, estate search, district price trends,
+  estate map, and recent transactions. The map uses OpenStreetMap tiles at
+  runtime; no map data is bundled or redistributed.
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
 - The reference snapshot ends 2025-10-21; the project does not run on a
   schedule yet.
-- CI installs core dependencies only; the optional RAG and cloud-upload code is
+- CI installs core dependencies plus `chromadb` for the offline RAG storage
+  tests. The embedding model (sentence-transformers/torch) and cloud upload are
   not exercised in CI.
 - The 12- and 24-month mart windows are relative to the latest transaction date
   in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
-- `mart_estate_monthly` (~592k rows) and `mart_transaction_recent` (~73k rows)
-  are not in the v1 serving snapshot; a future Parquet export can add them.
-- The v1 snapshot gzips its three large JSON files (~950 KB total). The
-  frontend must use the manifest `files` mapping rather than hardcoding names.
+- `mart_estate_monthly` (~592k rows) is not in the serving snapshot; a future
+  Parquet export can add it. `mart_transaction_recent` (~73k rows) is exported
+  as a trimmed, lazily loaded JSON file.
+- The snapshot gzips its four large JSON files (~2.7 MB total). The frontend
+  must use the manifest `files` mapping rather than hardcoding names.
+- Rent averages in `estate_monthly_market_info` are all zero in the reference
+  data, so the rent trend metric renders an explicit empty state.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap
@@ -394,11 +407,14 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
    upserts, quality checks, tests/CI, analytics marts, serving snapshot/publish,
    and final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
 2. Phase 7: optional sample database. *(deferred)*
-3. Frontend v1: overview and estate search. *(implemented and deployed at
-   <https://hk-housing.monitus.org>)*
-4. R2 public access/CORS, map and trend views, and recent transactions.
-5. Incremental crawls, RVD integration, monitoring, and Parquet serving
-   exports. See [`docs/roadmap.md`](docs/roadmap.md).
+3. Frontend v2: overview, estate search, district price trends, estate map, and
+   recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
+4. Deploy frontend v2 to production (release PR), then add preview-origin CORS
+   if preview deployments are needed. The v2 snapshot with
+   `transaction_recent` is published.
+5. Incremental crawls, RVD integration, monitoring, Parquet for
+   `mart_estate_monthly`, and broader accessibility/performance testing. See
+   [`docs/roadmap.md`](docs/roadmap.md).
 6. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 
 Architecture trade-offs are recorded in

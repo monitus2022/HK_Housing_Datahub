@@ -90,6 +90,11 @@ https://hk-housing-datahub.monitus.org/dashboard/manifest.json
 https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file from manifest.files}
 ```
 
+`estate_summary` loads on startup. The trends and transactions views request
+`district_monthly` and `transaction_recent` on demand, and the map fetches
+OpenStreetMap tiles from `tile.openstreetmap.org`. All snapshot files come from
+the same R2 host, so the existing CORS rule covers them.
+
 ## Verify the snapshot host
 
 ```bash
@@ -100,9 +105,9 @@ curl -I https://hk-housing-datahub.monitus.org/dashboard/manifest.json
 curl -I -H "Origin: https://hk-housing.monitus.org" \
   https://hk-housing-datahub.monitus.org/dashboard/manifest.json
 
-# Gzip data file
+# Gzip data file (build ID from the current manifest)
 curl -I -H "Accept-Encoding: gzip" \
-  https://hk-housing-datahub.monitus.org/dashboard/20261109T164834Z-ea1321/estate_summary.json.gz
+  https://hk-housing-datahub.monitus.org/dashboard/20261110T044947Z-06a658/estate_summary.json.gz
 ```
 
 Expected: `200`, `cache-control` matching the snapshot contract,
