@@ -68,7 +68,7 @@ These surface known limitations and coverage gaps:
 | `zero_prices` | Transactions with a zero price |
 
 Zero and non-positive areas are warnings rather than critical failures because
-they are a known source limitation in the reference snapshot (about 24.6% of
+they are a known source limitation in the reference snapshot (about 24.0% of
 units have `net_area <= 0`). A **negative** area is still critical.
 
 ## Thresholds
@@ -92,9 +92,9 @@ Thresholds live in `DEFAULT_THRESHOLDS` in `src/quality/checks.py`:
 Thresholds are not exposed as CLI flags yet; edit the defaults or pass a
 `thresholds` mapping when calling `run_checks()`.
 
-## Current reference snapshot
+## Reference snapshot (Phase 3 baseline)
 
-At the Phase 3 baseline, the reference database produces:
+At the Phase 3 baseline, the reference database produced:
 
 - **Status:** `fail`
 - **Critical:** 1 — 160 `buildings.phase_id -> phases.phase_id` orphan rows
@@ -104,8 +104,9 @@ At the Phase 3 baseline, the reference database produces:
 The orphan rows come from building rows whose source "phase" entry is not a real
 phase: the mapper used to copy the pseudo-phase id (often the estate id) into
 `buildings.phase_id`. The mapper now only sets `phase_id` for real phases, and
-`scripts/repair_orphan_phase_ids.py` clears existing orphans. Until that script
-runs, the reference DB keeps the critical finding. Local `src/main.py` runs the
-checks in report-only mode (`--fail-on none`) so a known source-data issue does
-not block the RAG step. Use
+`scripts/repair_orphan_phase_ids.py` clears existing orphans. Older databases
+keep the critical finding until that script runs. After the 2026-11 refresh the
+reference DB reports `warn` with 0 critical and the same three warnings. Local
+`src/main.py` runs the checks in report-only mode (`--fail-on none`) so a known
+source-data issue does not block the RAG step. Use
 `scripts/run_quality.py --fail-on critical` (or CI) to gate.
