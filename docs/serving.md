@@ -32,13 +32,14 @@ and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
 ## Published snapshot
 
-Build `20261110T044947Z-06a658` (`schema_version` 2) was published to the
-`hk-housing-datahub` bucket on 2026-11-10, superseding the v1
-`20261109T164834Z-ea1321` build as the current pointer. It adds
-`transaction_recent.json.gz` (~1.7 MB gzipped for 72,900 display rows), taking
-the snapshot to ~2.7 MB. The remote `dashboard/manifest.json` and every
-referenced file were read back successfully; the gzip, cache, and CORS headers
-were verified.
+Build `20261110T094646Z-802e9b` (`schema_version` 2) was published to the
+`hk-housing-datahub` bucket on 2026-11-10, superseding
+`20261110T044947Z-06a658` as the current pointer. It carries refreshed data
+(transactions through 2026-11-08, market data through 2026-09-30, 9,750
+estates) and `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display
+rows), taking the snapshot to ~3.1 MB. The remote `dashboard/manifest.json` and
+every referenced file were read back successfully; the gzip, cache, and CORS
+headers were verified.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
@@ -77,24 +78,24 @@ Content types: JSON data is `application/json`; gzip files also carry
 ```json
 {
   "schema_version": 2,
-  "build_id": "20261109T155827Z-abc123",
-  "generated_at": "2026-11-09T15:58:27+00:00",
+  "build_id": "20261110T094646Z-802e9b",
+  "generated_at": "2026-11-10T09:46:46.561045+00:00",
   "data_through": {
-    "transactions": "2025-10-21",
-    "market": "2025-08-31"
+    "transactions": "2026-11-08",
+    "market": "2026-09-30"
   },
   "coverage": {
-    "estates": 9748,
-    "with_transactions": 6638,
-    "with_market": 5292,
-    "with_wiki": 825
+    "estates": 9750,
+    "with_transactions": 6792,
+    "with_market": 5531,
+    "with_wiki": 824
   },
   "row_counts": {
-    "mart_estate_summary": 9748,
-    "mart_district_monthly": 19352,
-    "mart_estate_monthly": 591904,
-    "mart_transaction_recent": 72900,
-    "mart_coverage": 9748
+    "mart_estate_summary": 9750,
+    "mart_district_monthly": 20131,
+    "mart_estate_monthly": 662503,
+    "mart_transaction_recent": 87393,
+    "mart_coverage": 9750
   },
   "files": {
     "overview": "overview.json",
@@ -124,8 +125,8 @@ credentials must never be shipped to the frontend.
 
 ## Recent transactions export
 
-`mart_transaction_recent` is exported as `transaction_recent.json.gz` (~1.7 MB
-gzipped for 72,900 rows). Only display columns are exported: `tx_date`, `price`,
+`mart_transaction_recent` is exported as `transaction_recent.json.gz` (~2.0 MB
+gzipped for 87,393 rows). Only display columns are exported: `tx_date`, `price`,
 `net_ft_price`, `estate_id`, `estate_name_en`, `district_id`,
 `district_name_en`, `area`, `net_area`, and `bedroom`. Internal join keys
 (`tx_id`, `building_id`, `unit_id`) stay in SQLite. The manifest can add further
@@ -133,7 +134,7 @@ files without changing the existing contract.
 
 ## What is not exported yet
 
-`mart_estate_monthly` (~592k rows) is not in the snapshot. It is the remaining
+`mart_estate_monthly` (~662k rows) is not in the snapshot. It is the remaining
 candidate for a Parquet or per-estate export if the dashboard needs full
 estate-monthly history.
 

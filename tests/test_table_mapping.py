@@ -105,6 +105,20 @@ def test_facility_mapping(
     )
 
 
+def test_missing_english_address_maps_to_empty_string(single_no_phases_payload):
+    """The English payload can omit address while the column is NOT NULL."""
+    en_payload = copy.deepcopy(single_no_phases_payload)
+    en_payload["address"] = None
+    zh_response = SingleEstateInfoResponse.model_validate(single_no_phases_payload)
+    en_response = SingleEstateInfoResponse.model_validate(en_payload)
+
+    row = EstateInfoTableModel.from_both_responses(zh_response, en_response)
+
+    assert row.address_zh == "40 Fuk Wa Street"
+    assert row.address_en == ""
+    assert row.address_en is not None
+
+
 def test_phase_and_building_mapping(
     single_has_phases_response, single_no_phases_response
 ):

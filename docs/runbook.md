@@ -37,7 +37,7 @@ cp .env.template .env
 ```
 
 The reference data is in `data/` and is gitignored. The agency database is about
-320 MB.
+518 MB.
 
 ## Run the stages
 
@@ -128,6 +128,42 @@ variable at build time, so changing it requires a redeploy. The snapshot host
 is <https://hk-housing-datahub.monitus.org>; full setup, CORS, and
 troubleshooting: [`deployment.md`](deployment.md).
 
+## Pipeline progress and status
+
+The agency pipeline logs one INFO line after each estate/building partition:
+
+```text
+estate info: partition 32/98 (33%), 3,200/9,750 items, elapsed 24m 10s, ETA 49m 28s
+```
+
+Console output and `logs/hk_housing_datahub.log` use `LOG_LEVEL` (default
+`INFO`). Export it in the shell (the logger is configured before `.env` is
+loaded, so a `.env` entry will not take effect). `LOG_LEVEL=DEBUG` restores the
+full payload dumps. A failure line names the stage, partition, and current
+estate/building id.
+
+Watch a running crawl:
+
+```bash
+tail -f logs/hk_housing_datahub.log
+```
+
+The same progress is mirrored to `data/agency/pipeline_status.json` and updated
+atomically after each partition:
+
+```bash
+cat data/agency/pipeline_status.json
+```
+
+It contains `run_id`, `mode`, `status` (`running`/`success`/`failed`), `stage`,
+`partition`, `partitions`, `items_done`, `items_total`, `percent`,
+`started_at`, `updated_at`, `finished_at`, `elapsed_seconds` (run),
+`stage_elapsed_seconds`, `eta_seconds`, and `error`. The ETA is computed from
+the current stage's elapsed time, so it resets when the run moves from estates
+to buildings. The file is safe to read from another process and lives under the
+gitignored `data/` tree. A failure to write it logs a warning and never aborts
+the crawl.
+
 ## Debug mode
 
 `AgencyOrchestrator(debug_mode=True)` limits the estate list to the first 20
@@ -141,8 +177,9 @@ orchestrator = AgencyOrchestrator(debug_mode=True)
 For a truly offline smoke test, use the payload fixtures under
 `docs/api_responses/` and the processor methods directly. The current `tests/`
 suite covers response parsing, table mapping, duplicate-input dedupe, upserts,
-run metadata, quality checks, mart builds, and serving manifest/publish
-planning, all with fixtures and temporary SQLite databases.
+run metadata, quality checks, mart builds, pipeline progress/status reporting,
+and serving manifest/publish planning, all with fixtures and temporary SQLite
+databases.
 
 ## Resume and rerun behaviour
 
@@ -209,10 +246,11 @@ means the selected gate failed; `2` means the database is missing. Use
 report-only run.
 
 `src/main.py` calls the checks in report-only mode before the RAG step. The
-reference DB still reports one critical finding (160 `buildings.phase_id ->
-phases.phase_id` orphans) until the repair below is run, plus three warnings
-(non-positive areas, estate coverage, transaction estates without market data).
-See [`quality.md`](quality.md) for the check list and thresholds.
+refreshed reference DB reports 0 critical findings and three warnings
+(non-positive areas, estate coverage, transaction estates without market
+data). Older databases can still have the 160 `buildings.phase_id ->
+phases.phase_id` orphans cleared by the repair below. See
+[`quality.md`](quality.md) for the check list and thresholds.
 
 ### Repair orphan phase IDs
 
@@ -236,11 +274,12 @@ python scripts/run_quality.py --db data/agency/agency_data.db --fail-on critical
 ```
 
 The script is idempotent and only nulls `phase_id` values with no matching
-`phases` row. On the reference DB it reports 160 rows across 10 estates and
-leaves the three warnings unchanged. Exit codes: `0` means no orphans remain
-(including after a dry run on a clean DB), `1` means orphans remain (a dry run
-on the reference DB returns `1` by design), and `2` means the database is
-missing, unreadable, or lacks the `buildings`/`phases` tables.
+`phases` row. On a pre-refresh database it reports 160 rows across 10 estates;
+the refreshed reference DB reports 0 and leaves the three warnings unchanged.
+Exit codes: `0` means no orphans remain (including a clean DB), `1` means
+orphans remain (for example a dry run on a pre-refresh database), and `2`
+means the database is missing, unreadable, or lacks the `buildings`/`phases`
+tables.
 
 ## Build analytics marts
 
@@ -257,7 +296,7 @@ It rebuilds:
 ```text
 mart_estate_summary       one row per estate
 mart_district_monthly     district x month
-mart_estate_monthly       estate x month (full history, ~592k rows)
+mart_estate_monthly       estate x month (full history, ~662k rows)
 mart_transaction_recent   last 24 months
 mart_coverage             one row per estate
 ```
@@ -323,7 +362,7 @@ python scripts/run_quality.py --db data/agency/agency_data.db --fail-on none
 python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
-ruff check src/main.py src/analytics src/quality src/serving \
+ruff check src/main.py src/logger.py src/analytics src/quality src/serving \
   src/processors/agency src/processors/rag src/models/agency/sql_db.py \
   src/models/agency/outputs.py src/orchestrators scripts tests
 
@@ -336,7 +375,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 75 tests: Phase 2–6 coverage (upserts, run metadata, quality
+`tests/` contains 88 tests: Phase 2–6 coverage (upserts, run metadata, quality
 checks, response models, table mapping, duplicate-input dedupe, synthetic mart
 builds, serving manifest/publish planning), phase-id mapping and repair, plus
 offline RAG storage tests for upsert/prune idempotency. The boto3-only
@@ -386,8 +425,9 @@ force-push it. Architecture decisions and remaining work are in
 
 ## Logs
 
-Logs go to the console and to `logs/hk_housing_datahub.log` (ERROR level for the
-file). `logs/` is gitignored.
+Logs go to the console and to `logs/hk_housing_datahub.log`. Both use
+`LOG_LEVEL` (default `INFO`; set `LOG_LEVEL=DEBUG` for payload dumps). `logs/`
+is gitignored.
 
 ## Safety rules
 

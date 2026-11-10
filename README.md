@@ -71,20 +71,21 @@ More detail: [`docs/architecture.md`](docs/architecture.md).
 
 ## Data sources and current scale
 
-| Source | Data | Current snapshot |
+| Source | Data | Reference DB |
 |---|---|---:|
-| HKP | Estates | 9,748 |
-| HKP | Buildings | 29,911 |
-| HKP | Units | 1,229,204 |
-| HKP | Transactions | 1,071,268 |
-| HKP | Estate monthly market rows | 476,986 |
-| HKP | Unit feature rows | 563,346 |
-| Wikipedia (zh) | Estates with wiki data | 822 across 9 partitions |
+| HKP | Estates | 9,750 |
+| HKP | Buildings | 30,501 |
+| HKP | Units | 1,236,321 |
+| HKP | Transactions | 1,122,622 |
+| HKP | Estate monthly market rows | 546,168 |
+| HKP | Unit feature rows | 586,041 |
+| Wikipedia (zh) | Estates with wiki data | 824 across 9 partitions |
 | ChromaDB | Embedded wiki chunks | 3,780 |
 
-Transaction dates span 1996-01 to 2025-10-21; monthly market data spans
-1996-12 to 2025-08. The database snapshot is about 320 MB. Full coverage and
-reproduction details are in [`docs/baseline-stats.md`](docs/baseline-stats.md).
+Transaction dates span 1996-01 to 2026-11-08; monthly market data spans
+1996-12 to 2026-09-30. The database snapshot is about 518 MB. Full coverage,
+reproduction details, and the pre-refresh baseline are in
+[`docs/baseline-stats.md`](docs/baseline-stats.md).
 
 Data sources:
 
@@ -159,7 +160,7 @@ The `data/` directory is ignored by git. A populated local checkout contains:
 
 ```text
 data/
-  agency/agency_data.db      # SQLite raw model (~320 MB in the reference snapshot)
+  agency/agency_data.db      # SQLite raw model (~518 MB in the reference snapshot)
   agency/estate_ids.txt      # estate ID cache
   wiki/wiki_data_partition_*.json
   chroma_db/                 # ChromaDB persistence
@@ -204,7 +205,7 @@ The data model has the following groups:
 
 Key caveats: the `transactions` table has no transaction-type column and is
 treated as sale transactions; `net_area` is null or non-positive for about
-24.6% of units; `bedroom` is missing for about 48%; and `estate_mtr_lines` keeps
+24.0% of units; `bedroom` is missing for about 47%; and `estate_mtr_lines` keeps
 only the first MTR line per estate.
 
 ## Serving layer
@@ -324,7 +325,7 @@ pip install -r requirements-dev.txt
 pytest -q
 
 # Lint the files touched by the tidy-up so far
-ruff check src/main.py src/analytics src/quality src/serving src/processors/agency src/processors/rag src/models/agency/sql_db.py src/models/agency/outputs.py src/orchestrators scripts tests
+ruff check src/main.py src/logger.py src/analytics src/quality src/serving src/processors/agency src/processors/rag src/models/agency/sql_db.py src/models/agency/outputs.py src/orchestrators scripts tests
 
 # Frontend checks
 cd frontend
@@ -342,7 +343,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (75 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (88 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
 synthetic mart builds, serving manifest/publish planning, and offline RAG
 idempotency. The boto3-only legacy-upload gate test is skipped in the core-only
@@ -359,9 +360,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - Scraped third-party data; not an official or authoritative source.
 - RVD integration is not implemented.
 - The transaction table has no sale/rent type; it is treated as sales.
-- Significant nulls: `net_area` (302,139 units null or `<= 0`), `bedroom`
-  (591,313 null), missing coordinates (632 estates), missing `first_op_date`
-  (892 estates).
+- Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
+  (583,266 null), missing coordinates (633 estates), missing `first_op_date`
+  (887 estates).
 - Agency SQLite writes are idempotent as of Phase 2: they use SQLite upserts and
   record run metadata in `pipeline_runs`. Rerunning a partition leaves row
   counts unchanged and refreshes non-key columns.
@@ -371,11 +372,11 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   index, so edited text refreshes in place and removed sections are deleted.
   Pruning is skipped if any wiki file fails to load or if a run produces no
   chunks at all (issue #17).
-- The reference DB currently has 160 `buildings.phase_id -> phases.phase_id`
-  orphan rows. The mapper now only writes real phase ids, and
-  `scripts/repair_orphan_phase_ids.py --apply` clears existing rows; until that
-  runs, the quality CLI with `--fail-on critical` exits non-zero and
-  `src/main.py` runs the checks in report-only mode.
+- The reference DB previously had 160 `buildings.phase_id -> phases.phase_id`
+  orphan rows. The mapper now writes only real phase ids, the refresh produced
+  0 orphans, and `scripts/repair_orphan_phase_ids.py --apply` repairs older
+  databases. `scripts/run_quality.py --fail-on critical` passes; `src/main.py`
+  runs the checks in report-only mode by design.
 - The legacy raw uploader is disabled by default; when explicitly enabled it
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
@@ -386,17 +387,17 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
-- The reference snapshot ends 2025-10-21; the project does not run on a
-  schedule yet.
+- The published snapshot and local reference DB both end 2026-11-08 (market
+  data 2026-09-30). The project does not run on a schedule yet.
 - CI installs core dependencies plus `chromadb` for the offline RAG storage
   tests. The embedding model (sentence-transformers/torch) and cloud upload are
   not exercised in CI.
 - The 12- and 24-month mart windows are relative to the latest transaction date
   in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
-- `mart_estate_monthly` (~592k rows) is not in the serving snapshot; a future
-  Parquet export can add it. `mart_transaction_recent` (~73k rows) is exported
+- `mart_estate_monthly` (~662k rows) is not in the serving snapshot; a future
+  Parquet export can add it. `mart_transaction_recent` (~87k rows) is exported
   as a trimmed, lazily loaded JSON file.
-- The snapshot gzips its four large JSON files (~2.7 MB total). The frontend
+- The snapshot gzips its four large JSON files (~3.1 MB total). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent averages in `estate_monthly_market_info` are all zero in the reference
   data, so the rent trend metric renders an explicit empty state.
@@ -410,9 +411,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 2. Phase 7: optional sample database. *(deferred)*
 3. Frontend v2: overview, estate search, district price trends, estate map, and
    recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
-4. Deploy frontend v2 to production (release PR), then add preview-origin CORS
-   if preview deployments are needed. The v2 snapshot with
-   `transaction_recent` is published.
+4. Add preview-origin CORS if preview deployments are needed. The refreshed
+   snapshot is published and the frontend is deployed.
 5. Incremental crawls, RVD integration, monitoring, Parquet for
    `mart_estate_monthly`, and broader accessibility/performance testing. See
    [`docs/roadmap.md`](docs/roadmap.md).

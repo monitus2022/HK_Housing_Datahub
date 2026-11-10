@@ -9,6 +9,7 @@ from logger import housing_logger
 import time
 import uuid
 from utils import partition_ids
+from .progress import ProgressReporter
 
 
 class AgencyOrchestrator:
@@ -33,6 +34,10 @@ class AgencyOrchestrator:
         self.debug_estate_limit = 20  # Limit number of estates to process in debug mode
         self.allow_cleanup_db = allow_cleanup_db
         self.partition_size = partition_size  # For batch processing
+        self._progress: Optional[ProgressReporter] = None
+        self._current_stage: Optional[str] = None
+        self._current_partition = 0
+        self._current_item: Optional[str] = None
 
     def _init_crawlers(self):
         self.agency_crawler = AgencyCrawler()
@@ -63,9 +68,24 @@ class AgencyOrchestrator:
 
         mode = "debug" if self.debug_mode else "full"
         self.run_id = uuid.uuid4().hex
+        self._progress = None
+        self._current_stage = None
+        self._current_partition = 0
+        self._current_item = None
 
         try:
             self.estates_processor.start_pipeline_run(self.run_id, mode=mode)
+            storage_path = getattr(
+                self.estates_processor, "agency_data_storage_path", None
+            )
+            if storage_path is not None:
+                self._progress = ProgressReporter(
+                    run_id=self.run_id,
+                    mode=mode,
+                    status_path=storage_path / "pipeline_status.json",
+                    logger=housing_logger,
+                )
+                self._progress.start()
             housing_logger.info(f"Pipeline run {self.run_id} started (mode={mode}).")
             # Step 1: Fetch all estate IDs
             housing_logger.info("#1 Fetching all estate IDs.")
@@ -79,7 +99,12 @@ class AgencyOrchestrator:
             # Step 3: Fetch estate monthly market info
             housing_logger.info("#2 Fetching and processing single estate info.")
             housing_logger.info("#3 Fetching and processing estate monthly market info.")
+            estate_total = len(self.estates_processor.caches["estate_ids_cache"])
+            if self._progress is not None:
+                self._progress.begin_stage("estate info")
             for idx, estate_id_partition in enumerate(partitioned_estate_ids):
+                self._current_stage = "estate info"
+                self._current_partition = idx + 1
                 housing_logger.info(
                     f"Processing estate info and monthly market info partition {idx + 1} / {len(partitioned_estate_ids)}."
                 )
@@ -88,13 +113,31 @@ class AgencyOrchestrator:
                 housing_logger.info(
                     f"Completed processing partition {idx + 1} / {len(partitioned_estate_ids)}."
                 )
+                if self._progress is not None:
+                    self._progress.update(
+                        stage="estate info",
+                        partition=idx + 1,
+                        partitions=len(partitioned_estate_ids),
+                        items_done=min(
+                            (idx + 1) * self.partition_size, estate_total
+                        ),
+                        items_total=estate_total,
+                    )
 
             # Step 4: Fetch buildings transaction info
             housing_logger.info("#4 Fetching and processing buildings transaction info.")
+            self._current_stage = "buildings"
+            self._current_partition = 0
+            self._current_item = None
+            if self._progress is not None:
+                self._progress.begin_stage("buildings")
             partitioned_building_ids = partition_ids(
                 self.estates_processor.caches["building_ids_cache"], self.partition_size
             )
+            building_total = len(self.estates_processor.caches["building_ids_cache"])
             for idx, building_id_partition in enumerate(partitioned_building_ids):
+                self._current_stage = "buildings"
+                self._current_partition = idx + 1
                 housing_logger.info(
                     f"Processing building info partition {idx + 1} / {len(partitioned_building_ids)}."
                 )
@@ -102,10 +145,22 @@ class AgencyOrchestrator:
                 housing_logger.info(
                     f"Completed processing partition {idx + 1} / {len(partitioned_building_ids)}."
                 )
+                if self._progress is not None:
+                    self._progress.update(
+                        stage="buildings",
+                        partition=idx + 1,
+                        partitions=len(partitioned_building_ids),
+                        items_done=min(
+                            (idx + 1) * self.partition_size, building_total
+                        ),
+                        items_total=building_total,
+                    )
             housing_logger.info(
                 "#4 Completed fetching and processing buildings transaction info."
             )
 
+            if self._progress is not None:
+                self._progress.finish("success")
             self.estates_processor.finish_pipeline_run(
                 self.run_id,
                 status="success",
@@ -116,8 +171,13 @@ class AgencyOrchestrator:
             )
         except Exception as exc:
             housing_logger.error(
-                f"Estates data pipeline run {self.run_id} failed: {exc}"
+                "Estates data pipeline run "
+                f"{self.run_id} failed at stage={self._current_stage} "
+                f"partition={self._current_partition} "
+                f"item={self._current_item}: {exc}"
             )
+            if self._progress is not None:
+                self._progress.finish("failed", str(exc))
             self.estates_processor.finish_pipeline_run(
                 self.run_id, status="failed", error_message=str(exc)
             )
@@ -148,6 +208,7 @@ class AgencyOrchestrator:
 
     def _estate_infos(self, estate_ids: list[str]) -> None:
         for estate_id in estate_ids:
+            self._current_item = estate_id
             single_estate_info_zh = (
                 self.estates_crawler.fetch_single_estate_info_by_id_lang(
                     estate_id, lang="zh-hk"
@@ -181,6 +242,7 @@ class AgencyOrchestrator:
 
     def _estate_monthly_market_infos(self, estate_ids: list[str]) -> None:
         for estate_id in estate_ids:
+            self._current_item = estate_id
             # List of monthly market info per estate
             market_info_response: Optional[list[EstateMonthlyMarketInfoResponse]] = (
                 self.estates_crawler.fetch_estate_monthly_market_info_by_estate_ids(
@@ -213,6 +275,7 @@ class AgencyOrchestrator:
         if not building_ids:
             housing_logger.warning("No building IDs found to process.")
             return
+        self._current_item = building_ids[0]
 
         buildings: Optional[list[BuildingInfoResponse]] = (
             self.buildings_crawler.fetch_buildings_by_building_ids(
@@ -220,6 +283,7 @@ class AgencyOrchestrator:
             )
         )
         for building in buildings:
+            self._current_item = building.building.id
             self.buildings_processor.map_building_info_response_to_table_dicts(
                 building_info_response=building
             )

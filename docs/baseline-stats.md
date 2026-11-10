@@ -4,6 +4,11 @@ Reference snapshot for the tidy-up workplan. All database queries were
 read-only against `data/agency/agency_data.db`. No data or secrets were
 modified.
 
+> **Refresh note (2026-11-10):** the reference DB was replaced with a fully
+> recrawled copy after this baseline was recorded. Numbers below are the
+> recorded Phase 0–8 baseline unless a section says otherwise; current counts
+> and dates are in [`serving.md`](serving.md) and [`../README.md`](../README.md).
+
 > **Snapshot note:** this file records the Phase 0 state. Phases 1–6
 > subsequently made cloud-storage secrets lazy, added `.dockerignore`,
 > reconciled the schema diagram, added idempotent agency upserts, added the
@@ -11,7 +16,7 @@ modified.
 > fixture tests, lazy orchestrator imports, a core/RAG/cloud requirements
 > split, and CI, added the five analytics marts and dashboard indexes, and
 > added the versioned serving snapshot and publisher. See the README for
-> current behavior; the numbers below remain the reference data snapshot.
+> current behavior; the numbers below remain the historical baseline snapshot.
 
 - Repository: `monitus2022/HK_Housing_Datahub`
 - Base branch: `dev` @ `92bc704`. `origin/main` contains `dev` plus the merge
@@ -142,46 +147,47 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff checks — 2026-11-10
 
-- **Tests:** `pytest -q` → 75 passed, including 9 offline RAG idempotency tests
+- **Tests:** `pytest -q` → 88 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
   `chromadb` skips the RAG test module and the boto3 legacy-upload test.
-- **Lint:** `ruff check src/main.py src/analytics src/quality src/serving
+- **Lint:** `ruff check src/main.py src/logger.py src/analytics src/quality src/serving
   src/processors/agency src/processors/rag src/models/agency/sql_db.py
   src/models/agency/outputs.py src/orchestrators scripts tests` → all checks
   passed.
 - **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
 - **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
   (Phase 3), #28 (Phase 4), #29 (Phase 5), #30 (Phase 6).
-- **Marts on the reference DB:** estate summary 9,748; district monthly 19,352;
-  estate monthly 591,904; recent transactions 72,900; coverage 9,748.
-- **Quality:** status `fail`; 1 critical (160
+- **Marts on the reference DB (pre-refresh):** estate summary 9,748;
+  district monthly 19,352; estate monthly 591,904; recent transactions
+  72,900; coverage 9,748.
+- **Quality (pre-refresh):** status `fail`; 1 critical (160
   `buildings.phase_id -> phases.phase_id` orphans) and 3 warnings
   (non-positive areas, estate coverage, transaction estates without market
   data). The mapper no longer writes pseudo-phase ids, and
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261110T044947Z-06a658` (`schema_version` 2), ~2.7 MB;
+- **Serving:** build `20261110T094646Z-802e9b` (`schema_version` 2), ~3.1 MB;
   verifier passed; all seven files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
-  cache, and CORS headers verified. It adds `transaction_recent.json.gz`
-  (~1.7 MB gzipped for 72,900 display rows). The earlier v1 build
-  `20261109T164834Z-ea1321` remains in the bucket.
+  cache, and CORS headers verified. It carries refreshed data (transactions
+  through 2026-11-08, market through 2026-09-30, 9,750 estates) and
+  `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display rows).
+  Earlier v2 and v1 builds remain in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
   frontend origin are verified. `npm run typecheck`, `npm test` (49 tests), and
-  `npm run build` pass; `npm audit` reports zero vulnerabilities. Browser smoke
-  test against a local v2 snapshot verified 9,748 estates, the district sale and
-  volume trend chart, the 9,116-marker map with district filtering and marker
-  selection, and 72,900 recent transactions with search, filtering, pagination,
-  and row selection. Cloudflare Pages/R2 setup is in
-  [`deployment.md`](deployment.md).
-- **Branch state:** `dev` holds the frontend v2 work (PR #41); release PR #42
-  promotes it to `main`, and a merge to `main` triggers the Pages production
-  build.
+  `npm run build` pass; `npm audit` reports zero vulnerabilities. Production
+  smoke test on the refreshed snapshot verified 9,750 estates, the district
+  sale and volume trend chart (latest Nov 2026), the 9,117-marker map, and
+  87,393 recent transactions with pagination, with zero console errors.
+  Cloudflare Pages/R2 setup is in [`deployment.md`](deployment.md).
+- **Branch state:** `main` contains `dev` through release PR #46. PRs #48
+  (missing English addresses) and #50 (pipeline progress logging) have since
+  merged into `dev`; no PRs are open.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; Parquet export for
   `mart_estate_monthly`; incremental crawls, RVD, and monitoring (see
-  [`roadmap.md`](roadmap.md)). Run the phase-id repair once on existing DBs to
-  clear the critical quality gate.
+  [`roadmap.md`](roadmap.md)). The phase-id repair remains available for older
+  databases; the refreshed DB reports 0 orphans.

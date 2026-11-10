@@ -108,6 +108,7 @@ Notes:
 | Module | Responsibility |
 |---|---|
 | `src/orchestrators/agency.py` | Runs estate IDs, estate info, market info, and building transactions in partitions. |
+| `src/orchestrators/progress.py` | Formats partition progress and writes the atomic pipeline status file. |
 | `src/orchestrators/wiki.py` | Reads estate names from SQLite, splits them into partitions, crawls Wikipedia, and flushes JSON. |
 | `src/orchestrators/rag.py` | Loads wiki partitions and runs the embedding pipeline. |
 | `src/orchestrators/cloud_upload.py` | Legacy raw-data uploader for an S3-compatible bucket (R2 or AWS S3). |
@@ -208,7 +209,7 @@ with CORS and gzip headers. Deployment settings are in
 | Serving snapshot | `data/serving/{build_id}/` | Manifest + gzipped JSON (Phase 6) |
 
 Run metadata lives in the `pipeline_runs` table in the same SQLite database.
-`data/` is gitignored. The reference DB is about 320 MB and must be treated as
+`data/` is gitignored. The reference DB is about 518 MB and must be treated as
 read-only during development unless a temporary copy is used.
 
 ## Dependencies and CI

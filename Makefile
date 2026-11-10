@@ -24,6 +24,7 @@ frontend-check:
 lint:
 	ruff check \
 		src/main.py \
+		src/logger.py \
 		src/analytics \
 		src/quality \
 		src/serving \
