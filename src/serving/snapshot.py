@@ -1,9 +1,9 @@
 """Build a small, versioned dashboard snapshot from the analytics marts.
 
-The snapshot is written under ``data/serving/{build_id}/`` and contains only
-small JSON aggregates. Large marts (estate-monthly, recent transactions) stay
-in SQLite for now; a future Parquet export can add them without changing the
-manifest contract.
+The snapshot is written under ``data/serving/{build_id}/`` and contains the
+JSON aggregates the static frontend needs: estate summaries, district monthly
+trends, recent transactions, and coverage. The estate-monthly mart stays in
+SQLite; it is the only large table the dashboard does not need yet.
 """
 
 from __future__ import annotations
@@ -15,13 +15,14 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 FILE_NAMES = {
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
     "estate_summary": "estate_summary.json.gz",
+    "transaction_recent": "transaction_recent.json.gz",
     "coverage": "coverage.json.gz",
 }
 MART_TABLES = [
@@ -34,8 +35,24 @@ MART_TABLES = [
 REQUIRED_MARTS = [
     "mart_estate_summary",
     "mart_district_monthly",
+    "mart_transaction_recent",
     "mart_coverage",
 ]
+# Only display columns are exported. Internal join keys (tx_id, building_id,
+# unit_id) stay in SQLite: the frontend identifies rows by index and links to an
+# estate via estate_id.
+TRANSACTION_RECENT_COLUMNS = (
+    "tx_date",
+    "price",
+    "net_ft_price",
+    "estate_id",
+    "estate_name_en",
+    "district_id",
+    "district_name_en",
+    "area",
+    "net_area",
+    "bedroom",
+)
 
 
 def safe_build_id(build_id: str) -> str:
@@ -67,9 +84,14 @@ def scalar(con: sqlite3.Connection, sql: str) -> Any:
     return row[0] if row else None
 
 
-def fetch_rows(con: sqlite3.Connection, table: str) -> list[dict[str, Any]]:
+def fetch_rows(
+    con: sqlite3.Connection,
+    table: str,
+    columns: Optional[Sequence[str]] = None,
+) -> list[dict[str, Any]]:
     con.row_factory = sqlite3.Row
-    cursor = con.execute(f'SELECT * FROM "{table}"')
+    projection = "*" if columns is None else ", ".join(f'"{name}"' for name in columns)
+    cursor = con.execute(f'SELECT {projection} FROM "{table}"')
     return [dict(row) for row in cursor.fetchall()]
 
 
@@ -128,6 +150,11 @@ def build_snapshot(
 
         estate_summary = fetch_rows(connection, "mart_estate_summary")
         district_monthly = fetch_rows(connection, "mart_district_monthly")
+        transaction_recent = fetch_rows(
+            connection,
+            "mart_transaction_recent",
+            TRANSACTION_RECENT_COLUMNS,
+        )
         coverage_rows = fetch_rows(connection, "mart_coverage")
 
         data_through = {
@@ -185,6 +212,10 @@ def build_snapshot(
     write_gzip_json(
         snapshot_dir / FILE_NAMES["district_monthly"],
         clean_value(district_monthly),
+    )
+    write_gzip_json(
+        snapshot_dir / FILE_NAMES["transaction_recent"],
+        clean_value(transaction_recent),
     )
     write_gzip_json(
         snapshot_dir / FILE_NAMES["coverage"],

@@ -90,6 +90,11 @@ https://hk-housing-datahub.monitus.org/dashboard/manifest.json
 https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file from manifest.files}
 ```
 
+`estate_summary` loads on startup. The trends and transactions views request
+`district_monthly` and `transaction_recent` on demand, and the map fetches
+OpenStreetMap tiles from `tile.openstreetmap.org`. All snapshot files come from
+the same R2 host, so the existing CORS rule covers them.
+
 ## Verify the snapshot host
 
 ```bash

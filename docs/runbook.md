@@ -258,6 +258,7 @@ manifest.json
 overview.json
 estate_summary.json.gz
 district_monthly.json.gz
+transaction_recent.json.gz
 coverage.json.gz
 ```
 
