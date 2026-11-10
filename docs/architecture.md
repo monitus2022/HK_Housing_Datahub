@@ -108,6 +108,7 @@ Notes:
 | Module | Responsibility |
 |---|---|
 | `src/orchestrators/agency.py` | Runs estate IDs, estate info, market info, and building transactions in partitions. |
+| `src/orchestrators/progress.py` | Formats partition progress and writes the atomic pipeline status file. |
 | `src/orchestrators/wiki.py` | Reads estate names from SQLite, splits them into partitions, crawls Wikipedia, and flushes JSON. |
 | `src/orchestrators/rag.py` | Loads wiki partitions and runs the embedding pipeline. |
 | `src/orchestrators/cloud_upload.py` | Legacy raw-data uploader for an S3-compatible bucket (R2 or AWS S3). |

@@ -142,10 +142,10 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff checks — 2026-11-10
 
-- **Tests:** `pytest -q` → 75 passed, including 9 offline RAG idempotency tests
+- **Tests:** `pytest -q` → 88 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
   `chromadb` skips the RAG test module and the boto3 legacy-upload test.
-- **Lint:** `ruff check src/main.py src/analytics src/quality src/serving
+- **Lint:** `ruff check src/main.py src/logger.py src/analytics src/quality src/serving
   src/processors/agency src/processors/rag src/models/agency/sql_db.py
   src/models/agency/outputs.py src/orchestrators scripts tests` → all checks
   passed.

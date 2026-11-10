@@ -7,6 +7,10 @@ processors and stage methods.
 
 from __future__ import annotations
 
+import json
+import logging
+from types import SimpleNamespace
+
 import pytest
 
 from orchestrators.agency import AgencyOrchestrator
@@ -103,18 +107,96 @@ def test_debug_mode_is_recorded():
     assert orchestrator.estates_processor.started[0][1] == "debug"
 
 
-def test_pipeline_failure_finalizes_run_and_closes_sessions_once():
+def test_pipeline_failure_finalizes_run_and_closes_sessions_once(caplog):
     orchestrator, _ = build_orchestrator()
 
     def fail(estate_ids):
+        orchestrator._current_item = "E0"
         raise RuntimeError("boom")
 
     orchestrator._estate_infos = fail
 
-    with pytest.raises(RuntimeError, match="boom"):
+    with caplog.at_level(logging.ERROR), pytest.raises(
+        RuntimeError, match="boom"
+    ):
         orchestrator.run_estates_info_data_pipeline()
 
+    assert "stage=estate info" in caplog.text
+    assert "item=E0" in caplog.text
     assert orchestrator.estates_processor.finished[0]["status"] == "failed"
     assert orchestrator.estates_processor.finished[0]["error_message"] == "boom"
     assert orchestrator.estates_processor.closed == 1
     assert orchestrator.buildings_processor.closed == 1
+
+
+def test_buildings_tracks_the_nested_building_id():
+    orchestrator = object.__new__(AgencyOrchestrator)
+    orchestrator._current_item = None
+
+    class Crawler:
+        def fetch_buildings_by_building_ids(self, building_ids):
+            return [
+                SimpleNamespace(building=SimpleNamespace(id="B9")),
+                SimpleNamespace(building=SimpleNamespace(id="B10")),
+            ]
+
+    class Processor:
+        zh_table_configs = {}
+        table_configs = {}
+
+        def map_building_info_response_to_table_dicts(self, building_info_response):
+            pass
+
+        def upsert_cache_into_db_tables(self, config_maps):
+            pass
+
+        def clear_data_caches(self, cache_excluded=None):
+            pass
+
+    orchestrator.buildings_crawler = Crawler()
+    orchestrator.buildings_processor = Processor()
+
+    orchestrator._buildings(["B9", "B10"])
+
+    assert orchestrator._current_item == "B10"
+
+
+def test_market_stage_tracks_each_estate():
+    orchestrator = object.__new__(AgencyOrchestrator)
+    orchestrator._current_item = None
+
+    class Crawler:
+        def fetch_estate_monthly_market_info_by_estate_ids(self, estate_id):
+            return []
+
+    class Processor:
+        zh_table_configs = {}
+        table_configs = {}
+
+        def upsert_cache_into_db_tables(self, config_maps):
+            pass
+
+        def clear_data_caches(self, cache_excluded=None):
+            pass
+
+    orchestrator.estates_crawler = Crawler()
+    orchestrator.estates_processor = Processor()
+
+    orchestrator._estate_monthly_market_infos(["E7"])
+
+    assert orchestrator._current_item == "E7"
+
+
+def test_pipeline_writes_progress_status(tmp_path):
+    orchestrator, _ = build_orchestrator()
+    orchestrator.estates_processor.agency_data_storage_path = tmp_path
+
+    orchestrator.run_estates_info_data_pipeline()
+
+    payload = json.loads(
+        (tmp_path / "pipeline_status.json").read_text(encoding="utf-8")
+    )
+    assert payload["status"] == "success"
+    assert payload["run_id"] == orchestrator.run_id
+    assert payload["stage"] == "buildings"
+    assert payload["items_total"] == 4
