@@ -19,9 +19,10 @@ baseline. This file tracks work beyond it.
 
 ## Data quality
 
-- **Fix the 160 building→phase orphans** — either stop mapping non-phase source
-  entries as `phase_id` or add a repair step. Until then the critical quality
-  gate is report-only in the local entrypoint.
+- **Building→phase orphans** — fixed in the mapper (only real phases become
+  `buildings.phase_id`) with `scripts/repair_orphan_phase_ids.py` for existing
+  databases. Run the repair once on each existing DB to clear the critical
+  quality gate; the mapper prevents new orphans.
 - **Configurable thresholds** — expose quality thresholds via CLI/config rather
   than editing `DEFAULT_THRESHOLDS`.
 - **Historical quality trends** — compare reports across runs and flag
