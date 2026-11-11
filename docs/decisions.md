@@ -68,7 +68,7 @@ Keep `manifest.json` and `overview.json` plain. `transaction_recent` exports
 display columns only, and `mart_estate_monthly` uses a compact month-indexed
 payload (~3.8 MB uncompressed). Parquet remains optional for external analytics.
 
-**Consequences:** The snapshot is ~4.3 MB and browsers decompress transparently.
+**Consequences:** The snapshot is ~4.6 MB and browsers decompress transparently.
 The frontend must use `manifest.files` rather than hardcoded names. Parquet can
 be added later without changing the manifest shape. The estate-history, trends, and
 transactions files are loaded on demand, so the initial page load still only fetches the
