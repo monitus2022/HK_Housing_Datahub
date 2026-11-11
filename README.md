@@ -206,6 +206,7 @@ The data model has the following groups:
 
 - ER diagram: [`docs/db.dbml`](docs/db.dbml)
 - Column-level dictionary and caveats: [`docs/data-dictionary.md`](docs/data-dictionary.md)
+- Data catalogue and dataset cards: [`docs/data-catalog.md`](docs/data-catalog.md)
 
 Key caveats: the `transactions` table has no transaction-type column and is
 treated as sale transactions; `net_area` is null or non-positive for about
@@ -223,6 +224,7 @@ dashboard/{build_id}/estate_summary.json.gz
 dashboard/{build_id}/district_monthly.json.gz
 dashboard/{build_id}/transaction_recent.json.gz
 dashboard/{build_id}/estate_monthly.json.gz
+dashboard/{build_id}/catalog.json
 dashboard/{build_id}/coverage.json.gz
 ```
 
@@ -230,7 +232,9 @@ The snapshot is public at <https://hk-housing-datahub.monitus.org>. The manifest
 is authoritative; the frontend fetches it first and then the files in
 `manifest.files`. The five large data files are gzip-compressed and versioned
 data files are immutable/long-cached; both the top-level and versioned manifests
-are short-cached (`max-age=60`). `overview.json` remains plain. The manifest
+are short-cached (`max-age=60`). `overview.json` and `catalog.json` remain plain.
+The catalogue is generated from `metadata/catalog.yml` plus read-only database
+introspection; see [`docs/data-catalog.md`](docs/data-catalog.md). The manifest
 includes build ID, data-through dates, coverage, and mart row counts.
 `transaction_recent` exports display columns only; internal join keys stay in
 SQLite.
@@ -349,10 +353,10 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (93 total): upserts, run metadata,
-quality checks, response-model parsing, table mapping, duplicate-input dedupe,
-synthetic mart builds, serving manifest/publish planning, and offline RAG
-idempotency. The boto3-only legacy-upload gate test is skipped in the core-only
+`tests/` contains the Phase 2–6 and catalogue tests (96 total): upserts, run
+metadata, quality checks, response-model parsing, table mapping, duplicate-input
+dedupe, synthetic mart builds, serving manifest/publish planning, catalogue
+generation and drift guards, and offline RAG idempotency. The boto3-only legacy-upload gate test is skipped in the core-only
 CI environment.
 The CI workflow
 in `.github/workflows/ci-cd.yml` installs `requirements-core.txt` +

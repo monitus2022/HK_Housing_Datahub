@@ -26,6 +26,7 @@ lint:
 		src/main.py \
 		src/logger.py \
 		src/analytics \
+		src/catalog \
 		src/quality \
 		src/serving \
 		src/processors/agency \

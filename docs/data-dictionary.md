@@ -4,6 +4,9 @@ This document explains the grain, keys, and caveats of the current SQLite
 model. The ER diagram is [`db.dbml`](db.dbml); the SQLAlchemy models in
 `src/models/agency/sql_db.py` are the source of truth. `pipeline_runs` and the
 five analytics marts are current tables; only the deferred ML mart is planned.
+Dataset purpose, provenance, licences, refresh cadence, and per-table freshness
+live in the generated [`data-catalog.md`](data-catalog.md), seeded by
+`metadata/catalog.yml`.
 
 All row counts below are from the 2026-11-09 baseline snapshot in
 [`baseline-stats.md`](baseline-stats.md).
@@ -472,6 +475,7 @@ unique lookup indexes (`idx_mart_*`) on their grain keys.
 - Agency upserts and run metadata are implemented (Phase 2). RAG writes are
   idempotent and prune removed chunks (issue #17).
 - Wiki JSON and Chroma are not relational tables; their counts are tracked in
-  `baseline-stats.md`. The marts use wiki JSON keys only for `has_wiki`.
+  `baseline-stats.md`. The marts consume wiki JSON for `has_wiki` and, when a
+  partition has a title, `wiki_title`.
 - Mart windows end at the later of the latest sale and rental dates, not today.
   A fresh crawl changes the windows.
