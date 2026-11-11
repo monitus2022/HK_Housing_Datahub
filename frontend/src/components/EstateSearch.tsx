@@ -19,7 +19,7 @@ interface Props {
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "name", label: "Name" },
   { value: "latest_price", label: "Latest price" },
-  { value: "tx_count_12m", label: "12-month transactions" },
+  { value: "tx_count_12m", label: "Most active (12m)" },
   { value: "latest_tx_date", label: "Latest transaction" },
 ];
 
@@ -38,7 +38,7 @@ function flag(label: string, active: boolean, title: string) {
 export function EstateSearch({ estates, onSelect }: Props) {
   const [query, setQuery] = useState("");
   const [district, setDistrict] = useState("");
-  const [sort, setSort] = useState<SortKey>("name");
+  const [sort, setSort] = useState<SortKey>("tx_count_12m");
   const [page, setPage] = useState(1);
   const deferredQuery = useDeferredValue(query);
 

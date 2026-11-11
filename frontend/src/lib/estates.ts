@@ -59,8 +59,17 @@ export function sortEstates(
           left.latest_tx_price,
           right.latest_tx_price,
         );
-      case "tx_count_12m":
-        return right.tx_count_12m - left.tx_count_12m;
+      case "tx_count_12m": {
+        const byCount = right.tx_count_12m - left.tx_count_12m;
+        if (byCount !== 0) return byCount;
+        const byDate = (right.latest_tx_date ?? "").localeCompare(
+          left.latest_tx_date ?? "",
+        );
+        if (byDate !== 0) return byDate;
+        return (left.estate_name_en || left.estate_name_zh).localeCompare(
+          right.estate_name_en || right.estate_name_zh,
+        );
+      }
       case "latest_tx_date":
         return (right.latest_tx_date ?? "").localeCompare(
           left.latest_tx_date ?? "",
