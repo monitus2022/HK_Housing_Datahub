@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
-import type { EstateSummary } from "../types";
+import type { EstateSummary, Manifest } from "../types";
 import { formatDate, formatHkd, formatNumber } from "../lib/format";
+import { EstateHistory } from "./EstateHistory";
 
 interface Props {
+  manifest: Manifest;
   estate: EstateSummary;
   onClose: () => void;
 }
@@ -22,7 +24,7 @@ function Stat({
   );
 }
 
-export function EstateDetail({ estate, onClose }: Props) {
+export function EstateDetail({ manifest, estate, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -126,6 +128,8 @@ export function EstateDetail({ estate, onClose }: Props) {
           />
           <Stat label="Estate ID" value={estate.estate_id} />
         </dl>
+
+        <EstateHistory manifest={manifest} estate={estate} />
 
         <p className="drawer-note">
           Snapshot values. This is not a valuation or investment advice.

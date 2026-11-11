@@ -4,8 +4,9 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 
 - dataset overview cards
 - estate search with district filter, sorting, and pagination
-- estate detail panel with latest transaction, 12-month stats, market date, and
-  coverage flags
+- estate detail panel with latest transaction, 12-month stats, market date,
+  coverage flags, monthly price history, and that estate's recent transactions
+- shareable `?estate=<id>` deep links that open the estate view
 - district price trends (monthly average net-ft sale price, rent, and
   transaction volume) with a 12-month change summary
 - estate map with district filtering and price-bucketed markers
@@ -34,20 +35,26 @@ The app fetches, in order:
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.estate_summary}
 ```
 
-The trends and transactions views then load their own files on demand, and each
-file is cached per build ID for the life of the page:
+The estate, trends, and transactions views then load their own files on demand,
+and each file is cached per build ID for the life of the page:
 
 ```text
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_monthly}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.transaction_recent}
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.estate_monthly}
 ```
 
 It never hardcodes a build ID or file name. The published snapshot is described
 in [`../docs/serving.md`](../docs/serving.md). Large data files are gzipped; the
 loader lets the browser decode R2's `Content-Encoding: gzip`, and falls back to
 manual `DecompressionStream` for local servers that return raw `.gz` bytes. If a
-snapshot predates the trends or transactions file, only that view shows an
-error; the overview and estate search keep working.
+snapshot predates the trends, transactions, or estate-history file, only that
+section shows an error; the overview and estate search keep working.
+
+Estate views are linkable with `?estate=<estate_id>`. Opening such a URL loads
+the snapshot and opens that estate; selecting or closing an estate updates the
+query string. On a missing file, the history and transactions sections show a
+section-level message while the estate summary still renders.
 
 The map plots estate coordinates from `estate_summary` over OpenStreetMap
 tiles. Markers are coloured by the 12-month average net-ft price, with the
@@ -131,8 +138,8 @@ npm run build
   render on a blank background.
 - Rent averages in the source data are zero, so the rent trend metric shows an
   explicit empty state until the source is fixed.
-- `mart_estate_monthly` is not in the snapshot; estate-level monthly history is
-  not available.
+- Estate history and recent transactions are loaded only when an estate is
+  opened; both degrade to a section-level message if the snapshot lacks them.
 - The snapshot is a batch-refreshed dataset, not a live feed.
 - Data is scraped from third-party sources; see the root README for the
   disclaimer.

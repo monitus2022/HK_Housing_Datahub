@@ -2,8 +2,7 @@
 
 The snapshot is written under ``data/serving/{build_id}/`` and contains the
 JSON aggregates the static frontend needs: estate summaries, district monthly
-trends, recent transactions, and coverage. The estate-monthly mart stays in
-SQLite; it is the only large table the dashboard does not need yet.
+trends, compact estate-monthly history, recent transactions, and coverage.
 """
 
 from __future__ import annotations
@@ -17,12 +16,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 FILE_NAMES = {
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
     "estate_summary": "estate_summary.json.gz",
     "transaction_recent": "transaction_recent.json.gz",
+    "estate_monthly": "estate_monthly.json.gz",
     "coverage": "coverage.json.gz",
 }
 MART_TABLES = [
@@ -35,6 +35,7 @@ MART_TABLES = [
 REQUIRED_MARTS = [
     "mart_estate_summary",
     "mart_district_monthly",
+    "mart_estate_monthly",
     "mart_transaction_recent",
     "mart_coverage",
 ]
@@ -126,6 +127,32 @@ def write_gzip_json(path: Path, payload: Any) -> None:
         handle.write(_serialize(payload))
 
 
+def compact_estate_monthly(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Group estate-month rows into a compact, month-indexed payload.
+
+    Months with at least one transaction are kept so the volume series is
+    complete; a missing or non-positive sale price is stored as ``0`` and the
+    frontend drops it from price series. Each estate point is
+    ``[month_index, tx_count, avg_net_ft_price]`` so repeated estate ids and
+    month strings do not dominate the file.
+    """
+    usable = [row for row in rows if int(row.get("tx_count") or 0) > 0]
+    usable.sort(key=lambda row: (row["estate_id"], row["month"]))
+    months = sorted({row["month"] for row in usable})
+    month_index = {month: index for index, month in enumerate(months)}
+    estates: dict[str, list[list[Any]]] = {}
+    for row in usable:
+        price = row.get("avg_net_ft_price")
+        estates.setdefault(row["estate_id"], []).append(
+            [
+                month_index[row["month"]],
+                int(row.get("tx_count") or 0),
+                round(float(price), 1) if price and float(price) > 0 else 0.0,
+            ]
+        )
+    return {"months": months, "estates": estates}
+
+
 def build_snapshot(
     db_path: Path | str,
     output_root: Path | str = Path("data/serving"),
@@ -150,6 +177,11 @@ def build_snapshot(
 
         estate_summary = fetch_rows(connection, "mart_estate_summary")
         district_monthly = fetch_rows(connection, "mart_district_monthly")
+        estate_monthly_rows = fetch_rows(
+            connection,
+            "mart_estate_monthly",
+            ("estate_id", "month", "tx_count", "avg_net_ft_price"),
+        )
         transaction_recent = fetch_rows(
             connection,
             "mart_transaction_recent",
@@ -212,6 +244,10 @@ def build_snapshot(
     write_gzip_json(
         snapshot_dir / FILE_NAMES["district_monthly"],
         clean_value(district_monthly),
+    )
+    write_gzip_json(
+        snapshot_dir / FILE_NAMES["estate_monthly"],
+        compact_estate_monthly(estate_monthly_rows),
     )
     write_gzip_json(
         snapshot_dir / FILE_NAMES["transaction_recent"],

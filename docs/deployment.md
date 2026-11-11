@@ -8,11 +8,12 @@ Current public deployment:
 The frontend is a static Vite build. The snapshot is a separate R2 public host.
 The two are connected by the build-time `VITE_DASHBOARD_BASE_URL` value.
 
-> **Current status:** live and verified on 2026-11-10. The production page
-> loads 9,750 estates, search/filtering, the estate detail drawer, trends, the
-> map, and 87,393 recent transactions with no console errors. R2 public read
-> and CORS for `https://hk-housing.monitus.org` are verified, and the Pages
-> build includes
+> **Current status:** the schema-2 build is live and verified on 2026-11-10.
+> Production loads 9,750 estates, search/filtering, the estate drawer, trends,
+> the map, and 87,393 recent transactions with no console errors. Estate price
+> history and `?estate=<id>` deep links require the next schema-3 snapshot
+> publish and frontend deploy. R2 public read and CORS for
+> `https://hk-housing.monitus.org` are verified, and the Pages build includes
 > `VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org`.
 
 ## Before redeploying
@@ -91,9 +92,9 @@ https://hk-housing-datahub.monitus.org/dashboard/manifest.json
 https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file from manifest.files}
 ```
 
-`estate_summary` loads on startup. The trends and transactions views request
-`district_monthly` and `transaction_recent` on demand, and the map fetches
-OpenStreetMap tiles from `tile.openstreetmap.org`. All snapshot files come from
+`estate_summary` loads on startup. The estate, trends, and transactions views
+request `estate_monthly`, `district_monthly`, and `transaction_recent` on demand,
+and the map fetches OpenStreetMap tiles from `tile.openstreetmap.org`. All snapshot files come from
 the same R2 host, so the existing CORS rule covers them.
 
 ## Verify the snapshot host

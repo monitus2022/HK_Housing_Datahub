@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DashboardData, EstateSummary } from "./types";
 import { loadDashboard } from "./lib/dashboard";
 import { formatDate } from "./lib/format";
@@ -8,6 +8,7 @@ import { EstateDetail } from "./components/EstateDetail";
 import { DistrictTrends } from "./components/DistrictTrends";
 import { EstateMap } from "./components/EstateMap";
 import { RecentTransactions } from "./components/RecentTransactions";
+import { estateIdFromSearch, withEstateParam } from "./lib/urlState";
 
 type View = "search" | "trends" | "map" | "transactions";
 
@@ -25,7 +26,60 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
+  const initialEstateId = useRef<string | null>(
+    estateIdFromSearch(window.location.search),
+  );
   const closeDetail = useCallback(() => setSelected(null), []);
+
+  useEffect(() => {
+    const estateId = initialEstateId.current;
+    if (!data || !estateId) return;
+    initialEstateId.current = null;
+    const match = data.estates.find((estate) => estate.estate_id === estateId);
+    if (match) {
+      setView("search");
+      setSelected(match);
+    } else {
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${withEstateParam(
+          window.location.search,
+          null,
+        )}`,
+      );
+    }
+  }, [data]);
+
+  useEffect(() => {
+    // Do not strip an initial deep link before the snapshot has loaded.
+    if (initialEstateId.current !== null) return;
+    const current = estateIdFromSearch(window.location.search);
+    const next = selected?.estate_id ?? null;
+    if (next === current) return;
+    const search = withEstateParam(window.location.search, next);
+    const url = `${window.location.pathname}${search}`;
+    if (next) {
+      window.history.pushState({}, "", url);
+    } else {
+      window.history.replaceState({}, "", url);
+    }
+  }, [selected]);
+
+  useEffect(() => {
+    const handlePop = () => {
+      const estateId = estateIdFromSearch(window.location.search);
+      if (!estateId) {
+        setSelected(null);
+        return;
+      }
+      setSelected(
+        data?.estates.find((estate) => estate.estate_id === estateId) ?? null,
+      );
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [data]);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,8 +247,12 @@ export default function App() {
         ) : null}
       </footer>
 
-      {selected ? (
-        <EstateDetail estate={selected} onClose={closeDetail} />
+      {selected && data ? (
+        <EstateDetail
+          manifest={data.manifest}
+          estate={selected}
+          onClose={closeDetail}
+        />
       ) : null}
     </div>
   );

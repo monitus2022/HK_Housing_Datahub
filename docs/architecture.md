@@ -176,8 +176,8 @@ the serving snapshot.
 1. `scripts/publish_dashboard.py --dry-run` builds a snapshot from the marts
    under `data/serving/{build_id}/`.
 2. The snapshot contains a `manifest.json`, `overview.json`, and gzipped
-   `estate_summary`, `district_monthly`, `transaction_recent`, and `coverage`
-   JSON files.
+   `estate_summary`, `district_monthly`, `transaction_recent`, `estate_monthly`,
+   and `coverage` JSON files.
 3. `scripts/verify_serving.py` checks every manifest reference.
 4. Without `--dry-run`, versioned files upload first, then the versioned
    manifest, then the short-cache `dashboard/manifest.json` pointer.
@@ -189,9 +189,10 @@ The manifest and cache contract is in [`serving.md`](serving.md).
 
 `frontend/` is a Vite + React + TypeScript static app deployed at
 <https://hk-housing.monitus.org>. It fetches `dashboard/manifest.json`, then uses
-`manifest.files.estate_summary`; it never hardcodes a build ID. District trends
-and recent transactions load their data files on demand, and the map plots
-estate coordinates over OpenStreetMap tiles. There is no backend-for-frontend or
+`manifest.files.estate_summary`; it never hardcodes a build ID. Estate history,
+district trends, and recent transactions load their data files on demand, and
+the map plots estate coordinates over OpenStreetMap tiles. Estate views are
+linkable with `?estate=<id>`. There is no backend-for-frontend or
 live API. For local development, `scripts/serve_snapshot.py` serves a snapshot
 with CORS and gzip headers. Deployment settings are in
 [`deployment.md`](deployment.md).

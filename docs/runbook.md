@@ -326,6 +326,7 @@ overview.json
 estate_summary.json.gz
 district_monthly.json.gz
 transaction_recent.json.gz
+estate_monthly.json.gz
 coverage.json.gz
 ```
 

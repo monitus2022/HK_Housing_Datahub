@@ -1,6 +1,7 @@
 import type {
   DashboardData,
   DistrictMonthly,
+  EstateMonthlyHistory,
   EstateSummary,
   Manifest,
   RecentTransaction,
@@ -103,6 +104,13 @@ export async function loadDistrictMonthly(
   manifest: Manifest,
 ): Promise<DistrictMonthly[]> {
   return fetchVersionedJson<DistrictMonthly[]>(manifest, "district_monthly");
+}
+
+/** Estate-level monthly history. Loaded on demand by the estate view. */
+export async function loadEstateMonthly(
+  manifest: Manifest,
+): Promise<EstateMonthlyHistory> {
+  return fetchVersionedJson<EstateMonthlyHistory>(manifest, "estate_monthly");
 }
 
 /** Recent transactions. Loaded on demand by the transactions view. */

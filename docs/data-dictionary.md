@@ -355,8 +355,8 @@ Grain: one row per estate × calendar month. Unique key:
 | `avg_net_ft_rent` | real | Rent-count-weighted average, with fallback |
 | `total_rent_tx_amount` | real | Total rent amount |
 
-Caveats: this is the largest mart and keeps the full history. The serving layer
-should export it as Parquet rather than JSON if it needs the complete series.
+Caveats: this is the largest mart and keeps the full history. The serving layer exports
+it as a compact month-indexed JSON file (~1.3 MB gzipped) for estate views.
 
 ### `mart_transaction_recent`
 
