@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
-from catalog import DEFAULT_METADATA, build_catalog
+from catalog import DEFAULT_METADATA, DEFAULT_QUALITY, build_catalog
 
 SCHEMA_VERSION = 5
 FILE_NAMES = {
@@ -280,7 +280,8 @@ def build_snapshot(
         build_catalog(
             database,
             metadata_path=DEFAULT_METADATA,
-            quality_path=Path("data/quality/latest.json"),
+            quality_path=DEFAULT_QUALITY,
+            manifest_data=manifest,
             generated_at=generated_at,
         ),
     )

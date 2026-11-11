@@ -15,6 +15,9 @@ import sqlite3
 import yaml
 
 DEFAULT_METADATA = Path(__file__).resolve().parents[2] / "metadata" / "catalog.yml"
+DEFAULT_QUALITY = (
+    Path(__file__).resolve().parents[2] / "data" / "quality" / "latest.json"
+)
 
 
 def load_metadata(path: Path | str = DEFAULT_METADATA) -> dict[str, Any]:
@@ -97,6 +100,7 @@ def build_catalog(
     metadata_path: Path | str = DEFAULT_METADATA,
     quality_path: Optional[Path | str] = None,
     manifest_path: Optional[Path | str] = None,
+    manifest_data: Optional[dict[str, Any]] = None,
     *,
     require_complete: bool = True,
     generated_at: Optional[str] = None,
@@ -137,7 +141,11 @@ def build_catalog(
         connection.close()
 
     quality = _load_optional_json(quality_path)
-    manifest = _load_optional_json(manifest_path)
+    manifest = (
+        manifest_data
+        if manifest_data is not None
+        else _load_optional_json(manifest_path)
+    )
 
     dataset_cards = []
     for dataset in datasets:

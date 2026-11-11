@@ -46,6 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="docs/data-catalog.md",
         help="Generated Markdown output.",
     )
+    parser.add_argument(
+        "--generated-at",
+        default=None,
+        help="Override the generation timestamp (ISO 8601) for reproducible output.",
+    )
     return parser
 
 
@@ -57,6 +62,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             metadata_path=args.metadata,
             quality_path=args.quality,
             manifest_path=args.manifest,
+            generated_at=args.generated_at,
         )
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

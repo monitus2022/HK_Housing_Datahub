@@ -94,6 +94,12 @@ export function DataCatalogView({ manifest }: Props) {
             {catalog.manifest ? (
               <span>Snapshot {catalog.manifest.build_id}</span>
             ) : null}
+            {catalog.manifest?.data_through.transactions ? (
+              <span>
+                Data through{" "}
+                {formatDate(catalog.manifest.data_through.transactions)}
+              </span>
+            ) : null}
           </div>
 
           <div className="catalog-layout">

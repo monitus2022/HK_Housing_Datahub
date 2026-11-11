@@ -224,6 +224,18 @@ describe("on-demand dataset loaders", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("explains when a snapshot predates the catalogue", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+
+    await expect(
+      loadCatalog({
+        ...manifest,
+        build_id: "build-old-catalog",
+        files: { estate_summary: "estate_summary.json.gz" },
+      }),
+    ).rejects.toThrow("does not include catalog");
+  });
+
   it("explains when a snapshot predates a dataset file", async () => {
     vi.stubGlobal("fetch", vi.fn());
 

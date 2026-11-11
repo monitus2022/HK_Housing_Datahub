@@ -29,7 +29,7 @@ datasets:
     refresh: Manual wiki pipeline (WikiOrchestrator)
     licence: CC BY-SA; attribute Wikipedia
     artifacts:
-      - data/wikipedia/wiki_estates.json (partitioned JSON store)
+      - data/wiki/wiki_data_partition_*.json
       - Chroma collection for RAG chunks
     caveats: Exact Chinese-name matching only; 824 of 9,750 estates matched in the current reference data.
   - id: rag_embeddings
@@ -40,7 +40,7 @@ datasets:
     refresh: Manual RAG pipeline (RAGOrchestrator)
     licence: Derived from CC BY-SA text
     artifacts:
-      - data/chroma/ (local ChromaDB store)
+      - data/chroma_db/ (local ChromaDB store)
     caveats: Local Chroma store only; not served by the static dashboard and not exposed through an API yet.
   - id: serving_snapshot
     name: Serving snapshot

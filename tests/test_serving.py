@@ -182,6 +182,9 @@ def test_snapshot_manifest_and_files(snapshot):
     overview = read_json(snapshot_dir / "overview.json")
     assert overview["build_id"] == "test-build"
     assert overview["coverage"] == manifest["coverage"]
+    catalog = read_json(snapshot_dir / "catalog.json")
+    assert catalog["manifest"]["build_id"] == "test-build"
+    assert catalog["manifest"]["schema_version"] == 5
     assert len(read_json(snapshot_dir / "estate_summary.json.gz")) == 2
     assert len(read_json(snapshot_dir / "district_monthly.json.gz")) == 1
     estate_monthly = read_json(snapshot_dir / "estate_monthly.json.gz")
