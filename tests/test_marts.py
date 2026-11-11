@@ -175,6 +175,34 @@ def seed_db(path: Path) -> None:
                 net_ft_price=net_ft_price,
                 unit_id=unit_id,
             )
+        rental_rows = [
+            (
+                "L1", "2024-12-15", 30_000.0, 1_000.0, 30.0,
+                "E1", "Estate One", "D1", "District One",
+            ),
+            (
+                "L2", "2024-12-20", 32_000.0, 1_000.0, 32.0,
+                "E1", "Estate One", "D1", "District One",
+            ),
+            (
+                "L3", "2023-01-31", 20_000.0, 1_000.0, 20.0,
+                "E2", "Estate Two", "D2", "District Two",
+            ),
+        ]
+        for rental_id, tx_date, price, net_area, net_ft, estate_id, estate, district_id, district in rental_rows:
+            insert(
+                con,
+                "rental_transactions",
+                rental_id=rental_id,
+                tx_date=tx_date,
+                price=price,
+                net_area=net_area,
+                net_ft_price=net_ft,
+                estate_id=estate_id,
+                estate_name_en=estate,
+                district_id=district_id,
+                district_name_en=district,
+            )
         market_rows = [
             ("E1", "2024-11-30", 25.0, 1, 30_000.0),
             ("E1", "2024-12-31", 30.0, 2, 70_000.0),
@@ -226,8 +254,8 @@ def test_marts_row_counts_and_known_values(tmp_path):
     counts = build(db_path, wiki_dir)
     assert counts == {
         "mart_estate_summary": 2,
-        "mart_district_monthly": 6,
-        "mart_estate_monthly": 6,
+        "mart_district_monthly": 5,
+        "mart_estate_monthly": 5,
         "mart_transaction_recent": 3,
         "mart_coverage": 2,
     }
@@ -242,7 +270,10 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert e1["latest_tx_price"] == 1_300_000
     assert e1["tx_count_12m"] == 2
     assert e1["avg_net_ft_price_12m"] == 12_500
-    assert e1["avg_net_ft_rent_12m"] == 27.5
+    assert e1["avg_net_ft_rent_12m"] == 31
+    assert e1["rent_count_12m"] == 2
+    assert e1["latest_rent_date"] == "2024-12-20"
+    assert e1["latest_rent_net_ft_price"] == 32
     assert e1["latest_market_date"] == "2024-12-31"
     assert e1["latest_net_area"] == 400
     assert e1["latest_bedroom"] == 2
@@ -265,6 +296,9 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert e2["latest_bedroom"] == 1
     assert e2["mtr_lines"] is None
     assert e2["school_nets"] is None
+    assert e2["rent_count_12m"] == 0
+    assert e2["latest_rent_date"] == "2023-01-31"
+    assert e2["latest_rent_net_ft_price"] == 20
     assert e2["has_wiki"] == 0
 
     district = read_rows(
@@ -275,8 +309,8 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert len(district) == 1
     assert district[0]["tx_count"] == 0
     assert district[0]["rent_tx_count"] == 2
-    assert district[0]["avg_net_ft_rent"] == 30
-    assert district[0]["total_rent_tx_amount"] == 70_000
+    assert district[0]["avg_net_ft_rent"] == 31
+    assert district[0]["total_rent_tx_amount"] == 62_000
 
     estate_month = read_rows(
         db_path,
@@ -286,6 +320,14 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert len(estate_month) == 1
     assert estate_month[0]["tx_count"] == 1
     assert estate_month[0]["avg_net_ft_price"] == 13_000
+
+    estate_rent = read_rows(
+        db_path,
+        "SELECT * FROM mart_estate_monthly WHERE estate_id='E1' "
+        "AND month='2024-12'",
+    )
+    assert estate_rent[0]["rent_tx_count"] == 2
+    assert estate_rent[0]["avg_net_ft_rent"] == 31
 
     recent = read_rows(
         db_path,
@@ -357,6 +399,9 @@ def test_builder_is_idempotent_and_creates_indexes(tmp_path):
         "idx_transactions_tx_date",
         "idx_transactions_unit_id",
         "idx_units_building_id",
+        "idx_rental_transactions_date",
+        "idx_rental_transactions_district_date",
+        "idx_rental_transactions_estate_date",
     }.issubset(names)
     assert {
         "idx_mart_estate_summary_estate_id",

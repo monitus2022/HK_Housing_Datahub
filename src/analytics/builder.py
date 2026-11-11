@@ -1,6 +1,7 @@
 """Build the analytics marts from the raw agency SQLite database.
 
-The builder writes only derived tables and indexes. Raw tables are never
+The builder writes derived tables and indexes, and creates any missing raw
+tables via the SQLAlchemy metadata. Existing raw columns and rows are not
 modified. A temporary ``wiki_estates`` table supplies the ``has_wiki`` flag.
 """
 
@@ -14,6 +15,8 @@ from pathlib import Path
 from typing import Optional
 
 from logger import housing_logger
+from models.agency.sql_db import Base
+from sqlalchemy import create_engine
 
 DEFAULT_SQL_DIR = Path(__file__).resolve().parent / "sql"
 MART_NAMES = [
@@ -78,6 +81,12 @@ def build_marts(
     scripts = sql_files(Path(sql_dir))
     if not scripts:
         raise FileNotFoundError(f"No SQL files found in {sql_dir}")
+
+    # Ensure additive raw tables (for example rental_transactions) exist before
+    # the mart SQL references them.
+    engine = create_engine(f"sqlite:///{database}")
+    Base.metadata.create_all(engine)
+    engine.dispose()
 
     connection = sqlite3.connect(database)
     try:

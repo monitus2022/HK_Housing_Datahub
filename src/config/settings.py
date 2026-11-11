@@ -35,6 +35,7 @@ class AgencyApiUrls(BaseModel):
     single_estate_info: str
     estate_monthly_market_info: str
     building_transactions: str
+    transactions_search: str
 
 
 class WikiApiUrls(BaseModel):

@@ -98,7 +98,8 @@ export function DistrictTrends({ manifest }: Props) {
           <p className="muted">
             Monthly average net-ft price and transaction volume by district.
             Windows end at the latest month with data for the selected metric.
-            Price metrics skip months without transactions, and the chart
+            Rent uses HKP lease transactions and covers roughly the last three
+            years; price metrics skip months without transactions and the chart
             leaves a gap for them.
           </p>
         </div>
@@ -182,9 +183,8 @@ export function DistrictTrends({ manifest }: Props) {
               {metric === "rent" ? (
                 <p>
                   The current snapshot has no positive rent values in this
-                  district and window. Rent averages in the source data are
-                  zero, so the rent metric stays empty until the source is
-                  fixed.
+                  district and window. Rent history comes from HKP lease
+                  transactions and covers roughly the last three years.
                 </p>
               ) : (
                 <p>
@@ -246,7 +246,9 @@ export function DistrictTrends({ manifest }: Props) {
                   <p className="stat-note">
                     {metric === "volume"
                       ? "Months with district data"
-                      : `Latest transactions: ${formatNumber(
+                      : `Latest ${
+                          metric === "rent" ? "rent " : ""
+                        }transactions: ${formatNumber(
                           summary.latest?.txCount ?? null,
                         )}`}
                   </p>
