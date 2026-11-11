@@ -56,7 +56,8 @@ def make_snapshot_db(path: Path) -> None:
             );
             CREATE TABLE mart_estate_monthly (
                 estate_id TEXT, month TEXT, tx_count INTEGER,
-                avg_net_ft_price REAL
+                avg_net_ft_price REAL, rent_tx_count INTEGER,
+                avg_net_ft_rent REAL
             );
             CREATE TABLE mart_transaction_recent (
                 tx_id TEXT, tx_date TEXT, price REAL, net_ft_price REAL,
@@ -90,12 +91,12 @@ def make_snapshot_db(path: Path) -> None:
             ("D1", "2025-01", 2),
         )
         con.executemany(
-            "INSERT INTO mart_estate_monthly VALUES (?, ?, ?, ?)",
+            "INSERT INTO mart_estate_monthly VALUES (?, ?, ?, ?, ?, ?)",
             [
-                ("E1", "2025-01", 2, 15000.0),
-                ("E1", "2024-12", 1, 14000.0),
-                ("E1", "2024-11", 2, 0.0),
-                ("E2", "2025-01", 0, 0.0),
+                ("E1", "2025-01", 2, 15000.0, 1, 14000.0),
+                ("E1", "2024-12", 1, 14000.0, 0, 0.0),
+                ("E1", "2024-11", 2, 0.0, 0, 0.0),
+                ("E2", "2025-01", 0, 0.0, 2, 9000.0),
             ],
         )
         con.execute(
@@ -143,7 +144,7 @@ def snapshot(tmp_path):
 def test_snapshot_manifest_and_files(snapshot):
     snapshot_dir, manifest = snapshot
 
-    assert manifest["schema_version"] == 3
+    assert manifest["schema_version"] == 4
     assert manifest["build_id"] == "test-build"
     assert manifest["data_through"] == {
         "transactions": "2025-01-16",
@@ -185,7 +186,12 @@ def test_snapshot_manifest_and_files(snapshot):
     assert estate_monthly == {
         "months": ["2024-11", "2024-12", "2025-01"],
         "estates": {
-            "E1": [[0, 2, 0.0], [1, 1, 14000.0], [2, 2, 15000.0]]
+            "E1": [
+                [0, 2, 0.0, 0, 0.0],
+                [1, 1, 14000.0, 0, 0.0],
+                [2, 2, 15000.0, 1, 14000.0],
+            ],
+            "E2": [[2, 0, 0.0, 2, 9000.0]],
         },
     }
     transactions = read_json(snapshot_dir / "transaction_recent.json.gz")

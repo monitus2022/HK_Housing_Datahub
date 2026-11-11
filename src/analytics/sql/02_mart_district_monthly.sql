@@ -1,7 +1,6 @@
 -- Grain: one row per district x calendar month.
--- Sale metrics come from unit transactions; rent metrics come from monthly
--- estate aggregates. Rent averages are weighted by rent transaction count
--- when available, with a simple average fallback.
+-- Sale metrics come from unit transactions; rent metrics come from HKP
+-- rental (tx_type=L) transactions, which cover the last three years.
 DROP TABLE IF EXISTS mart_district_monthly;
 
 CREATE TABLE mart_district_monthly AS
@@ -22,30 +21,15 @@ WITH sale AS (
 ),
 rent AS (
     SELECT
-        e.district_id,
-        substr(date(m.record_date), 1, 7) AS month,
-        sum(COALESCE(m.total_rent_tx_count, 0)) AS rent_tx_count,
-        sum(COALESCE(m.total_rent_tx_amount, 0)) AS total_rent_tx_amount,
-        CASE
-            WHEN sum(
-                CASE WHEN m.avg_net_ft_rent > 0
-                     THEN COALESCE(m.total_rent_tx_count, 0) ELSE 0 END
-            ) > 0
-            THEN sum(
-                CASE WHEN m.avg_net_ft_rent > 0
-                     THEN m.avg_net_ft_rent * COALESCE(m.total_rent_tx_count, 0)
-                     ELSE 0 END
-            ) / sum(
-                CASE WHEN m.avg_net_ft_rent > 0
-                     THEN COALESCE(m.total_rent_tx_count, 0) ELSE 0 END
-            )
-            ELSE avg(
-                CASE WHEN m.avg_net_ft_rent > 0 THEN m.avg_net_ft_rent END
-            )
-        END AS avg_net_ft_rent
-    FROM estate_monthly_market_info m
-    JOIN estates e ON m.estate_id = e.estate_id
-    GROUP BY e.district_id, substr(date(m.record_date), 1, 7)
+        r.district_id,
+        substr(date(r.tx_date), 1, 7) AS month,
+        count(*) AS rent_tx_count,
+        avg(
+            CASE WHEN r.net_ft_price > 0 THEN r.net_ft_price END
+        ) AS avg_net_ft_rent,
+        sum(r.price) AS total_rent_tx_amount
+    FROM rental_transactions r
+    GROUP BY r.district_id, substr(date(r.tx_date), 1, 7)
 ),
 months AS (
     SELECT district_id, month FROM sale
