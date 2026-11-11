@@ -63,6 +63,15 @@ export interface DistrictMonthly {
   total_rent_tx_amount: number;
 }
 
+/** `[month index, tx count, average net-ft price]` for one estate. */
+export type EstateMonthlyPoint = [number, number, number];
+
+/** Compact estate-month history keyed by estate id. */
+export interface EstateMonthlyHistory {
+  months: string[];
+  estates: Record<string, EstateMonthlyPoint[]>;
+}
+
 /** One row per transaction in the last 24 months (mart_transaction_recent). */
 export interface RecentTransaction {
   tx_date: string;

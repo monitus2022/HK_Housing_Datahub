@@ -444,7 +444,7 @@ select:focus {
 }
 
 .drawer {
-  width: min(480px, 100%);
+  width: min(640px, 100%);
   height: 100%;
   overflow-y: auto;
   background: var(--surface);
@@ -491,6 +491,76 @@ select:focus {
   margin: 4px 0 0;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+
+.detail-history {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.detail-history h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.detail-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.detail-history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-history-controls .field {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.detail-history-controls .field select {
+  padding: 6px 8px;
+  font-size: 0.78rem;
+}
+
+.detail-history-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.detail-history-stats strong {
+  color: var(--ink);
+}
+
+.detail-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.detail-empty {
+  margin: 8px 0;
+  font-size: 0.82rem;
+}
+
+.detail-tx-table th,
+.detail-tx-table td {
+  padding: 6px 8px;
+  font-size: 0.76rem;
 }
 
 .drawer-note {
