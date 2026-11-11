@@ -113,6 +113,28 @@ def seed_db(path: Path) -> None:
         )
         insert(
             con,
+            "estate_mtr_lines",
+            estate_id="E1",
+            mtr_line_name_zh="荃灣綫",
+            mtr_line_name_en="Tsuen Wan Line",
+        )
+        insert(
+            con,
+            "estate_mtr_lines",
+            estate_id="E1",
+            mtr_line_name_zh="港島綫",
+            mtr_line_name_en="Island Line",
+        )
+        insert(
+            con,
+            "estate_school_nets",
+            estate_id="E1",
+            school_net_id="62",
+            school_net_name_zh="62網",
+            school_net_name_en="Net 62",
+        )
+        insert(
+            con,
             "units",
             unit_id="U1",
             floor="10",
@@ -222,6 +244,13 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert e1["avg_net_ft_price_12m"] == 12_500
     assert e1["avg_net_ft_rent_12m"] == 27.5
     assert e1["latest_market_date"] == "2024-12-31"
+    assert e1["latest_net_area"] == 400
+    assert e1["latest_bedroom"] == 2
+    assert sorted(e1["mtr_lines"].split(",")) == [
+        "Island Line",
+        "Tsuen Wan Line",
+    ]
+    assert e1["school_nets"] == "Net 62"
     assert (e1["has_market"], e1["has_transactions"], e1["has_wiki"]) == (
         1,
         1,
@@ -232,6 +261,10 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert e2["tx_count_12m"] == 0
     assert e2["avg_net_ft_price_12m"] is None
     assert e2["avg_net_ft_rent_12m"] is None
+    assert e2["latest_net_area"] == 300
+    assert e2["latest_bedroom"] == 1
+    assert e2["mtr_lines"] is None
+    assert e2["school_nets"] is None
     assert e2["has_wiki"] == 0
 
     district = read_rows(

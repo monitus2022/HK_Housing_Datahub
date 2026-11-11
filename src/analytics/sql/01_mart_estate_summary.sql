@@ -14,14 +14,16 @@ estate_transactions AS (
         t.tx_id,
         date(t.tx_date) AS tx_date,
         t.price,
-        t.net_ft_price
+        t.net_ft_price,
+        u.net_area,
+        u.bedroom
     FROM transactions t
     JOIN units u ON t.unit_id = u.unit_id
     JOIN buildings b ON u.building_id = b.building_id
     JOIN estates e ON b.estate_id = e.estate_id
 ),
 latest_transaction AS (
-    SELECT estate_id, tx_id, tx_date, price, net_ft_price
+    SELECT estate_id, tx_id, tx_date, price, net_ft_price, net_area, bedroom
     FROM (
         SELECT
             estate_id,
@@ -29,6 +31,8 @@ latest_transaction AS (
             tx_date,
             price,
             net_ft_price,
+            net_area,
+            bedroom,
             ROW_NUMBER() OVER (
                 PARTITION BY estate_id
                 ORDER BY tx_date DESC, tx_id DESC
@@ -68,6 +72,26 @@ rent_12m AS (
     WHERE date(m.record_date) > date(dt.as_of_date, '-12 months')
       AND date(m.record_date) <= dt.as_of_date
     GROUP BY m.estate_id
+),
+-- SQLite before 3.44 has no ORDER BY inside group_concat. The DISTINCT
+-- subquery is materialised and ordered; the frontend treats the value as a set.
+estate_mtr AS (
+    SELECT estate_id, group_concat(name, ',') AS mtr_lines
+    FROM (
+        SELECT DISTINCT estate_id, mtr_line_name_en AS name
+        FROM estate_mtr_lines
+        ORDER BY estate_id, name
+    )
+    GROUP BY estate_id
+),
+estate_school AS (
+    SELECT estate_id, group_concat(name, ',') AS school_nets
+    FROM (
+        SELECT DISTINCT estate_id, school_net_name_en AS name
+        FROM estate_school_nets
+        ORDER BY estate_id, name
+    )
+    GROUP BY estate_id
 )
 SELECT
     e.estate_id,
@@ -87,10 +111,14 @@ SELECT
     lt.tx_date AS latest_tx_date,
     lt.price AS latest_tx_price,
     lt.net_ft_price AS latest_tx_net_ft_price,
+    lt.net_area AS latest_net_area,
+    lt.bedroom AS latest_bedroom,
     COALESCE(t12.tx_count_12m, 0) AS tx_count_12m,
     t12.avg_net_ft_price_12m,
     r12.avg_net_ft_rent_12m,
     lm.latest_market_date,
+    em.mtr_lines,
+    es.school_nets,
     CASE WHEN lm.estate_id IS NOT NULL THEN 1 ELSE 0 END AS has_market,
     CASE WHEN lt.estate_id IS NOT NULL THEN 1 ELSE 0 END AS has_transactions,
     CASE WHEN w.estate_name IS NOT NULL THEN 1 ELSE 0 END AS has_wiki
@@ -102,4 +130,6 @@ LEFT JOIN latest_transaction lt ON e.estate_id = lt.estate_id
 LEFT JOIN transactions_12m t12 ON e.estate_id = t12.estate_id
 LEFT JOIN rent_12m r12 ON e.estate_id = r12.estate_id
 LEFT JOIN latest_market lm ON e.estate_id = lm.estate_id
+LEFT JOIN estate_mtr em ON e.estate_id = em.estate_id
+LEFT JOIN estate_school es ON e.estate_id = es.estate_id
 LEFT JOIN wiki_estates w ON e.estate_name_zh = w.estate_name;
