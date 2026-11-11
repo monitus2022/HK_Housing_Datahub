@@ -71,6 +71,7 @@ the current state and the RAG rerun behavior.
 | `src/crawlers/agency/agency_base.py` | Agency session bootstrap; fetches fresh homepage cookies and tests the session. |
 | `src/crawlers/agency/estates.py` | Paginated estate IDs, bilingual single-estate info, and estate monthly market info. |
 | `src/crawlers/agency/buildings.py` | Building transaction payloads; one request per building ID with a 0.1 s pause. |
+| `src/crawlers/agency/rentals.py` | District lease/rental transactions (`tx_type=L`, 1–3 year lookback). |
 | `src/crawlers/wiki/wiki.py` | Wikipedia page lookup with title variations, disambiguation/HK checks, and concurrent section wikitext fetches. |
 
 Notes:
@@ -90,6 +91,7 @@ Notes:
 | `src/processors/agency/agency_base.py` | SQLite engine/session, table creation, idempotent upserts, run metadata, cache-to-JSON export, and session cleanup. |
 | `src/processors/agency/estates.py` | Maps bilingual estate responses to location, estate, school-net, facility, MTR, phase, building, and market rows. Rows are upserted by model primary key; duplicate keys in a batch are absorbed by the SQLite upsert. |
 | `src/processors/agency/buildings.py` | Maps building/unit/transaction payloads into `units`, `unit_features`, and `transactions`; optionally keeps only the latest transaction per unit. |
+| `src/processors/agency/rentals.py` | Maps and upserts rental transactions. |
 | `src/processors/wiki/wiki.py` | Parses wiki sections and tables, expands rowspan/colspan, and emits CSV table strings alongside section text. |
 | `src/processors/rag/embedding.py` | Cleans and chunks wiki text, generates normalized Sentence Transformer embeddings, and writes to ChromaDB. |
 
@@ -160,11 +162,13 @@ Notes:
 
 ### Analytics path
 
-1. The builder reads the raw SQLite tables and the wiki JSON estate names.
-2. It creates a connection-local `wiki_estates` temp table for `has_wiki`.
-3. It runs ordered SQL files: raw indexes, five mart definitions, then mart
+1. Rental transactions are fetched separately with `scripts/fetch_rentals.py`
+   (HKP `tx_type=L`, 1–3 year lookback).
+2. The builder reads the raw SQLite tables and the wiki JSON estate names.
+3. It creates a connection-local `wiki_estates` temp table for `has_wiki`.
+4. It runs ordered SQL files: raw indexes, five mart definitions, then mart
    lookup indexes.
-4. It drops/recreates the marts on every run; raw data and columns are
+5. It drops/recreates the marts on every run; raw data and columns are
    unchanged, though indexes are added to raw tables.
 
 The resulting marts are documented in

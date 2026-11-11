@@ -185,6 +185,26 @@ Table transactions {
   Note: 'No transaction-type column exists; treat rows as sale transactions. The current database has only primary-key autoindexes; Phase 5 adds dashboard indexes.'
 }
 
+Table rental_transactions {
+  rental_id text [pk]
+  tx_date datetime [not null]
+  price real [not null]
+  net_area real
+  area real
+  net_ft_price real
+  bedroom integer
+  estate_id text [not null]
+  estate_name_en text
+  district_id text [not null]
+  district_name_en text
+  phase_id text
+  phase_name_en text
+  building_id text
+  building_name_en text
+  source text
+  Note: 'Lease/rental transactions from HKP tx_type=L. HKP supports only 1-year or 3-year lookbacks.'
+}
+
 Table pipeline_runs {
   run_id text [pk]
   started_at datetime [not null]

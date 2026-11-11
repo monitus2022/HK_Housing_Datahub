@@ -267,6 +267,30 @@ column**; treat the table as sale transactions unless the source is re-audited.
 `last_tx_date` and `gain` are transaction outcomes and must not be used as
 predictors for earlier rows.
 
+### `rental_transactions`
+
+Grain: one row per rental/lease transaction from HKP's district transaction
+search (`tx_type=L`). Primary key: `rental_id`. Rows: 53,038 in the refreshed
+DB, covering 2023-11 to 2026-11 across 58 districts.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `rental_id` | text | no | Source transaction ID |
+| `tx_date` | datetime | no | Rental date |
+| `price` | real | no | Monthly rent |
+| `net_area` / `area` | real | yes | Net and gross area |
+| `net_ft_price` | real | yes | Monthly rent per net sq ft |
+| `bedroom` | integer | yes | Bedrooms |
+| `estate_id` / `estate_name_en` | text | no / yes | Estate |
+| `district_id` / `district_name_en` | text | no / yes | District |
+| `phase_id` / `phase_name_en` | text | yes | Phase |
+| `building_id` / `building_name_en` | text | yes | Building |
+| `source` | text | yes | Listing source |
+
+The district search can return records from adjacent combined districts, so
+per-district query counts overlap; `rental_id` deduplicates the stored rows.
+HKP only accepts a 1-year or 3-year lookback.
+
 ## Run metadata
 
 ### `pipeline_runs`
@@ -314,14 +338,16 @@ Grain: one row per estate. Unique key: `estate_id`. Rows: 9,750 (refreshed DB).
 | `school_nets` | text | Comma-separated school-net names, which the source takes from the secondary-school net (9,219 estates) |
 | `tx_count_12m` | integer | Transactions in the trailing 12 months |
 | `avg_net_ft_price_12m` | real | Average sale net-ft price, trailing 12 months |
-| `avg_net_ft_rent_12m` | real | Simple average of monthly estate rent averages, trailing 12 months |
+| `avg_net_ft_rent_12m` | real | Average rental net-ft price, trailing 12 months |
+| `rent_count_12m` | integer | Rental transactions in the trailing 12 months |
+| `latest_rent_date` / `latest_rent_net_ft_price` | date / real | Latest rental transaction |
 | `latest_market_date` | date | Latest monthly market record |
 | `has_market` | integer | 1 when market rows exist |
 | `has_transactions` | integer | 1 when transactions exist |
 | `has_wiki` | integer | 1 when the Chinese estate name matches a wiki JSON key |
 
-Caveats: 12-month windows are relative to `max(tx_date)` in the snapshot, not
-the wall-clock date. The rent average uses only positive monthly averages and
+Caveats: 12-month windows end at the later of the latest sale and rental
+dates in the snapshot, not the wall-clock date. The rent average uses positive rental net-ft prices and
 does not weight by rent transaction count. `has_wiki` is an exact name match, so
 renamed or variant wiki titles are not linked. `latest_net_area` and
 `latest_bedroom` describe the latest transaction only; `mtr_lines` and
@@ -332,7 +358,7 @@ kept only the first line per ingest, so coverage can lag the source.
 ### `mart_district_monthly`
 
 Grain: one row per district × calendar month. Unique key:
-(`district_id`, `month`). Rows: 19,352.
+(`district_id`, `month`). Rows: 19,840 in the refreshed DB.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -341,18 +367,20 @@ Grain: one row per district × calendar month. Unique key:
 | `tx_count` | integer | Sale transactions in the month |
 | `avg_net_ft_price` | real | Average sale net-ft price |
 | `total_tx_amount` | real | Total sale amount |
-| `rent_tx_count` | integer | Rent transactions, summed from estate monthly aggregates |
-| `avg_net_ft_rent` | real | Rent-count-weighted average, with a simple-average fallback |
-| `total_rent_tx_amount` | real | Total rent amount |
+| `rent_tx_count` | integer | Rental transactions from HKP (`tx_type=L`) |
+| `avg_net_ft_rent` | real | Average monthly rent per net sq ft |
+| `total_rent_tx_amount` | real | Total monthly rent amount |
 
 Caveats: sale metrics come from unit transactions; rent metrics come from
-`estate_monthly_market_info` and are aggregated at the estate level before
-district roll-up. A month can contain sale data, rent data, or both.
+`rental_transactions` and cover roughly the last three years. A month can
+contain sale data, rent data, or both.
 
 ### `mart_estate_monthly`
 
 Grain: one row per estate × calendar month. Unique key:
-(`estate_id`, `month`). Rows: 591,904.
+(`estate_id`, `month`). Rows: 245,017 in the refreshed DB (sale months plus
+rental months). The previous published count (662,503) included market-only months whose
+rent values were zero; those rows were dropped when rent moved to transactions.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -361,11 +389,12 @@ Grain: one row per estate × calendar month. Unique key:
 | `tx_count` | integer | Sale transactions |
 | `avg_net_ft_price` | real | Average sale net-ft price |
 | `total_tx_amount` | real | Total sale amount |
-| `rent_tx_count` | integer | Rent transactions from estate monthly aggregates |
-| `avg_net_ft_rent` | real | Rent-count-weighted average, with fallback |
+| `rent_tx_count` | integer | Rental transactions from HKP (`tx_type=L`) |
+| `avg_net_ft_rent` | real | Average monthly rent per net sq ft |
 | `total_rent_tx_amount` | real | Total rent amount |
 
-Caveats: this is the largest mart and keeps the full history. The serving layer exports
+Caveats: rent values come from rental transactions and cover roughly three years;
+sale months keep the full history. The serving layer exports
 it as a compact month-indexed JSON file (~1.3 MB gzipped) for estate views.
 
 ### `mart_transaction_recent`
@@ -419,8 +448,11 @@ the raw timestamps as if they were midnight UTC.
 Phase 5 added idempotent indexes for the dashboard filters:
 `transactions(tx_date)`, `transactions(unit_id)`,
 `estate_monthly_market_info(estate_id, record_date)`,
-`units(building_id)`, and `buildings(estate_id)`. The marts also have unique
-lookup indexes (`idx_mart_*`) on their grain keys.
+`units(building_id)`, and `buildings(estate_id)`.
+
+This change adds three indexes on `rental_transactions`: `(tx_date)`,
+`(district_id, tx_date)`, and `(estate_id, tx_date)`. The marts also have
+unique lookup indexes (`idx_mart_*`) on their grain keys.
 
 ## Planned tables (not current)
 
@@ -431,8 +463,8 @@ lookup indexes (`idx_mart_*`) on their grain keys.
 ## Caveats that affect analysis
 
 - Scraped data, not an official statistical product.
-- Sale and rent are separated only at the monthly aggregate level; unit-level
-  transactions have no type flag.
+- Sales are in `transactions`, which has no transaction-type column; rentals
+  are in `rental_transactions` (`tx_type=L`).
 - `net_area`, `bedroom`, coordinates, and operation dates have meaningful
   missingness.
 - `estate_mtr_lines` is not exhaustive.
@@ -441,5 +473,5 @@ lookup indexes (`idx_mart_*`) on their grain keys.
   idempotent and prune removed chunks (issue #17).
 - Wiki JSON and Chroma are not relational tables; their counts are tracked in
   `baseline-stats.md`. The marts use wiki JSON keys only for `has_wiki`.
-- Mart windows are relative to the latest transaction date in the snapshot, not
-  to today. A fresh crawl changes the windows.
+- Mart windows end at the later of the latest sale and rental dates, not today.
+  A fresh crawl changes the windows.
