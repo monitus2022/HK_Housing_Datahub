@@ -1,5 +1,6 @@
 import type {
   DashboardData,
+  DataCatalog,
   DistrictMonthly,
   EstateMonthlyHistory,
   EstateSummary,
@@ -104,6 +105,11 @@ export async function loadDistrictMonthly(
   manifest: Manifest,
 ): Promise<DistrictMonthly[]> {
   return fetchVersionedJson<DistrictMonthly[]>(manifest, "district_monthly");
+}
+
+/** Catalogue and data cards. Loaded on demand by the catalogue view. */
+export async function loadCatalog(manifest: Manifest): Promise<DataCatalog> {
+  return fetchVersionedJson<DataCatalog>(manifest, "catalog");
 }
 
 /** Estate-level monthly history. Loaded on demand by the estate view. */
