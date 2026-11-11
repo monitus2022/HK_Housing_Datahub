@@ -177,7 +177,7 @@ resolved from the current working directory, so run it from the repo root.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
-  frontend origin are verified. `npm run typecheck`, `npm test` (59 tests), and
+  frontend origin are verified. `npm run typecheck`, `npm test` (70 tests), and
   `npm run build` pass; `npm audit` reports zero vulnerabilities. Production
   smoke test on the refreshed snapshot verified 9,750 estates, the district
   sale and volume trend chart (latest Nov 2026), the 9,117-marker map, and

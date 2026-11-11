@@ -365,7 +365,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - The transaction table has no sale/rent type; it is treated as sales.
 - Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
   (583,266 null), missing coordinates (633 estates), missing `first_op_date`
-  (887 estates).
+  (887 estates). Estates with a null or non-positive latest price/area are excluded when
+  those filters are active.
 - Agency SQLite writes are idempotent as of Phase 2: they use SQLite upserts and
   record run metadata in `pipeline_runs`. Rerunning a partition leaves row
   counts unchanged and refreshes non-key columns.
@@ -384,8 +385,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
 - No live API. The serving layer is a versioned snapshot, not a query service.
-- The frontend covers the overview, estate search and detail, estate price
-  history, district price trends, the estate map, and recent transactions. The map uses OpenStreetMap tiles at
+- The frontend covers the overview, estate search and detail (price history,
+  recent transactions, numeric filters, shareable state), district price
+  trends, the estate map, and recent transactions. The map uses OpenStreetMap tiles at
   runtime; no map data is bundled or redistributed.
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional

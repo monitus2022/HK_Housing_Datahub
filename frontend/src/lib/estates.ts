@@ -1,4 +1,5 @@
 import type { EstateSummary } from "../types";
+import { matchesFilters, type EstateFilters } from "./filters";
 
 export type SortKey =
   | "name"
@@ -15,11 +16,11 @@ export interface DistrictOption {
 export function filterEstates(
   estates: EstateSummary[],
   query: string,
-  districtId: string,
+  filters: EstateFilters,
 ): EstateSummary[] {
   const needle = query.trim().toLowerCase();
   return estates.filter((estate) => {
-    if (districtId && estate.district_id !== districtId) {
+    if (!matchesFilters(estate, filters)) {
       return false;
     }
     if (!needle) {
