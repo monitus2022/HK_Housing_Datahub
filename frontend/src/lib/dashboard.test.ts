@@ -4,6 +4,7 @@ import type { Manifest } from "../types";
 import {
   loadDashboard,
   loadDistrictMonthly,
+  loadEstateMonthly,
   loadRecentTransactions,
 } from "./dashboard";
 
@@ -22,6 +23,7 @@ const manifest: Manifest = {
   files: {
     estate_summary: "estate_summary.json.gz",
     district_monthly: "district_monthly.json.gz",
+    estate_monthly: "estate_monthly.json.gz",
     transaction_recent: "transaction_recent.json.gz",
   },
   source: ["HKP"],
@@ -137,6 +139,25 @@ describe("on-demand dataset loaders", () => {
     expect(rows).toEqual(districtRows);
     expect(fetchMock.mock.calls[0][0]).toContain(
       "/dashboard/build-district/district_monthly.json.gz",
+    );
+  });
+
+  it("loads estate monthly history from the manifest file", async () => {
+    const history = {
+      months: ["2025-01"],
+      estates: { E1: [[0, 1, 12000]] },
+    };
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(history));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const rows = await loadEstateMonthly({
+      ...manifest,
+      build_id: "build-history",
+    });
+
+    expect(rows).toEqual(history);
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/dashboard/build-history/estate_monthly.json.gz",
     );
   });
 
