@@ -33,14 +33,15 @@ and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
 ## Published snapshot
 
-Build `20261111T122457Z-1fd8dd` (`schema_version` 3) was published to the
-`hk-housing-datahub` bucket on 2026-11-11, superseding
-`20261110T094646Z-802e9b` as the current pointer. It carries refreshed data
-(transactions through 2026-11-08, market data through 2026-09-30, 9,750
-estates), `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display
-rows), and `estate_monthly.json.gz` (~1.3 MB), taking the snapshot to ~4.3 MB.
-The remote `dashboard/manifest.json` and every referenced file were read back
-successfully; the gzip, cache, and CORS headers were verified.
+Build `20261111T194346Z-f4ee06` (`schema_version` 4) was published to the
+`hk-housing-datahub` bucket on 2026-11-12, superseding
+`20261111T122457Z-1fd8dd` as the current pointer. It carries refreshed data
+(transactions through 2026-11-08, rentals through 2026-11-10, market data
+through 2026-09-30, 9,750 estates), `transaction_recent.json.gz` (~2.1 MB
+gzipped for 87,393 display rows), and `estate_monthly.json.gz` (~1.3 MB),
+taking the snapshot to ~4.6 MB. The remote `dashboard/manifest.json` and every
+referenced file were read back successfully; the gzip, cache, and CORS headers
+were verified.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
@@ -161,9 +162,9 @@ prices/rents are stored as `0` and the frontend drops them from the matching
 series. The file is loaded lazily when an
 estate view opens; the frontend only reads the requested estate.
 
-New snapshots use `schema_version` 4. The currently published build uses schema
-3 until the next publish; older snapshots without `estate_monthly` still work,
-and the estate view shows a section-level message for missing history.
+The current published build uses `schema_version` 4. Older schema-3/2 snapshots
+without `estate_monthly` still work; the estate view shows a section-level
+message for missing history.
 
 ## What is not exported yet
 
