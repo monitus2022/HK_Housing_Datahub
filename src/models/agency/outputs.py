@@ -467,3 +467,68 @@ class TransactionsDetailModel(BaseModel):
             net_ft_price=response.net_ft_price,
             unit_id=unit_id,
         )
+
+
+class RentalTransactionModel(BaseModel):
+    """One HKP lease/rental transaction."""
+
+    rental_id: str
+    tx_date: datetime
+    price: float
+    net_area: Optional[float] = None
+    area: Optional[float] = None
+    net_ft_price: Optional[float] = None
+    bedroom: Optional[int] = None
+    estate_id: str
+    estate_name_en: Optional[str] = None
+    district_id: str
+    district_name_en: Optional[str] = None
+    phase_id: Optional[str] = None
+    phase_name_en: Optional[str] = None
+    building_id: Optional[str] = None
+    building_name_en: Optional[str] = None
+    source: Optional[str] = None
+
+    @field_validator("tx_date", mode="before")
+    @classmethod
+    def parse_date(cls, value):
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+        return value
+
+    @classmethod
+    def from_api(cls, item: dict) -> "RentalTransactionModel":
+        if item.get("tx_type") != "L":
+            raise ValueError(f"Not a rental transaction: {item.get('tx_type')}")
+
+        def nested(key: str, field: str):
+            value = item.get(key)
+            return value.get(field) if isinstance(value, dict) else None
+
+        bedroom = item.get("bedroom")
+        try:
+            bedroom_value = int(bedroom) if bedroom not in (None, "") else None
+        except (TypeError, ValueError):
+            bedroom_value = None
+
+        return cls(
+            rental_id=item["id"],
+            tx_date=item.get("tx_date"),
+            price=float(item.get("price") or 0),
+            net_area=item.get("net_area"),
+            area=item.get("area"),
+            net_ft_price=item.get("unit_price_net"),
+            bedroom=bedroom_value,
+            estate_id=nested("estate", "id") or "",
+            estate_name_en=nested("estate", "name"),
+            district_id=nested("district", "id") or "",
+            district_name_en=nested("district", "name"),
+            phase_id=nested("phase", "id"),
+            phase_name_en=nested("phase", "name"),
+            building_id=nested("building", "id"),
+            building_name_en=nested("building", "name"),
+            source=item.get("source"),
+        )

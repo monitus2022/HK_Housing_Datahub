@@ -158,6 +158,28 @@ class Transactions(Base):
     unit_id = Column(String, ForeignKey("units.unit_id"), nullable=False)
 
 
+class RentalTransaction(Base):
+    """Lease/rental transaction from HKP's district transaction search."""
+
+    __tablename__ = "rental_transactions"
+    rental_id = Column(String, primary_key=True)
+    tx_date = Column(DateTime, nullable=False)
+    price = Column(Float, nullable=False)
+    net_area = Column(Float)
+    area = Column(Float)
+    net_ft_price = Column(Float)
+    bedroom = Column(Integer)
+    estate_id = Column(String, nullable=False)
+    estate_name_en = Column(String)
+    district_id = Column(String, nullable=False)
+    district_name_en = Column(String)
+    phase_id = Column(String)
+    phase_name_en = Column(String)
+    building_id = Column(String)
+    building_name_en = Column(String)
+    source = Column(String)
+
+
 # Run metadata
 class PipelineRun(Base):
     __tablename__ = "pipeline_runs"
