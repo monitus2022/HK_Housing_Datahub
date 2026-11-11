@@ -145,8 +145,9 @@ Grain: one row per estate × MTR line. Composite primary key:
 | `mtr_line_name_zh` | text | yes | Chinese line name |
 | `mtr_line_name_en` | text | no | English line name |
 
-Rows: 798. **Caveat:** the mapping code keeps only the first MTR line returned
-for an estate, even if the source payload contains several.
+Rows: 1,780 across 1,773 estates in the refreshed DB. **Caveat:** each ingest kept only the first MTR line returned for an estate,
+so the table may be missing later lines for some estates. The mart aggregates
+every stored row.
 
 ### `estate_monthly_market_info`
 
@@ -288,11 +289,12 @@ the agency orchestrator (Phase 2); it did not exist in the Phase 0 baseline.
 The marts are derived, denormalized tables built from the raw model by
 `python scripts/build_marts.py`. They are dropped and recreated on every build;
 raw data and columns are never modified. The builder does add dashboard indexes
-to raw tables. Row counts below are from the 2026-11-09 reference snapshot.
+to raw tables. Row counts below are from the 2026-11-09 reference snapshot
+unless marked "refreshed DB"; see `docs/baseline-stats.md` for that baseline.
 
 ### `mart_estate_summary`
 
-Grain: one row per estate. Unique key: `estate_id`. Rows: 9,748.
+Grain: one row per estate. Unique key: `estate_id`. Rows: 9,750 (refreshed DB).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -306,6 +308,10 @@ Grain: one row per estate. Unique key: `estate_id`. Rows: 9,748.
 | `latest_tx_date` | date | Latest transaction date |
 | `latest_tx_price` | real | Price of the latest transaction |
 | `latest_tx_net_ft_price` | real | Net-ft price of the latest transaction |
+| `latest_net_area` | real | Net area of the latest transaction |
+| `latest_bedroom` | integer | Bedrooms of the latest transaction |
+| `mtr_lines` | text | Comma-separated MTR line names (1,773 estates in the refreshed DB) |
+| `school_nets` | text | Comma-separated school-net names, which the source takes from the secondary-school net (9,219 estates) |
 | `tx_count_12m` | integer | Transactions in the trailing 12 months |
 | `avg_net_ft_price_12m` | real | Average sale net-ft price, trailing 12 months |
 | `avg_net_ft_rent_12m` | real | Simple average of monthly estate rent averages, trailing 12 months |
@@ -317,7 +323,11 @@ Grain: one row per estate. Unique key: `estate_id`. Rows: 9,748.
 Caveats: 12-month windows are relative to `max(tx_date)` in the snapshot, not
 the wall-clock date. The rent average uses only positive monthly averages and
 does not weight by rent transaction count. `has_wiki` is an exact name match, so
-renamed or variant wiki titles are not linked.
+renamed or variant wiki titles are not linked. `latest_net_area` and
+`latest_bedroom` describe the latest transaction only; `mtr_lines` and
+`school_nets` are comma-separated and may be empty when the source has no
+mapping. The mart aggregates every stored MTR row, but the mapper historically
+kept only the first line per ingest, so coverage can lag the source.
 
 ### `mart_district_monthly`
 
@@ -382,7 +392,7 @@ snapshot, not the current date. The serving export keeps the display columns
 
 ### `mart_coverage`
 
-Grain: one row per estate. Unique key: `estate_id`. Rows: 9,748.
+Grain: one row per estate. Unique key: `estate_id`. Rows: 9,750 (refreshed DB).
 
 | Column | Type | Notes |
 |---|---|---|

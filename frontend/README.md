@@ -3,7 +3,8 @@
 Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 
 - dataset overview cards
-- estate search with district filter, sorting, and pagination
+- estate search with text, district, price, net-ft price, area, bedroom, MTR,
+  and school-net filters, sorting, and pagination; filter state lives in the URL
 - estate detail panel with latest transaction, 12-month stats, market date,
   coverage flags, monthly price history, and that estate's recent transactions
 - shareable `?estate=<id>` deep links that open the estate view
@@ -51,9 +52,11 @@ manual `DecompressionStream` for local servers that return raw `.gz` bytes. If a
 snapshot predates the trends, transactions, or estate-history file, only that
 section shows an error; the overview and estate search keep working.
 
-Estate views are linkable with `?estate=<estate_id>`. Opening such a URL loads
-the snapshot and opens that estate; selecting or closing an estate updates the
-query string. On a missing file, the history and transactions sections show a
+Search state is linkable too: `q`, `sort`, `district`, price/area ranges,
+`bedrooms`, `mtr`, and `school` are serialized in the query string and restored
+on load. Estate views use `?estate=<estate_id>`; opening such a URL loads the
+snapshot and opens that estate, and selecting or closing an estate updates the
+query string while keeping the search filters. On a missing file, the history and transactions sections show a
 section-level message while the estate summary still renders.
 
 The map plots estate coordinates from `estate_summary` over OpenStreetMap

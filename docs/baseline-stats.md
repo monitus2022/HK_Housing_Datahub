@@ -145,7 +145,7 @@ database read-only, so it cannot modify either one. Pass `--db PATH` to point
 at a different copy of the agency database; the wiki and Chroma paths are
 resolved from the current working directory, so run it from the repo root.
 
-## Final handoff checks — 2026-11-10
+## Final handoff and post-release checks — 2026-11-11
 
 - **Tests:** `pytest -q` → 88 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
@@ -167,25 +167,24 @@ resolved from the current working directory, so run it from the repo root.
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261110T094646Z-802e9b` (`schema_version` 2), ~3.1 MB;
-  verifier passed; all seven files uploaded to the `hk-housing-datahub` bucket
+- **Serving:** build `20261111T122457Z-1fd8dd` (`schema_version` 3), ~4.3 MB;
+  verifier passed; all eight files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
   cache, and CORS headers verified. It carries refreshed data (transactions
-  through 2026-11-08, market through 2026-09-30, 9,750 estates) and
-  `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display rows).
-  Earlier v2 and v1 builds remain in the bucket.
+  through 2026-11-08, market through 2026-09-30, 9,750 estates),
+  `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 rows), and
+  `estate_monthly.json.gz` (~1.3 MB). Earlier builds remain in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
-  frontend origin are verified. `npm run typecheck`, `npm test` (59 tests), and
+  frontend origin are verified. `npm run typecheck`, `npm test` (70 tests), and
   `npm run build` pass; `npm audit` reports zero vulnerabilities. Production
   smoke test on the refreshed snapshot verified 9,750 estates, the district
   sale and volume trend chart (latest Nov 2026), the 9,117-marker map, and
   87,393 recent transactions with pagination, with zero console errors.
   Cloudflare Pages/R2 setup is in [`deployment.md`](deployment.md).
-- **Branch state:** `main` contains `dev` through release PR #46. PRs #48
-  (missing English addresses) and #50 (pipeline progress logging) have since
-  merged into `dev`; no PRs are open.
+- **Branch state:** `main` contains `dev` through release PR #66; no PRs are
+  open.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; optional Parquet export
   for external analytics; incremental crawls, RVD, and monitoring (see

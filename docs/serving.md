@@ -33,14 +33,14 @@ and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
 ## Published snapshot
 
-Build `20261110T094646Z-802e9b` (`schema_version` 2) was published to the
-`hk-housing-datahub` bucket on 2026-11-10, superseding
-`20261110T044947Z-06a658` as the current pointer. It carries refreshed data
+Build `20261111T122457Z-1fd8dd` (`schema_version` 3) was published to the
+`hk-housing-datahub` bucket on 2026-11-11, superseding
+`20261110T094646Z-802e9b` as the current pointer. It carries refreshed data
 (transactions through 2026-11-08, market data through 2026-09-30, 9,750
-estates) and `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display
-rows), taking the snapshot to ~3.1 MB. The remote `dashboard/manifest.json` and
-every referenced file were read back successfully; the gzip, cache, and CORS
-headers were verified.
+estates), `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display
+rows), and `estate_monthly.json.gz` (~1.3 MB), taking the snapshot to ~4.3 MB.
+The remote `dashboard/manifest.json` and every referenced file were read back
+successfully; the gzip, cache, and CORS headers were verified.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
@@ -127,7 +127,7 @@ credentials must never be shipped to the frontend.
 
 ## Recent transactions export
 
-`mart_transaction_recent` is exported as `transaction_recent.json.gz` (~2.0 MB
+`mart_transaction_recent` is exported as `transaction_recent.json.gz` (~2.1 MB
 gzipped for 87,393 rows). Only display columns are exported: `tx_date`, `price`,
 `net_ft_price`, `estate_id`, `estate_name_en`, `district_id`,
 `district_name_en`, `area`, `net_area`, and `bedroom`. Internal join keys
@@ -158,9 +158,9 @@ complete; a missing or non-positive sale price is stored as `0` and the
 frontend drops it from the price series. The file is loaded lazily when an
 estate view opens; the frontend only reads the requested estate.
 
-New snapshots use `schema_version` 3. The currently published build remains
-schema 2 until the next publish; older snapshots without `estate_monthly` show
-a section-level message in the estate view.
+The current published build uses `schema_version` 3. Older schema-2 snapshots
+without `estate_monthly` still work; the estate view shows a section-level
+message for the missing history.
 
 ## What is not exported yet
 
