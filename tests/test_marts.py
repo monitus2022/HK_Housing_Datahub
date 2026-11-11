@@ -399,6 +399,9 @@ def test_builder_is_idempotent_and_creates_indexes(tmp_path):
         "idx_transactions_tx_date",
         "idx_transactions_unit_id",
         "idx_units_building_id",
+        "idx_rental_transactions_date",
+        "idx_rental_transactions_district_date",
+        "idx_rental_transactions_estate_date",
     }.issubset(names)
     assert {
         "idx_mart_estate_summary_estate_id",

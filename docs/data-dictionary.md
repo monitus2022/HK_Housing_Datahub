@@ -450,7 +450,7 @@ Phase 5 added idempotent indexes for the dashboard filters:
 `estate_monthly_market_info(estate_id, record_date)`,
 `units(building_id)`, and `buildings(estate_id)`.
 
-This change adds three indexes on `rental_transactions`: `(tx_date)`,
+The rental-ingestion change adds three indexes on `rental_transactions`: `(tx_date)`,
 `(district_id, tx_date)`, and `(estate_id, tx_date)`. The marts also have
 unique lookup indexes (`idx_mart_*`) on their grain keys.
 

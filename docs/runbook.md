@@ -302,8 +302,8 @@ mart_coverage             one row per estate
 ```
 
 The builder drops and recreates the `mart_*` tables and creates idempotent raw
-and mart indexes. Raw data and columns are not modified; only indexes are added
-to raw tables. `has_wiki` comes from the wiki JSON estate names; missing wiki
+and mart indexes. Existing raw data and columns are not modified; indexes are added to raw
+tables and any missing raw tables are created. `has_wiki` comes from the wiki JSON estate names; missing wiki
 data simply sets it to 0. Windows end at the later of the latest sale and rental dates in the
 snapshot. Grains and columns are in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts).
