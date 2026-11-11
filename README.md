@@ -349,7 +349,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (93 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (94 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
 synthetic mart builds, serving manifest/publish planning, and offline RAG
 idempotency. The boto3-only legacy-upload gate test is skipped in the core-only

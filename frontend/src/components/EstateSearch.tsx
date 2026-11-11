@@ -64,7 +64,9 @@ function wikiFlag(estate: EstateSummary) {
   }
   return (
     <a
-      className="flag flag-on flag-link"
+      className={`flag flag-link ${
+        estate.has_wiki === 1 ? "flag-on" : "flag-off"
+      }`}
       href={url}
       target="_blank"
       rel="noreferrer"

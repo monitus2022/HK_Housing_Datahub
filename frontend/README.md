@@ -27,7 +27,7 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - TypeScript
 - Leaflet + OpenStreetMap tiles for the map
 - Plain CSS (no UI framework)
-- Vitest for the pure search, trend, map, and transaction helpers
+- Vitest for the pure search, trend, map, transaction, wiki, and activation helpers
 
 ## Data contract
 

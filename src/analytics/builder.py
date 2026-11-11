@@ -2,7 +2,8 @@
 
 The builder writes derived tables and indexes, and creates any missing raw
 tables via the SQLAlchemy metadata. Existing raw columns and rows are not
-modified. A temporary ``wiki_estates`` table supplies the ``has_wiki`` flag.
+modified. A temporary ``wiki_estates`` table supplies the ``has_wiki`` flag
+and the Chinese Wikipedia page title.
 """
 
 from __future__ import annotations
@@ -33,7 +34,7 @@ def load_wiki_estates(wiki_dir: Path) -> dict[str, str]:
     estates: dict[str, str] = {}
     if not wiki_dir.exists():
         housing_logger.warning(
-            f"Wiki directory not found ({wiki_dir}); has_wiki will be 0."
+            f"Wiki directory not found ({wiki_dir}); wiki fields will be empty."
         )
         return {}
     for path in sorted(wiki_dir.glob("*.json")):
@@ -52,7 +53,7 @@ def load_wiki_estates(wiki_dir: Path) -> dict[str, str]:
 
 
 def setup_wiki_table(conn: sqlite3.Connection, wiki_dir: Path) -> int:
-    """Create a connection-local temp table with wiki estate names."""
+    """Create a connection-local temp table with wiki names and page titles."""
     conn.execute(
         "CREATE TEMP TABLE IF NOT EXISTS wiki_estates ("
         "estate_name TEXT PRIMARY KEY, title TEXT)"
@@ -127,7 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--wiki-dir",
         default="data/wiki",
-        help="Directory containing wiki partition JSON files (for has_wiki).",
+        help="Directory containing wiki partition JSON files (has_wiki/title).",
     )
     return parser
 

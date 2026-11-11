@@ -27,6 +27,7 @@ function Stat({
 
 export function EstateDetail({ manifest, estate, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const wikiHref = wikiUrl(estate.wiki_title);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -84,10 +85,12 @@ export function EstateDetail({ manifest, estate, onClose }: Props) {
           >
             Market
           </span>
-          {wikiUrl(estate.wiki_title) ? (
+          {wikiHref ? (
             <a
-              className="flag flag-on flag-link"
-              href={wikiUrl(estate.wiki_title) ?? undefined}
+              className={`flag flag-link ${
+                estate.has_wiki ? "flag-on" : "flag-off"
+              }`}
+              href={wikiHref}
               target="_blank"
               rel="noreferrer"
             >
