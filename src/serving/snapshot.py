@@ -16,13 +16,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
-SCHEMA_VERSION = 4
+from catalog import DEFAULT_METADATA, build_catalog
+
+SCHEMA_VERSION = 5
 FILE_NAMES = {
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
     "estate_summary": "estate_summary.json.gz",
     "transaction_recent": "transaction_recent.json.gz",
     "estate_monthly": "estate_monthly.json.gz",
+    "catalog": "catalog.json",
     "coverage": "coverage.json.gz",
 }
 MART_TABLES = [
@@ -271,6 +274,15 @@ def build_snapshot(
     write_gzip_json(
         snapshot_dir / FILE_NAMES["coverage"],
         clean_value(coverage_rows),
+    )
+    write_json(
+        snapshot_dir / FILE_NAMES["catalog"],
+        build_catalog(
+            database,
+            metadata_path=DEFAULT_METADATA,
+            quality_path=Path("data/quality/latest.json"),
+            generated_at=generated_at,
+        ),
     )
     write_json(
         snapshot_dir / "overview.json",

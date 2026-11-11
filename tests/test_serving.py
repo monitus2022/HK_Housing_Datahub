@@ -29,6 +29,7 @@ REQUIRED_FILES = {
     "transaction_recent.json.gz",
     "estate_monthly.json.gz",
     "coverage.json.gz",
+    "catalog.json",
     "manifest.json",
 }
 
@@ -144,7 +145,7 @@ def snapshot(tmp_path):
 def test_snapshot_manifest_and_files(snapshot):
     snapshot_dir, manifest = snapshot
 
-    assert manifest["schema_version"] == 4
+    assert manifest["schema_version"] == 5
     assert manifest["build_id"] == "test-build"
     assert manifest["data_through"] == {
         "transactions": "2025-01-16",
@@ -169,6 +170,7 @@ def test_snapshot_manifest_and_files(snapshot):
         "estate_summary": "estate_summary.json.gz",
         "transaction_recent": "transaction_recent.json.gz",
         "estate_monthly": "estate_monthly.json.gz",
+        "catalog": "catalog.json",
         "coverage": "coverage.json.gz",
     }
     assert manifest["source"] == ["HKP", "Wikipedia"]
@@ -239,12 +241,13 @@ def test_publish_dry_run_plans_versioned_files_and_manifest_last(snapshot):
         dry_run=True,
     )
     keys = [upload["key"] for upload in uploads]
-    assert keys[:6] == [
+    assert keys[:7] == [
         f"dashboard/{manifest['build_id']}/overview.json",
         f"dashboard/{manifest['build_id']}/district_monthly.json.gz",
         f"dashboard/{manifest['build_id']}/estate_summary.json.gz",
         f"dashboard/{manifest['build_id']}/transaction_recent.json.gz",
         f"dashboard/{manifest['build_id']}/estate_monthly.json.gz",
+        f"dashboard/{manifest['build_id']}/catalog.json",
         f"dashboard/{manifest['build_id']}/coverage.json.gz",
     ]
     assert keys[-2:] == [
