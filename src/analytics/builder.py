@@ -45,7 +45,8 @@ def load_wiki_estates(wiki_dir: Path) -> dict[str, str]:
         if not isinstance(payload, dict):
             continue
         for name, value in payload.items():
-            title = value.get("title") if isinstance(value, dict) else None
+            raw_title = value.get("title") if isinstance(value, dict) else None
+            title = raw_title.strip() if isinstance(raw_title, str) else ""
             estates.setdefault(name, title or name)
     return estates
 

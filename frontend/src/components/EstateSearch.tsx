@@ -27,6 +27,7 @@ import {
   formatNumber,
 } from "../lib/format";
 import { wikiUrl } from "../lib/wiki";
+import { isRowActivation } from "../lib/activation";
 
 const PAGE_SIZE = 25;
 
@@ -475,10 +476,9 @@ export function EstateSearch({ estates, onSelect }: Props) {
                     tabIndex={0}
                     onClick={() => onSelect(estate)}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelect(estate);
-                      }
+                      if (!isRowActivation(event)) return;
+                      event.preventDefault();
+                      onSelect(estate);
                     }}
                     aria-label={`Open ${estate.estate_name_en}`}
                   >
