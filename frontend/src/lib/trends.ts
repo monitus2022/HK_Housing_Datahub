@@ -104,7 +104,11 @@ export function buildTrendSeries(
     if (row.district_id !== districtId) continue;
     const value = metricValue(row, metric);
     if (value === null || Number.isNaN(value)) continue;
-    points.push({ month: row.month, value, txCount: row.tx_count });
+    points.push({
+      month: row.month,
+      value,
+      txCount: metric === "rent" ? row.rent_tx_count : row.tx_count,
+    });
   }
 
   points.sort((left, right) => left.month.localeCompare(right.month));

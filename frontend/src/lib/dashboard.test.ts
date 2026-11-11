@@ -145,7 +145,7 @@ describe("on-demand dataset loaders", () => {
   it("loads estate monthly history from the manifest file", async () => {
     const history = {
       months: ["2025-01"],
-      estates: { E1: [[0, 1, 12000]] },
+      estates: { E1: [[0, 1, 12000, 0, 0]] },
     };
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(history));
     vi.stubGlobal("fetch", fetchMock);
