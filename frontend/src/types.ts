@@ -53,6 +53,7 @@ export interface EstateSummary {
   has_market: number;
   has_transactions: number;
   has_wiki: number;
+  wiki_title?: string | null;
 }
 
 /** One row per district and calendar month (mart_district_monthly). */

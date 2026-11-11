@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { EstateSummary, Manifest } from "../types";
 import { formatDate, formatHkd, formatNumber } from "../lib/format";
 import { EstateHistory } from "./EstateHistory";
+import { wikiUrl } from "../lib/wiki";
 
 interface Props {
   manifest: Manifest;
@@ -83,9 +84,22 @@ export function EstateDetail({ manifest, estate, onClose }: Props) {
           >
             Market
           </span>
-          <span className={`flag ${estate.has_wiki ? "flag-on" : "flag-off"}`}>
-            Wiki
-          </span>
+          {wikiUrl(estate.wiki_title) ? (
+            <a
+              className="flag flag-on flag-link"
+              href={wikiUrl(estate.wiki_title) ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Wiki
+            </a>
+          ) : (
+            <span
+              className={`flag ${estate.has_wiki ? "flag-on" : "flag-off"}`}
+            >
+              Wiki
+            </span>
+          )}
         </div>
 
         <dl className="detail-grid">
