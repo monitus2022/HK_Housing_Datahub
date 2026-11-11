@@ -227,7 +227,7 @@ def make_wiki_dir(tmp_path: Path) -> Path:
     wiki_dir = tmp_path / "wiki"
     wiki_dir.mkdir()
     (wiki_dir / "wiki_data_partition_0.json").write_text(
-        json.dumps({"屋苑一": {"title": "Estate One"}}),
+        json.dumps({"屋苑一": {"title": "屋苑一頁"}}),
         encoding="utf-8",
     )
     return wiki_dir
@@ -274,6 +274,7 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert e1["rent_count_12m"] == 2
     assert e1["latest_rent_date"] == "2024-12-20"
     assert e1["latest_rent_net_ft_price"] == 32
+    assert e1["wiki_title"] == "屋苑一頁"
     assert e1["latest_market_date"] == "2024-12-31"
     assert e1["latest_net_area"] == 400
     assert e1["latest_bedroom"] == 2
@@ -300,6 +301,7 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert e2["latest_rent_date"] == "2023-01-31"
     assert e2["latest_rent_net_ft_price"] == 20
     assert e2["has_wiki"] == 0
+    assert e2["wiki_title"] is None
 
     district = read_rows(
         db_path,
