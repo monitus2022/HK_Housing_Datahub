@@ -25,7 +25,8 @@ layer for a public dashboard.
 - Provides read-only baseline and quality audits, five materialized analytics
   marts, and a versioned serving snapshot published to R2.
 - Includes a static React frontend with dataset overview, estate search,
-  district price trends, an estate map, and recent transactions.
+  estate price history, district price trends, an estate map, and recent
+  transactions.
 
 ## Architecture
 
@@ -218,12 +219,13 @@ dashboard/{build_id}/overview.json
 dashboard/{build_id}/estate_summary.json.gz
 dashboard/{build_id}/district_monthly.json.gz
 dashboard/{build_id}/transaction_recent.json.gz
+dashboard/{build_id}/estate_monthly.json.gz
 dashboard/{build_id}/coverage.json.gz
 ```
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The manifest
 is authoritative; the frontend fetches it first and then the files in
-`manifest.files`. The four large data files are gzip-compressed and versioned
+`manifest.files`. The five large data files are gzip-compressed and versioned
 data files are immutable/long-cached; both the top-level and versioned manifests
 are short-cached (`max-age=60`). `overview.json` remains plain. The manifest
 includes build ID, data-through dates, coverage, and mart row counts.
@@ -266,8 +268,9 @@ echo 'VITE_DASHBOARD_BASE_URL=http://localhost:8787' > .env.local
 npm run dev
 ```
 
-The frontend covers the overview, estate search and detail, district price
-trends, an estate map, and recent transactions. See
+The frontend covers the overview, estate search and detail (including price
+history and recent transactions), district price trends, an estate map, and
+recent transactions. See
 [`frontend/README.md`](frontend/README.md) and
 [`docs/deployment.md`](docs/deployment.md) for Cloudflare Pages/R2 setup.
 
@@ -381,8 +384,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
 - No live API. The serving layer is a versioned snapshot, not a query service.
-- The frontend covers the overview, estate search, district price trends,
-  estate map, and recent transactions. The map uses OpenStreetMap tiles at
+- The frontend covers the overview, estate search and detail, estate price
+  history, district price trends, the estate map, and recent transactions. The map uses OpenStreetMap tiles at
   runtime; no map data is bundled or redistributed.
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
@@ -394,10 +397,10 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   not exercised in CI.
 - The 12- and 24-month mart windows are relative to the latest transaction date
   in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
-- `mart_estate_monthly` (~662k rows) is not in the serving snapshot; a future
-  Parquet export can add it. `mart_transaction_recent` (~87k rows) is exported
-  as a trimmed, lazily loaded JSON file.
-- The snapshot gzips its four large JSON files (~3.1 MB total). The frontend
+- `mart_estate_monthly` (~662k rows) is exported as a compact, lazily loaded
+  `estate_monthly.json.gz` (~1.3 MB); `mart_transaction_recent` (~87k rows) is
+  exported as trimmed JSON.
+- The snapshot gzips its five large JSON files (~4.3 MB total). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent averages in `estate_monthly_market_info` are all zero in the reference
   data, so the rent trend metric renders an explicit empty state.
@@ -409,12 +412,13 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
    upserts, quality checks, tests/CI, analytics marts, serving snapshot/publish,
    and final handoff. *(implemented; see PRs #24–#30 and the Phase 8 PR)*
 2. Phase 7: optional sample database. *(deferred)*
-3. Frontend v2: overview, estate search, district price trends, estate map, and
+3. Frontend v2: overview, estate search and detail (price history, recent
+   transactions, `?estate=` deep links), district price trends, estate map, and
    recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
 4. Add preview-origin CORS if preview deployments are needed. The refreshed
    snapshot is published and the frontend is deployed.
-5. Incremental crawls, RVD integration, monitoring, Parquet for
-   `mart_estate_monthly`, and broader accessibility/performance testing. See
+5. Incremental crawls, RVD integration, monitoring, optional Parquet for
+   external analytics, and broader accessibility/performance testing. See
    [`docs/roadmap.md`](docs/roadmap.md).
 6. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 

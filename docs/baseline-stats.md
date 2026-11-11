@@ -177,7 +177,7 @@ resolved from the current working directory, so run it from the repo root.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
-  frontend origin are verified. `npm run typecheck`, `npm test` (50 tests), and
+  frontend origin are verified. `npm run typecheck`, `npm test` (59 tests), and
   `npm run build` pass; `npm audit` reports zero vulnerabilities. Production
   smoke test on the refreshed snapshot verified 9,750 estates, the district
   sale and volume trend chart (latest Nov 2026), the 9,117-marker map, and
@@ -187,7 +187,7 @@ resolved from the current working directory, so run it from the repo root.
   (missing English addresses) and #50 (pipeline progress logging) have since
   merged into `dev`; no PRs are open.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
-- **Remaining backlog:** optional Phase 7 sample DB; Parquet export for
-  `mart_estate_monthly`; incremental crawls, RVD, and monitoring (see
+- **Remaining backlog:** optional Phase 7 sample DB; optional Parquet export
+  for external analytics; incremental crawls, RVD, and monitoring (see
   [`roadmap.md`](roadmap.md)). The phase-id repair remains available for older
   databases; the refreshed DB reports 0 orphans.

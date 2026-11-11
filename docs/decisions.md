@@ -63,14 +63,15 @@ CORS must be configured on the bucket.
 target. The frontend reads the manifest and the files it names.
 
 **Decision:** Gzip `estate_summary`, `district_monthly`, `transaction_recent`,
-and `coverage` JSON; serve them with `Content-Encoding: gzip`. Keep
-`manifest.json` and `overview.json` plain. `transaction_recent` exports display
-columns only. Defer Parquet for the large `mart_estate_monthly` export.
+`estate_monthly`, and `coverage` JSON; serve them with `Content-Encoding: gzip`.
+Keep `manifest.json` and `overview.json` plain. `transaction_recent` exports
+display columns only, and `mart_estate_monthly` uses a compact month-indexed
+payload (~3.8 MB uncompressed). Parquet remains optional for external analytics.
 
-**Consequences:** The snapshot is ~3.1 MB and browsers decompress transparently.
+**Consequences:** The snapshot is ~4.3 MB and browsers decompress transparently.
 The frontend must use `manifest.files` rather than hardcoded names. Parquet can
-be added later without changing the manifest shape. The trends and transactions
-files are loaded on demand, so the initial page load still only fetches the
+be added later without changing the manifest shape. The estate-history, trends, and
+transactions files are loaded on demand, so the initial page load still only fetches the
 manifest and estate summary.
 
 ## ADR-006: Gate the legacy raw uploader

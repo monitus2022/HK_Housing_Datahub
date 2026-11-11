@@ -23,10 +23,11 @@ data/serving/{build_id}/
   estate_summary.json.gz
   district_monthly.json.gz
   transaction_recent.json.gz
+  estate_monthly.json.gz
   coverage.json.gz
 ```
 
-The four large JSON files are gzip-compressed and uploaded with
+The five large JSON files are gzip-compressed and uploaded with
 `Content-Encoding: gzip`; browsers decompress them transparently. `manifest.json`
 and `overview.json` remain uncompressed so the frontend can bootstrap easily.
 
@@ -77,9 +78,9 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 ```json
 {
-  "schema_version": 2,
-  "build_id": "20261110T094646Z-802e9b",
-  "generated_at": "2026-11-10T09:46:46.561045+00:00",
+  "schema_version": 3,
+  "build_id": "20261201T000000Z-example",
+  "generated_at": "2026-12-01T00:00:00+00:00",
   "data_through": {
     "transactions": "2026-11-08",
     "market": "2026-09-30"
@@ -102,6 +103,7 @@ Content types: JSON data is `application/json`; gzip files also carry
     "district_monthly": "district_monthly.json.gz",
     "estate_summary": "estate_summary.json.gz",
     "transaction_recent": "transaction_recent.json.gz",
+    "estate_monthly": "estate_monthly.json.gz",
     "coverage": "coverage.json.gz"
   },
   "source": ["HKP", "Wikipedia"]
@@ -113,8 +115,8 @@ The frontend should:
 1. Fetch `https://hk-housing-datahub.monitus.org/dashboard/manifest.json`.
 2. Read `files` and fetch
    `https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file}`.
-3. Load `estate_summary` eagerly; load `district_monthly` and
-   `transaction_recent` only when their views are opened.
+3. Load `estate_summary` eagerly; load `district_monthly`,
+   `transaction_recent`, and `estate_monthly` only when their views are opened.
 4. Use `data_through`, `coverage`, and `row_counts` for display labels and
    freshness warnings.
 5. Show a clear fallback/error state if the manifest or a referenced file is
@@ -132,11 +134,39 @@ gzipped for 87,393 rows). Only display columns are exported: `tx_date`, `price`,
 (`tx_id`, `building_id`, `unit_id`) stay in SQLite. The manifest can add further
 files without changing the existing contract.
 
+## Estate monthly export
+
+`mart_estate_monthly` is exported as `estate_monthly.json.gz`: ~3.8 MB
+uncompressed, ~1.3 MB gzipped. It is loaded once, lazily, when an estate view
+opens, and stays under the ~5 MB serving target. In a desktop Node 22 check,
+gzip decompression plus JSON parse took about 43 ms (median of five runs).
+
+To keep the file compact, months are stored once and each estate maps to a list
+of `[month_index, tx_count, avg_net_ft_price]` points:
+
+```json
+{
+  "months": ["1996-01", "1996-02"],
+  "estates": {
+    "E000004419": [[0, 3, 12000.0], [1, 1, 11800.0]]
+  }
+}
+```
+
+Months with at least one transaction are kept so the volume series stays
+complete; a missing or non-positive sale price is stored as `0` and the
+frontend drops it from the price series. The file is loaded lazily when an
+estate view opens; the frontend only reads the requested estate.
+
+New snapshots use `schema_version` 3. The currently published build remains
+schema 2 until the next publish; older snapshots without `estate_monthly` show
+a section-level message in the estate view.
+
 ## What is not exported yet
 
-`mart_estate_monthly` (~662k rows) is not in the snapshot. It is the remaining
-candidate for a Parquet or per-estate export if the dashboard needs full
-estate-monthly history.
+Nothing large remains: `mart_estate_monthly` is now exported compactly. A
+Parquet export could still be considered for external analytics, but the
+dashboard no longer needs it.
 
 ## Legacy uploader
 
