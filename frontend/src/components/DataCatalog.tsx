@@ -94,7 +94,7 @@ export function DataCatalogView({ manifest }: Props) {
             {catalog.manifest ? (
               <span>Snapshot {catalog.manifest.build_id}</span>
             ) : null}
-            {catalog.manifest?.data_through.transactions ? (
+            {catalog.manifest?.data_through?.transactions ? (
               <span>
                 Data through{" "}
                 {formatDate(catalog.manifest.data_through.transactions)}
@@ -162,6 +162,19 @@ export function DataCatalogView({ manifest }: Props) {
                     {formatNumber(selected.row_count)} rows
                   </dd>
                 </dl>
+
+                {selected.artifacts && selected.artifacts.length > 0 ? (
+                  <div className="catalog-artifacts">
+                    <strong>Artifacts:</strong>
+                    <ul>
+                      {selected.artifacts.map((artifact) => (
+                        <li key={artifact}>
+                          <code>{artifact}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
 
                 {selected.caveats ? (
                   <p className="catalog-caveat">

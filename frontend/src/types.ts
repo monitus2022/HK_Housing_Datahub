@@ -138,6 +138,7 @@ export interface CatalogDataset {
   licence: string | null;
   owner: string | null;
   caveats: string | null;
+  artifacts: string[] | null;
   table_count: number;
   row_count: number;
   tables: CatalogTable[];

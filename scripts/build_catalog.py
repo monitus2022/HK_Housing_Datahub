@@ -11,7 +11,12 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from catalog import DEFAULT_METADATA, build_catalog, render_markdown  # noqa: E402
+from catalog import (  # noqa: E402
+    DEFAULT_METADATA,
+    DEFAULT_QUALITY,
+    build_catalog,
+    render_markdown,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--quality",
-        default="data/quality/latest.json",
+        default=str(DEFAULT_QUALITY),
         help="Optional quality report JSON.",
     )
     parser.add_argument(
