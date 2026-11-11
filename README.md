@@ -395,9 +395,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
-- The published schema-3 snapshot ends 2026-11-08 (market data 2026-09-30).
-  The refreshed local DB also holds rentals through 2026-11-10. The project does
-  not run on a schedule yet.
+- The published schema-4 snapshot ends 2026-11-08 for sales (market data
+  2026-09-30) and includes rentals through 2026-11-10. The project does not run
+  on a schedule yet.
 - CI installs core dependencies plus `chromadb` for the offline RAG storage
   tests. The embedding model (sentence-transformers/torch) and cloud upload are
   not exercised in CI.
@@ -407,7 +407,7 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - `mart_estate_monthly` (~245k rows) is exported as a compact, lazily loaded
   `estate_monthly.json.gz` (~1.3 MB); `mart_transaction_recent` (~87k rows) is
   exported as trimmed JSON.
-- The snapshot gzips its five large JSON files (~4.3 MB total). The frontend
+- The snapshot gzips its five large JSON files (~4.6 MB total). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent trends come from HKP rental (`tx_type=L`) transactions and cover the
   last three years; RVD is not integrated.

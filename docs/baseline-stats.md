@@ -167,11 +167,12 @@ resolved from the current working directory, so run it from the repo root.
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261111T122457Z-1fd8dd` (`schema_version` 3), ~4.3 MB;
+- **Serving:** build `20261111T194346Z-f4ee06` (`schema_version` 4), ~4.6 MB;
   verifier passed; all eight files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
   cache, and CORS headers verified. It carries refreshed data (transactions
-  through 2026-11-08, market through 2026-09-30, 9,750 estates),
+  through 2026-11-08, rentals through 2026-11-10, market through 2026-09-30,
+  9,750 estates),
   `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 rows), and
   `estate_monthly.json.gz` (~1.3 MB). Earlier builds remain in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
