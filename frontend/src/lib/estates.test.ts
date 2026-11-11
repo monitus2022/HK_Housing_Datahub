@@ -97,6 +97,39 @@ describe("sortEstates", () => {
     ).toEqual(["E2", "E1", "E3"]);
   });
 
+  it("breaks 12-month count ties by latest date, then name", () => {
+    const tied = [
+      estate({
+        estate_id: "A",
+        estate_name_en: "Alpha",
+        tx_count_12m: 5,
+        latest_tx_date: "2025-01-01",
+      }),
+      estate({
+        estate_id: "B",
+        estate_name_en: "Beta",
+        tx_count_12m: 5,
+        latest_tx_date: "2026-01-01",
+      }),
+      estate({
+        estate_id: "C",
+        estate_name_en: "Gamma",
+        tx_count_12m: 5,
+        latest_tx_date: null,
+      }),
+      estate({
+        estate_id: "D",
+        estate_name_en: "Delta",
+        tx_count_12m: 5,
+        latest_tx_date: "2025-01-01",
+      }),
+    ];
+
+    expect(
+      sortEstates(tied, "tx_count_12m").map((e) => e.estate_id),
+    ).toEqual(["B", "A", "D", "C"]);
+  });
+
   it("sorts by latest transaction date", () => {
     expect(
       sortEstates(estates, "latest_tx_date").map((e) => e.estate_id),
