@@ -39,6 +39,10 @@ export interface EstateSummary {
   latest_tx_date: string | null;
   latest_tx_price: number | null;
   latest_tx_net_ft_price: number | null;
+  latest_net_area: number | null;
+  latest_bedroom: number | null;
+  mtr_lines: string | null;
+  school_nets: string | null;
   tx_count_12m: number;
   avg_net_ft_price_12m: number | null;
   avg_net_ft_rent_12m: number | null;

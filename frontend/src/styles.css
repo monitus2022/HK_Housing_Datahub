@@ -624,6 +624,58 @@ select:focus {
   box-shadow: 0 6px 16px rgba(16, 33, 43, 0.08);
 }
 
+.filter-panel {
+  margin: 0 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfd;
+  padding: 10px 14px;
+}
+
+.filter-panel summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--accent);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.filter-grid .field {
+  min-width: 0;
+}
+
+.filter-hint {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.filter-chip {
+  border: 1px solid #b7ded8;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #0b5b54;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+}
+
+.filter-chip:hover {
+  border-color: var(--accent);
+}
+
 /* Stat tiles */
 
 .stat-row {

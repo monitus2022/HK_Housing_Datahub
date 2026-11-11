@@ -6,6 +6,7 @@ import {
   paginate,
   sortEstates,
 } from "./estates";
+import { EMPTY_ESTATE_FILTERS } from "./filters";
 
 function estate(overrides: Partial<EstateSummary>): EstateSummary {
   return {
@@ -26,6 +27,10 @@ function estate(overrides: Partial<EstateSummary>): EstateSummary {
     latest_tx_date: "2025-01-01",
     latest_tx_price: 5_000_000,
     latest_tx_net_ft_price: 10_000,
+    latest_net_area: 400,
+    latest_bedroom: 2,
+    mtr_lines: "Tsuen Wan Line",
+    school_nets: "Net 62",
     tx_count_12m: 4,
     avg_net_ft_price_12m: 10_500,
     avg_net_ft_rent_12m: null,
@@ -62,22 +67,22 @@ const estates = [
 
 describe("filterEstates", () => {
   it("matches English, Chinese, district, and id text", () => {
-    expect(filterEstates(estates, "beta", "").map((e) => e.estate_id)).toEqual(
+    expect(filterEstates(estates, "beta", EMPTY_ESTATE_FILTERS).map((e) => e.estate_id)).toEqual(
       ["E2"],
     );
-    expect(filterEstates(estates, "屋苑二", "").map((e) => e.estate_id)).toEqual(
+    expect(filterEstates(estates, "屋苑二", EMPTY_ESTATE_FILTERS).map((e) => e.estate_id)).toEqual(
       ["E2"],
     );
-    expect(filterEstates(estates, "地區一", "").map((e) => e.estate_id)).toEqual(
+    expect(filterEstates(estates, "地區一", EMPTY_ESTATE_FILTERS).map((e) => e.estate_id)).toEqual(
       ["E1", "E3"],
     );
-    expect(filterEstates(estates, "E3", "").map((e) => e.estate_id)).toEqual([
+    expect(filterEstates(estates, "E3", EMPTY_ESTATE_FILTERS).map((e) => e.estate_id)).toEqual([
       "E3",
     ]);
   });
 
   it("filters by district", () => {
-    expect(filterEstates(estates, "", "D1").map((e) => e.estate_id)).toEqual([
+    expect(filterEstates(estates, "", { ...EMPTY_ESTATE_FILTERS, districtId: "D1" }).map((e) => e.estate_id)).toEqual([
       "E1",
       "E3",
     ]);
