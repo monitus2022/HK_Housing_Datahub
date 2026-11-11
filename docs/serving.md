@@ -186,10 +186,15 @@ python scripts/build_catalog.py --db data/agency/agency_data.db
 ```
 
 The generator reads the database in read-only mode and fails when a table has
-no curated metadata, which keeps the catalogue from drifting behind new tables.
-`docs/data-catalog.md` is generated from the same data; edit `metadata/catalog.yml`
-rather than the Markdown. The frontend loads `catalog.json` lazily from the
-manifest when the Catalogue view opens.
+no curated metadata, which keeps the catalogue from drifting behind new tables;
+add an entry to `metadata/catalog.yml` before publishing a snapshot that adds a
+table. `docs/data-catalog.md` is generated from the same data; edit
+`metadata/catalog.yml` rather than the Markdown. Pass `--generated-at` to pin the
+timestamp when byte-for-byte reproducible output is needed. The quality report
+and manifest merge are best-effort: a missing `data/quality/latest.json` leaves
+`quality` null, while the snapshot catalogue always embeds its own manifest. The
+frontend loads `catalog.json` lazily from the manifest when the Catalogue view
+opens.
 
 ## What is not exported yet
 
