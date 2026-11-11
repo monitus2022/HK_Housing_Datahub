@@ -7,15 +7,17 @@ import {
   type TrendWindow,
 } from "./trends";
 
-export type EstateHistoryMetric = "sale" | "volume";
+export type EstateHistoryMetric = "sale" | "volume" | "rent";
 
 export const ESTATE_METRIC_LABELS: Record<EstateHistoryMetric, string> = {
   sale: "Sale net ft price",
+  rent: "Rent net ft price",
   volume: "Transactions",
 };
 
 export const ESTATE_METRIC_UNITS: Record<EstateHistoryMetric, string> = {
   sale: "HKD/ft²",
+  rent: "HKD/ft²",
   volume: "transactions",
 };
 
@@ -29,14 +31,17 @@ export function estateHistorySeries(
   if (!entries || entries.length === 0) return [];
 
   const points: TrendPoint[] = [];
-  for (const [monthIndex, txCount, avgPrice] of entries) {
+  for (const [monthIndex, txCount, avgPrice, rentCount, avgRent] of entries) {
     const month = history.months[monthIndex];
     if (!month) continue;
     if (metric === "sale" && !(avgPrice > 0)) continue;
+    if (metric === "rent" && !(avgRent > 0)) continue;
+    if (metric === "volume" && txCount <= 0) continue;
     points.push({
       month,
-      value: metric === "volume" ? txCount : avgPrice,
-      txCount,
+      value:
+        metric === "volume" ? txCount : metric === "rent" ? avgRent : avgPrice,
+      txCount: metric === "rent" ? rentCount : txCount,
     });
   }
 

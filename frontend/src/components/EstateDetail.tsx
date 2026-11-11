@@ -111,6 +111,18 @@ export function EstateDetail({ manifest, estate, onClose }: Props) {
             value={formatHkd(estate.avg_net_ft_rent_12m)}
           />
           <Stat
+            label="12-month rentals"
+            value={formatNumber(estate.rent_count_12m ?? null)}
+          />
+          <Stat
+            label="Latest net ft rent"
+            value={formatHkd(estate.latest_rent_net_ft_price ?? null)}
+          />
+          <Stat
+            label="Latest rent date"
+            value={formatDate(estate.latest_rent_date ?? null)}
+          />
+          <Stat
             label="Latest market month"
             value={formatDate(estate.latest_market_date)}
           />

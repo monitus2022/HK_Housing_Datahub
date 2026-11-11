@@ -80,11 +80,13 @@ More detail: [`docs/architecture.md`](docs/architecture.md).
 | HKP | Transactions | 1,122,622 |
 | HKP | Estate monthly market rows | 546,168 |
 | HKP | Unit feature rows | 586,041 |
+| HKP | Rental transactions (3y) | 53,038 |
 | Wikipedia (zh) | Estates with wiki data | 824 across 9 partitions |
 | ChromaDB | Embedded wiki chunks | 3,780 |
 
-Transaction dates span 1996-01 to 2026-11-08; monthly market data spans
-1996-12 to 2026-09-30. The database snapshot is about 518 MB. Full coverage,
+Sale transaction dates span 1996-01 to 2026-11-08; rental transactions cover
+2023-11 to 2026-11-10; monthly market data spans 1996-12 to 2026-09-30. The
+database snapshot is about 518 MB. Full coverage,
 reproduction details, and the pre-refresh baseline are in
 [`docs/baseline-stats.md`](docs/baseline-stats.md).
 
@@ -131,10 +133,11 @@ RAG rerun behavior.
    tests).
 2. Place the reference `data/agency/agency_data.db` and `data/wiki/` locally, or
    run the crawler and wiki pipeline.
-3. Build marts: `make marts`.
-4. Build the local snapshot: `make publish-dry`.
-5. Verify it: `python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}`.
-6. Optionally publish to R2: `python scripts/publish_dashboard.py`.
+3. Fetch rental transactions: `python scripts/fetch_rentals.py --db data/agency/agency_data.db`.
+4. Build marts: `make marts`.
+5. Build the local snapshot: `make publish-dry`.
+6. Verify it: `python scripts/verify_serving.py --snapshot-dir data/serving/{build_id}`.
+7. Optionally publish to R2: `python scripts/publish_dashboard.py`.
 
 ### Debug mode
 
@@ -196,7 +199,7 @@ The data model has the following groups:
 | Location hierarchy | `regions`, `subregions`, `districts` |
 | Estates | `estates`, `estate_school_nets`, `estate_facilities`, `estate_mtr_lines`, `estate_monthly_market_info` |
 | Buildings | `phases`, `buildings` |
-| Units and transactions | `units`, `unit_features`, `transactions` |
+| Units and transactions | `units`, `unit_features`, `transactions`, `rental_transactions` |
 | Lookup | `facilities` |
 | Run metadata | `pipeline_runs` |
 | Analytics marts | `mart_estate_summary`, `mart_district_monthly`, `mart_estate_monthly`, `mart_transaction_recent`, `mart_coverage` |
@@ -346,7 +349,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6 tests (88 total): upserts, run metadata,
+`tests/` contains the Phase 2–6 tests (93 total): upserts, run metadata,
 quality checks, response-model parsing, table mapping, duplicate-input dedupe,
 synthetic mart builds, serving manifest/publish planning, and offline RAG
 idempotency. The boto3-only legacy-upload gate test is skipped in the core-only
@@ -392,20 +395,22 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
-- The published snapshot and local reference DB both end 2026-11-08 (market
-  data 2026-09-30). The project does not run on a schedule yet.
+- The published schema-3 snapshot ends 2026-11-08 (market data 2026-09-30).
+  The refreshed local DB also holds rentals through 2026-11-10. The project does
+  not run on a schedule yet.
 - CI installs core dependencies plus `chromadb` for the offline RAG storage
   tests. The embedding model (sentence-transformers/torch) and cloud upload are
   not exercised in CI.
-- The 12- and 24-month mart windows are relative to the latest transaction date
-  in the snapshot, not today. `has_wiki` is an exact Chinese-name match.
-- `mart_estate_monthly` (~662k rows) is exported as a compact, lazily loaded
+- The 12-month summary windows end at the later of the latest sale and rental
+  dates; the 24-month recent-transactions window is sale-only. `has_wiki` is an
+  exact Chinese-name match.
+- `mart_estate_monthly` (~245k rows) is exported as a compact, lazily loaded
   `estate_monthly.json.gz` (~1.3 MB); `mart_transaction_recent` (~87k rows) is
   exported as trimmed JSON.
 - The snapshot gzips its five large JSON files (~4.3 MB total). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
-- Rent averages in `estate_monthly_market_info` are all zero in the reference
-  data, so the rent trend metric renders an explicit empty state.
+- Rent trends come from HKP rental (`tx_type=L`) transactions and cover the
+  last three years; RVD is not integrated.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap
@@ -419,7 +424,7 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
    recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
 4. Add preview-origin CORS if preview deployments are needed. The refreshed
    snapshot is published and the frontend is deployed.
-5. Incremental crawls, RVD integration, monitoring, optional Parquet for
+5. Incremental crawls, RVD benchmarks/yields, monitoring, optional Parquet for
    external analytics, and broader accessibility/performance testing. See
    [`docs/roadmap.md`](docs/roadmap.md).
 6. ML: hedonic price model, deferred from `docs/workplan-ml.md`.

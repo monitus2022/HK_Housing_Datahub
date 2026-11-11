@@ -46,6 +46,9 @@ export interface EstateSummary {
   tx_count_12m: number;
   avg_net_ft_price_12m: number | null;
   avg_net_ft_rent_12m: number | null;
+  rent_count_12m?: number;
+  latest_rent_date?: string | null;
+  latest_rent_net_ft_price?: number | null;
   latest_market_date: string | null;
   has_market: number;
   has_transactions: number;
@@ -67,8 +70,14 @@ export interface DistrictMonthly {
   total_rent_tx_amount: number;
 }
 
-/** `[month index, tx count, average net-ft price]` for one estate. */
-export type EstateMonthlyPoint = [number, number, number];
+/** `[month index, tx count, avg price, rent count, avg rent]`. */
+export type EstateMonthlyPoint = [
+  number,
+  number,
+  number,
+  number,
+  number,
+];
 
 /** Compact estate-month history keyed by estate id. */
 export interface EstateMonthlyHistory {

@@ -78,7 +78,7 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "build_id": "20261201T000000Z-example",
   "generated_at": "2026-12-01T00:00:00+00:00",
   "data_through": {
@@ -93,8 +93,8 @@ Content types: JSON data is `application/json`; gzip files also carry
   },
   "row_counts": {
     "mart_estate_summary": 9750,
-    "mart_district_monthly": 20131,
-    "mart_estate_monthly": 662503,
+    "mart_district_monthly": 19840,
+    "mart_estate_monthly": 245017,
     "mart_transaction_recent": 87393,
     "mart_coverage": 9750
   },
@@ -118,7 +118,9 @@ The frontend should:
 3. Load `estate_summary` eagerly; load `district_monthly`,
    `transaction_recent`, and `estate_monthly` only when their views are opened.
 4. Use `data_through`, `coverage`, and `row_counts` for display labels and
-   freshness warnings.
+   freshness warnings. `data_through` covers sale and market dates; rental
+   freshness is not a separate field, but rental months are included in the
+   district and estate monthly files.
 5. Show a clear fallback/error state if the manifest or a referenced file is
    missing. A missing optional file should not take down the rest of the page.
 
@@ -142,25 +144,26 @@ opens, and stays under the ~5 MB serving target. In a desktop Node 22 check,
 gzip decompression plus JSON parse took about 43 ms (median of five runs).
 
 To keep the file compact, months are stored once and each estate maps to a list
-of `[month_index, tx_count, avg_net_ft_price]` points:
+of `[month_index, tx_count, avg_net_ft_price, rent_tx_count, avg_net_ft_rent]`
+points:
 
 ```json
 {
   "months": ["1996-01", "1996-02"],
   "estates": {
-    "E000004419": [[0, 3, 12000.0], [1, 1, 11800.0]]
+    "E000004419": [[0, 3, 12000.0, 2, 42.0], [1, 1, 11800.0, 1, 43.5]]
   }
 }
 ```
 
-Months with at least one transaction are kept so the volume series stays
-complete; a missing or non-positive sale price is stored as `0` and the
-frontend drops it from the price series. The file is loaded lazily when an
+Months with at least one sale or rental are kept. Missing or non-positive
+prices/rents are stored as `0` and the frontend drops them from the matching
+series. The file is loaded lazily when an
 estate view opens; the frontend only reads the requested estate.
 
-The current published build uses `schema_version` 3. Older schema-2 snapshots
-without `estate_monthly` still work; the estate view shows a section-level
-message for the missing history.
+New snapshots use `schema_version` 4. The currently published build uses schema
+3 until the next publish; older snapshots without `estate_monthly` still work,
+and the estate view shows a section-level message for missing history.
 
 ## What is not exported yet
 

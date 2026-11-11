@@ -296,16 +296,16 @@ It rebuilds:
 ```text
 mart_estate_summary       one row per estate
 mart_district_monthly     district x month
-mart_estate_monthly       estate x month (full history, ~662k rows)
+mart_estate_monthly       estate x month (full sale history + ~3y rent, ~245k rows)
 mart_transaction_recent   last 24 months
 mart_coverage             one row per estate
 ```
 
 The builder drops and recreates the `mart_*` tables and creates idempotent raw
-and mart indexes. Raw data and columns are not modified; only indexes are added
-to raw tables. `has_wiki` comes from the wiki JSON estate names; missing wiki
-data simply sets it to 0. Windows are relative to the latest transaction date
-in the snapshot. Grains and columns are in
+and mart indexes. Existing raw data and columns are not modified; indexes are added to raw
+tables and any missing raw tables are created. `has_wiki` comes from the wiki JSON estate names; missing wiki
+data simply sets it to 0. Windows end at the later of the latest sale and rental dates in the
+snapshot. Grains and columns are in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts).
 
 ## Build and publish serving data
@@ -360,6 +360,7 @@ pip install -r requirements-core.txt -r requirements-dev.txt
 # Available now
 python3 scripts/baseline_stats.py
 python scripts/run_quality.py --db data/agency/agency_data.db --fail-on none
+python scripts/fetch_rentals.py --db data/agency/agency_data.db
 python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
@@ -376,7 +377,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 88 tests: Phase 2–6 coverage (upserts, run metadata, quality
+`tests/` contains 93 tests: Phase 2–6 coverage (upserts, run metadata, quality
 checks, response models, table mapping, duplicate-input dedupe, synthetic mart
 builds, serving manifest/publish planning), phase-id mapping and repair, plus
 offline RAG storage tests for upsert/prune idempotency. The boto3-only

@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 FILE_NAMES = {
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
@@ -130,24 +130,32 @@ def write_gzip_json(path: Path, payload: Any) -> None:
 def compact_estate_monthly(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Group estate-month rows into a compact, month-indexed payload.
 
-    Months with at least one transaction are kept so the volume series is
-    complete; a missing or non-positive sale price is stored as ``0`` and the
-    frontend drops it from price series. Each estate point is
-    ``[month_index, tx_count, avg_net_ft_price]`` so repeated estate ids and
-    month strings do not dominate the file.
+    Months with at least one sale or rental are kept. A missing or non-positive
+    price/rent is stored as ``0``; the frontend drops zero values from the
+    matching series and keeps them out of the sale-volume series. Each point is
+    ``[month_index, tx_count, avg_net_ft_price, rent_tx_count, avg_net_ft_rent]``
+    so repeated estate ids and month strings do not dominate the file.
     """
-    usable = [row for row in rows if int(row.get("tx_count") or 0) > 0]
+    usable = [
+        row
+        for row in rows
+        if int(row.get("tx_count") or 0) > 0
+        or int(row.get("rent_tx_count") or 0) > 0
+    ]
     usable.sort(key=lambda row: (row["estate_id"], row["month"]))
     months = sorted({row["month"] for row in usable})
     month_index = {month: index for index, month in enumerate(months)}
     estates: dict[str, list[list[Any]]] = {}
     for row in usable:
         price = row.get("avg_net_ft_price")
+        rent = row.get("avg_net_ft_rent")
         estates.setdefault(row["estate_id"], []).append(
             [
                 month_index[row["month"]],
                 int(row.get("tx_count") or 0),
                 round(float(price), 1) if price and float(price) > 0 else 0.0,
+                int(row.get("rent_tx_count") or 0),
+                round(float(rent), 1) if rent and float(rent) > 0 else 0.0,
             ]
         )
     return {"months": months, "estates": estates}
@@ -180,7 +188,14 @@ def build_snapshot(
         estate_monthly_rows = fetch_rows(
             connection,
             "mart_estate_monthly",
-            ("estate_id", "month", "tx_count", "avg_net_ft_price"),
+            (
+                "estate_id",
+                "month",
+                "tx_count",
+                "avg_net_ft_price",
+                "rent_tx_count",
+                "avg_net_ft_rent",
+            ),
         )
         transaction_recent = fetch_rows(
             connection,

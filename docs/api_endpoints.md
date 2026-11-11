@@ -25,8 +25,10 @@ This document details the API endpoints used for data collection in the HK Housi
 - **Description:** Fetches transaction records for each units in a specific building/phase.
 - **Example URL:** https://data.hkp.com.hk/info/v1/transactions/buildings/B000063458?lang=zh-hk&firsthand=false
 
-### Other currently unused endpoints
-- Transactions by district: https://data.hkp.com.hk/search/v1/transactions?lang=zh-hk&dist_ids=200902&tx_type=S&tx_date=3year&page=1&limit=5
+### 5. Transactions by District
+- **Endpoint:** `transactions_search`
+- **Description:** Fetches transactions for one or more districts. `tx_type=S` returns sales; `tx_type=L` returns lease/rental transactions with monthly rent, area, and rent per net sq ft. `tx_date` accepts `1year` or `3year`; `limit=1000` is supported; `est_ids` filters by estate.
+- **Example URL:** https://data.hkp.com.hk/search/v1/transactions?lang=en&dist_ids=201005&tx_type=L&tx_date=3year&page=1&limit=1000
 
 ## Wiki
 

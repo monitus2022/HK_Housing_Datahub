@@ -1,12 +1,16 @@
 -- Grain: one row per estate.
--- "12m" metrics are relative to the latest transaction date in the data,
+-- "12m" metrics end at the later of the latest sale and rental dates,
 -- not the wall-clock date, so the snapshot is reproducible.
 DROP TABLE IF EXISTS mart_estate_summary;
 
 CREATE TABLE mart_estate_summary AS
 WITH data_through AS (
-    SELECT date(max(tx_date)) AS as_of_date
-    FROM transactions
+    SELECT max(as_of_date) AS as_of_date
+    FROM (
+        SELECT date(max(tx_date)) AS as_of_date FROM transactions
+        UNION ALL
+        SELECT date(max(tx_date)) AS as_of_date FROM rental_transactions
+    )
 ),
 estate_transactions AS (
     SELECT
@@ -63,15 +67,31 @@ latest_market AS (
 ),
 rent_12m AS (
     SELECT
-        m.estate_id,
+        r.estate_id,
+        count(*) AS rent_count_12m,
         avg(
-            CASE WHEN m.avg_net_ft_rent > 0 THEN m.avg_net_ft_rent END
+            CASE WHEN r.net_ft_price > 0 THEN r.net_ft_price END
         ) AS avg_net_ft_rent_12m
-    FROM estate_monthly_market_info m
+    FROM rental_transactions r
     CROSS JOIN data_through dt
-    WHERE date(m.record_date) > date(dt.as_of_date, '-12 months')
-      AND date(m.record_date) <= dt.as_of_date
-    GROUP BY m.estate_id
+    WHERE date(r.tx_date) > date(dt.as_of_date, '-12 months')
+      AND date(r.tx_date) <= dt.as_of_date
+    GROUP BY r.estate_id
+),
+latest_rent AS (
+    SELECT estate_id, tx_date, net_ft_price
+    FROM (
+        SELECT
+            r.estate_id,
+            date(r.tx_date) AS tx_date,
+            r.net_ft_price,
+            ROW_NUMBER() OVER (
+                PARTITION BY r.estate_id
+                ORDER BY date(r.tx_date) DESC, r.rental_id DESC
+            ) AS row_number
+        FROM rental_transactions r
+    )
+    WHERE row_number = 1
 ),
 -- SQLite before 3.44 has no ORDER BY inside group_concat. The DISTINCT
 -- subquery is materialised and ordered; the frontend treats the value as a set.
@@ -115,7 +135,10 @@ SELECT
     lt.bedroom AS latest_bedroom,
     COALESCE(t12.tx_count_12m, 0) AS tx_count_12m,
     t12.avg_net_ft_price_12m,
+    COALESCE(r12.rent_count_12m, 0) AS rent_count_12m,
     r12.avg_net_ft_rent_12m,
+    lr.tx_date AS latest_rent_date,
+    lr.net_ft_price AS latest_rent_net_ft_price,
     lm.latest_market_date,
     em.mtr_lines,
     es.school_nets,
@@ -129,6 +152,7 @@ LEFT JOIN districts d ON e.district_id = d.district_id
 LEFT JOIN latest_transaction lt ON e.estate_id = lt.estate_id
 LEFT JOIN transactions_12m t12 ON e.estate_id = t12.estate_id
 LEFT JOIN rent_12m r12 ON e.estate_id = r12.estate_id
+LEFT JOIN latest_rent lr ON e.estate_id = lr.estate_id
 LEFT JOIN latest_market lm ON e.estate_id = lm.estate_id
 LEFT JOIN estate_mtr em ON e.estate_id = em.estate_id
 LEFT JOIN estate_school es ON e.estate_id = es.estate_id

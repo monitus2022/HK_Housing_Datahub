@@ -8,8 +8,9 @@ baseline. This file tracks work beyond it.
 - **Incremental crawls** — persist a watermark and diff estate/building IDs so
   reruns only fetch changed payloads. Today reruns are idempotent but still
   refetch everything.
-- **RVD integration** — ingest Rating and Valuation Department market statistics
-  alongside the HKP data. Normalize to the same district/month grain.
+- **RVD benchmarks** — ingest Rating and Valuation Department rents, prices,
+  indices, and yields at region × size-class granularity as long-history and
+  yield benchmarks. District rent already comes from HKP rental transactions.
 - **Better Wikipedia coverage** — handle more title variants, English pages,
   disambiguation pages, and missing/renamed estates. Improve `has_wiki` beyond
   exact-name matching.

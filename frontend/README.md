@@ -6,10 +6,10 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - estate search with text, district, price, net-ft price, area, bedroom, MTR,
   and school-net filters, sorting, and pagination; filter state lives in the URL
 - estate detail panel with latest transaction, 12-month stats, market date,
-  coverage flags, monthly price history, and that estate's recent transactions
+  coverage flags, monthly price and rent history, and recent transactions
 - shareable `?estate=<id>` deep links that open the estate view
-- district price trends (monthly average net-ft sale price, rent, and
-  transaction volume) with a 12-month change summary
+- district trends for sale price, rent, and transaction volume with a
+  12-month change summary
 - estate map with district filtering and price-bucketed markers
 - recent-transactions table with search, district/date filters, sorting, and
   pagination
@@ -139,8 +139,8 @@ npm run build
 
 - The map depends on OpenStreetMap tiles; without network access the markers
   render on a blank background.
-- Rent averages in the source data are zero, so the rent trend metric shows an
-  explicit empty state until the source is fixed.
+- Rent history comes from HKP rental transactions and covers roughly the last
+  three years; longer windows show the months that exist.
 - Estate history and recent transactions are loaded only when an estate is
   opened; both degrade to a section-level message if the snapshot lacks them.
 - The snapshot is a batch-refreshed dataset, not a live feed.

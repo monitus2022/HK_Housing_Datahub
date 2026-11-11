@@ -174,6 +174,13 @@ export function EstateHistory({ manifest, estate }: Props) {
           </div>
         </div>
 
+        {metric === "rent" ? (
+          <p className="muted detail-empty">
+            Rent history comes from HKP lease transactions and covers roughly
+            the last three years.
+          </p>
+        ) : null}
+
         {historyLoading ? <InlineLoading label="Loading price history…" /> : null}
         {historyError && !historyLoading ? (
           <InlineError

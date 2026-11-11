@@ -147,7 +147,7 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff and post-release checks — 2026-11-11
 
-- **Tests:** `pytest -q` → 88 passed, including 9 offline RAG idempotency tests
+- **Tests:** `pytest -q` → 93 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
   `chromadb` skips the RAG test module and the boto3 legacy-upload test.
 - **Lint:** `ruff check src/main.py src/logger.py src/analytics src/quality src/serving
@@ -177,7 +177,7 @@ resolved from the current working directory, so run it from the repo root.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
-  frontend origin are verified. `npm run typecheck`, `npm test` (70 tests), and
+  frontend origin are verified. `npm run typecheck`, `npm test` (73 tests), and
   `npm run build` pass; `npm audit` reports zero vulnerabilities. Production
   smoke test on the refreshed snapshot verified 9,750 estates, the district
   sale and volume trend chart (latest Nov 2026), the 9,117-marker map, and
