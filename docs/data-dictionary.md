@@ -345,6 +345,7 @@ Grain: one row per estate. Unique key: `estate_id`. Rows: 9,750 (refreshed DB).
 | `has_market` | integer | 1 when market rows exist |
 | `has_transactions` | integer | 1 when transactions exist |
 | `has_wiki` | integer | 1 when the Chinese estate name matches a wiki JSON key |
+| `wiki_title` | text | Chinese Wikipedia page title for the estate |
 
 Caveats: 12-month windows end at the later of the latest sale and rental
 dates in the snapshot, not the wall-clock date. The rent average uses positive rental net-ft prices and
