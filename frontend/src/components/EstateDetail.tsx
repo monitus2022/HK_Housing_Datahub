@@ -3,11 +3,13 @@ import type { EstateSummary, Manifest } from "../types";
 import { formatDate, formatHkd, formatNumber } from "../lib/format";
 import { EstateHistory } from "./EstateHistory";
 import { wikiUrl } from "../lib/wiki";
+import { hasCoordinates } from "../lib/map";
 
 interface Props {
   manifest: Manifest;
   estate: EstateSummary;
   onClose: () => void;
+  onShowOnMap?: (estate: EstateSummary) => void;
 }
 
 function Stat({
@@ -25,7 +27,12 @@ function Stat({
   );
 }
 
-export function EstateDetail({ manifest, estate, onClose }: Props) {
+export function EstateDetail({
+  manifest,
+  estate,
+  onClose,
+  onShowOnMap,
+}: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const wikiHref = wikiUrl(estate.wiki_title);
 
@@ -104,6 +111,16 @@ export function EstateDetail({ manifest, estate, onClose }: Props) {
             </span>
           )}
         </div>
+
+        {hasCoordinates(estate) && onShowOnMap ? (
+          <button
+            type="button"
+            className="button drawer-map-action"
+            onClick={() => onShowOnMap(estate)}
+          >
+            Show on map
+          </button>
+        ) : null}
 
         <dl className="detail-grid">
           <Stat

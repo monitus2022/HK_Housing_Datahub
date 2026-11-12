@@ -34,9 +34,9 @@ baseline. This file tracks work beyond it.
 - **Frontend visualization phases** — phase 1 is the visualization-first
   overview and trend workbench built from current marts: market KPIs,
   sale/rent pulse, district league, yield scatter, and level/index/change trend
-  views with district comparison. Phase 2 adds medians, percentiles, segment
-  marts, and distribution charts. Map clustering follows phase 1. Remaining:
-  broader accessibility/performance testing.
+  views with district comparison. Map clustering adds zoom-aware groups and
+  map/list linking. Phase 2 adds medians, percentiles, segment marts, and
+  distribution charts. Remaining: broader accessibility/performance testing.
 - **R2 public access and CORS** — configured: the snapshot is public at
   <https://hk-housing-datahub.monitus.org> and allows the
   `https://hk-housing.monitus.org` origin. See [`deployment.md`](deployment.md).

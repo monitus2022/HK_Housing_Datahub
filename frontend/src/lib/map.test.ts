@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { EstateSummary } from "../types";
 import {
   boundsFor,
+  clusterMapEstates,
   hasCoordinates,
   mapPrice,
+  mapFocusAction,
   mapPriceSource,
   NO_PRICE_BUCKET,
   PRICE_BUCKETS,
@@ -164,5 +166,74 @@ describe("boundsFor", () => {
   it("returns null when nothing can be plotted", () => {
     expect(boundsFor([estate("1", "A", null, null)])).toBeNull();
     expect(boundsFor([])).toBeNull();
+  });
+});
+
+describe("clusterMapEstates", () => {
+  const nearbyA = estate("A", "D", 22.3, 114.1, 9000);
+  const nearbyB = estate("B", "D", 22.301, 114.101, 13000);
+  const far = estate("C", "D", 22.4, 114.3, 9000);
+
+  it("groups nearby estates and keeps distant ones separate", () => {
+    const clusters = clusterMapEstates([nearbyA, nearbyB, far], 11);
+
+    expect(clusters).toHaveLength(2);
+    const grouped = clusters.find((cluster) => cluster.count === 2);
+    expect(grouped?.estates.map((item) => item.estate_id)).toEqual([
+      "A",
+      "B",
+    ]);
+    expect(grouped?.latitude).toBeCloseTo(22.3005, 4);
+    expect(grouped?.longitude).toBeCloseTo(114.1005, 4);
+    expect(grouped?.mixedBuckets).toBe(true);
+    expect(grouped?.bucket.id).toBe("8k-12k");
+  });
+
+  it("breaks dominant bucket ties by the documented bucket order", () => {
+    const clusters = clusterMapEstates(
+      [
+        estate("higher", "D", 22.3, 114.1, 13000),
+        estate("lower", "D", 22.301, 114.101, 9000),
+      ],
+      11,
+    );
+
+    expect(clusters[0].bucket.id).toBe("8k-12k");
+    expect(clusters[0].mixedBuckets).toBe(true);
+  });
+
+  it("shows individual estates at the maximum cluster zoom", () => {
+    const clusters = clusterMapEstates([nearbyA, nearbyB, far], 15);
+
+    expect(clusters).toHaveLength(3);
+    expect(clusters.every((cluster) => cluster.count === 1)).toBe(true);
+    expect(clusters.map((cluster) => cluster.estates[0].estate_id).sort()).toEqual([
+      "A",
+      "B",
+      "C",
+    ]);
+  });
+
+  it("drops estates without coordinates", () => {
+    expect(
+      clusterMapEstates(
+        [nearbyA, estate("missing", "D", null, null), far],
+        11,
+      ).reduce((total, cluster) => total + cluster.count, 0),
+    ).toBe(2);
+    expect(clusterMapEstates([], 11)).toEqual([]);
+  });
+});
+
+describe("mapFocusAction", () => {
+  it("skips missing or already-applied focus requests", () => {
+    expect(mapFocusAction(null, null, "")).toBe("skip");
+    expect(mapFocusAction(undefined, 2, "D")).toBe("skip");
+    expect(mapFocusAction(3, 3, "D")).toBe("skip");
+  });
+
+  it("clears a district before centring a new focus request", () => {
+    expect(mapFocusAction(4, 3, "D")).toBe("clear-district");
+    expect(mapFocusAction(4, 3, "")).toBe("center");
   });
 });

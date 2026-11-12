@@ -147,3 +147,163 @@ export const DEFAULT_ZOOM = 11;
 export const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 export const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+export interface MapCluster {
+  id: string;
+  latitude: number;
+  longitude: number;
+  count: number;
+  estates: Array<EstateSummary & { latitude: number; longitude: number }>;
+  bucket: PriceBucket;
+  mixedBuckets: boolean;
+}
+
+export interface ClusterOptions {
+  /** Grid cell size in screen pixels at the current zoom. */
+  cellSize?: number;
+  /** At and above this zoom, show every estate as an individual marker. */
+  maxZoom?: number;
+}
+
+export const CLUSTER_CELL_SIZE = 64;
+export const CLUSTER_MAX_ZOOM = 15;
+
+const TILE_SIZE = 256;
+
+function project(latitude: number, longitude: number, zoom: number) {
+  const scale = TILE_SIZE * 2 ** zoom;
+  const sin = Math.sin((latitude * Math.PI) / 180);
+  return {
+    x: ((longitude + 180) / 360) * scale,
+    y:
+      (0.5 -
+        Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) *
+      scale,
+  };
+}
+
+function dominantBucket(estates: EstateSummary[]): {
+  bucket: PriceBucket;
+  mixed: boolean;
+} {
+  const counts = new Map<string, { bucket: PriceBucket; count: number }>();
+  for (const estate of estates) {
+    const bucket = priceBucket(mapPrice(estate));
+    const current = counts.get(bucket.id);
+    if (current) {
+      current.count += 1;
+    } else {
+      counts.set(bucket.id, { bucket, count: 1 });
+    }
+  }
+  const bucketOrder = new Map(
+    [...PRICE_BUCKETS, NO_PRICE_BUCKET].map((bucket, index) => [
+      bucket.id,
+      index,
+    ]),
+  );
+  const ordered = [...counts.values()].sort(
+    (left, right) =>
+      right.count - left.count ||
+      (bucketOrder.get(left.bucket.id) ?? 0) -
+        (bucketOrder.get(right.bucket.id) ?? 0),
+  );
+  return {
+    bucket: ordered[0]?.bucket ?? NO_PRICE_BUCKET,
+    mixed: counts.size > 1,
+  };
+}
+
+type LocatedEstate = EstateSummary & {
+  latitude: number;
+  longitude: number;
+};
+
+export type MapFocusAction = "skip" | "clear-district" | "center";
+
+/**
+ * Decide how a focus request should be handled.
+ *
+ * A focus request is one-shot: once its nonce has been applied, later district
+ * changes must not clear the filter or re-centre the map.
+ */
+export function mapFocusAction(
+  focusNonce: number | null | undefined,
+  appliedNonce: number | null,
+  districtId: string,
+): MapFocusAction {
+  if (focusNonce === null || focusNonce === undefined) return "skip";
+  if (appliedNonce === focusNonce) return "skip";
+  return districtId ? "clear-district" : "center";
+}
+
+/**
+ * Group estates into a deterministic screen-space grid at the given zoom.
+ *
+ * The grid is anchored to the Web Mercator world, so panning does not make
+ * clusters jump; zooming does. Single-estate groups are returned with
+ * `count: 1` so the map can render a normal marker.
+ */
+export function clusterMapEstates(
+  estates: EstateSummary[],
+  zoom: number,
+  options: ClusterOptions = {},
+): MapCluster[] {
+  const cellSize = options.cellSize ?? CLUSTER_CELL_SIZE;
+  const maxZoom = options.maxZoom ?? CLUSTER_MAX_ZOOM;
+  const points: LocatedEstate[] = estates.filter(hasCoordinates);
+
+  if (points.length === 0) return [];
+
+  if (zoom >= maxZoom) {
+    return points.map((estate) => ({
+      id: `estate-${estate.estate_id}`,
+      latitude: estate.latitude,
+      longitude: estate.longitude,
+      count: 1,
+      estates: [estate],
+      bucket: priceBucket(mapPrice(estate)),
+      mixedBuckets: false,
+    }));
+  }
+
+  const groups = new Map<string, LocatedEstate[]>();
+  for (const estate of points) {
+    const projected = project(estate.latitude, estate.longitude, zoom);
+    const key = `${Math.floor(projected.x / cellSize)}:${Math.floor(
+      projected.y / cellSize,
+    )}`;
+    const group = groups.get(key);
+    if (group) {
+      group.push(estate);
+    } else {
+      groups.set(key, [estate]);
+    }
+  }
+
+  return [...groups.entries()]
+    .map(([key, group]) => {
+      let latSum = 0;
+      let lngSum = 0;
+      for (const estate of group) {
+        latSum += estate.latitude;
+        lngSum += estate.longitude;
+      }
+      const dominant = dominantBucket(group);
+      return {
+        id: `cluster-${zoom}-${key}`,
+        latitude: latSum / group.length,
+        longitude: lngSum / group.length,
+        count: group.length,
+        estates: group,
+        bucket: dominant.bucket,
+        mixedBuckets: dominant.mixed,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.count - left.count ||
+        left.latitude - right.latitude ||
+        left.longitude - right.longitude,
+    );
+}
