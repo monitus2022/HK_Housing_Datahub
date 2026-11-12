@@ -2,6 +2,8 @@ import type { DistrictMonthly } from "../types";
 
 export type TrendMetric = "sale" | "rent" | "volume";
 
+export type TrendView = "level" | "index" | "change";
+
 export interface TrendDistrict {
   id: string;
   nameEn: string;
@@ -36,6 +38,12 @@ export const METRIC_UNITS: Record<TrendMetric, string> = {
   sale: "HKD/ft²",
   rent: "HKD/ft²",
   volume: "transactions",
+};
+
+export const VIEW_LABELS: Record<TrendView, string> = {
+  level: "Level",
+  index: "Indexed to 100",
+  change: "12-month change",
 };
 
 const WINDOWS = [
@@ -195,6 +203,36 @@ export function summarizeTrend(points: TrendPoint[]): TrendSummary {
   };
 }
 
+/** Apply a presentation view without changing the underlying monthly rows. */
+export function applyTrendView(
+  points: TrendPoint[],
+  view: TrendView,
+): TrendPoint[] {
+  if (view === "level" || points.length === 0) return points;
+
+  if (view === "index") {
+    const baseIndex = points.findIndex((point) => point.value > 0);
+    if (baseIndex < 0) return [];
+    const base = points[baseIndex].value;
+    return points.slice(baseIndex).map((point) => ({
+      ...point,
+      value: (point.value / base) * 100,
+    }));
+  }
+
+  const changes: TrendPoint[] = [];
+  for (const point of points) {
+    const previous = valueMonthsBefore(points, point.month, 12);
+    if (previous === null || previous.value === 0) continue;
+    changes.push({
+      month: point.month,
+      value: ((point.value - previous.value) / previous.value) * 100,
+      txCount: point.txCount,
+    });
+  }
+  return changes;
+}
+
 export interface ChartPoint {
   x: number;
   y: number;
@@ -312,4 +350,107 @@ export function buildChartGeometry(
   }
 
   return { points: chartPoints, linePath, areaPath, yTicks };
+}
+
+export interface MultiLineSeries {
+  id: string;
+  label: string;
+  points: TrendPoint[];
+}
+
+export interface MultiLineGeometrySeries {
+  id: string;
+  label: string;
+  points: ChartPoint[];
+  linePath: string;
+}
+
+export interface MultiLineGeometry {
+  series: MultiLineGeometrySeries[];
+  yTicks: ChartTick[];
+}
+
+/** Shared-scale geometry for one or more metric series on a common month axis. */
+export function buildMultiLineGeometry(
+  series: MultiLineSeries[],
+  options: ChartOptions = DEFAULT_CHART_OPTIONS,
+): MultiLineGeometry | null {
+  const nonEmpty = series
+    .map((item) => ({
+      ...item,
+      points: [...item.points].sort((left, right) =>
+        left.month.localeCompare(right.month),
+      ),
+    }))
+    .filter((item) => item.points.length > 0);
+  if (nonEmpty.length === 0) return null;
+
+  const allPoints = nonEmpty.flatMap((item) => item.points);
+  let min = allPoints[0].value;
+  let max = allPoints[0].value;
+  for (const point of allPoints) {
+    if (point.value < min) min = point.value;
+    if (point.value > max) max = point.value;
+  }
+  if (min === max) {
+    if (min >= 0) {
+      max = min === 0 ? 1 : min * 1.1;
+      min = 0;
+    } else {
+      const pad = Math.abs(min) * 0.05 || 1;
+      min -= pad;
+      max += pad;
+    }
+  }
+
+  const monthIndexes = allPoints
+    .map((point) => parseMonth(point.month))
+    .filter((index): index is number => index !== null);
+  const minMonth = Math.min(...monthIndexes);
+  const maxMonth = Math.max(...monthIndexes);
+  const monthSpan = maxMonth - minMonth;
+
+  const plotWidth =
+    options.width - options.paddingLeft - options.paddingRight;
+  const plotHeight =
+    options.height - options.paddingTop - options.paddingBottom;
+  const span = max - min;
+
+  const geometrySeries: MultiLineGeometrySeries[] = nonEmpty.map((item) => {
+    const chartPoints: ChartPoint[] = item.points.map((point) => {
+      const monthIndex = parseMonth(point.month);
+      const x =
+        monthIndex === null || monthSpan === 0
+          ? options.paddingLeft + plotWidth / 2
+          : options.paddingLeft +
+            ((monthIndex - minMonth) / monthSpan) * plotWidth;
+      return {
+        x,
+        y: options.paddingTop + (1 - (point.value - min) / span) * plotHeight,
+        point,
+      };
+    });
+    return {
+      ...item,
+      points: chartPoints,
+      linePath: chartPoints
+        .map(
+          (item, index) =>
+            `${index === 0 ? "M" : "L"}${item.x.toFixed(1)} ${item.y.toFixed(1)}`,
+        )
+        .join(" "),
+    };
+  });
+
+  const tickCount = 4;
+  const yTicks: ChartTick[] = [];
+  for (let index = 0; index < tickCount; index += 1) {
+    const value = min + (span * index) / (tickCount - 1);
+    yTicks.push({
+      value,
+      y: options.paddingTop + (1 - (value - min) / span) * plotHeight,
+    });
+  }
+
+  return { series: geometrySeries, yTicks };
 }
