@@ -10,6 +10,11 @@ import { RecentTransactions } from "./components/RecentTransactions";
 import { DataCatalogView } from "./components/DataCatalog";
 import { MarketOverview } from "./components/MarketOverview";
 import { estateIdFromSearch, withEstateParam } from "./lib/urlState";
+import {
+  DEFAULT_SEARCH_STATE,
+  searchStateToSearch,
+} from "./lib/searchState";
+import { EMPTY_ESTATE_FILTERS } from "./lib/filters";
 
 type View =
   | "overview"
@@ -39,6 +44,10 @@ export default function App() {
     districtId: "",
     nonce: 0,
   });
+  const [mapFocus, setMapFocus] = useState<{
+    estateId: string;
+    nonce: number;
+  } | null>(null);
   const initialEstateId = useRef<string | null>(
     estateIdFromSearch(window.location.search),
   );
@@ -49,6 +58,32 @@ export default function App() {
       nonce: current.nonce + 1,
     }));
     setView("trends");
+  }, []);
+
+  const showOnMap = useCallback((estate: EstateSummary) => {
+    setMapFocus((current) => ({
+      estateId: estate.estate_id,
+      nonce: (current?.nonce ?? 0) + 1,
+    }));
+    setSelected(null);
+    setView("map");
+  }, []);
+
+  const openEstatesForDistrict = useCallback((districtId: string) => {
+    const next = searchStateToSearch(
+      {
+        ...DEFAULT_SEARCH_STATE,
+        filters: { ...EMPTY_ESTATE_FILTERS, districtId },
+      },
+      "",
+    );
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${next}`,
+    );
+    setSelected(null);
+    setView("search");
   }, []);
 
   useEffect(() => {
@@ -248,6 +283,8 @@ export default function App() {
                 <EstateMap
                   estates={data.estates}
                   onSelect={setSelected}
+                  focusEstate={mapFocus}
+                  onOpenEstates={openEstatesForDistrict}
                 />
               ) : null}
               {view === "transactions" ? (
@@ -283,6 +320,7 @@ export default function App() {
           manifest={data.manifest}
           estate={selected}
           onClose={closeDetail}
+          onShowOnMap={showOnMap}
         />
       ) : null}
     </div>

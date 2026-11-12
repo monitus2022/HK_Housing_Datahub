@@ -5,7 +5,10 @@ import type { EstateSummary } from "../types";
 import { listDistricts } from "../lib/estates";
 import {
   boundsFor,
+  CLUSTER_MAX_ZOOM,
+  clusterMapEstates,
   DEFAULT_ZOOM,
+  hasCoordinates,
   HK_CENTER,
   mapPrice,
   mapPriceSource,
@@ -22,6 +25,8 @@ import { EmptyNotice } from "./Status";
 interface Props {
   estates: EstateSummary[];
   onSelect: (estate: EstateSummary) => void;
+  focusEstate?: { estateId: string; nonce: number } | null;
+  onOpenEstates?: (districtId: string) => void;
 }
 
 function tooltipElement(estate: EstateSummary): HTMLElement {
@@ -53,12 +58,20 @@ function tooltipElement(estate: EstateSummary): HTMLElement {
   return wrapper;
 }
 
-export function EstateMap({ estates, onSelect }: Props) {
+export function EstateMap({
+  estates,
+  onSelect,
+  focusEstate,
+  onOpenEstates,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const focusedMarkerRef = useRef<L.CircleMarker | null>(null);
   const onSelectRef = useRef(onSelect);
   const [districtId, setDistrictId] = useState("");
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [viewportVersion, setViewportVersion] = useState(0);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -68,6 +81,10 @@ export function EstateMap({ estates, onSelect }: Props) {
   const selection = useMemo(
     () => selectMapEstates(estates, districtId),
     [estates, districtId],
+  );
+  const clusters = useMemo(
+    () => clusterMapEstates(selection.visible, zoom),
+    [selection, zoom],
   );
 
   useEffect(() => {
@@ -87,6 +104,11 @@ export function EstateMap({ estates, onSelect }: Props) {
     }).addTo(map);
 
     layerRef.current = L.layerGroup().addTo(map);
+    map.on("zoomend", () => {
+      setZoom(map.getZoom());
+      setViewportVersion((value) => value + 1);
+    });
+    map.on("moveend", () => setViewportVersion((value) => value + 1));
     mapRef.current = map;
 
     return () => {
@@ -102,27 +124,75 @@ export function EstateMap({ estates, onSelect }: Props) {
     if (!map || !layer) return;
 
     layer.clearLayers();
+    focusedMarkerRef.current = null;
+    const focusId = focusEstate?.estateId;
+    const viewBounds = map.getBounds().pad(0.15);
+    const visibleClusters = clusters.filter((cluster) =>
+      viewBounds.contains([cluster.latitude, cluster.longitude]),
+    );
 
-    for (const estate of selection.visible) {
-      if (estate.latitude === null || estate.longitude === null) continue;
-      const bucket = priceBucket(mapPrice(estate));
-      const marker = L.circleMarker([estate.latitude, estate.longitude], {
-        radius: 5,
-        weight: 1,
-        color: "#ffffff",
-        fillColor: bucket.color,
-        fillOpacity: 0.92,
-      });
+    for (const cluster of visibleClusters) {
+      if (cluster.count === 1) {
+        const estate = cluster.estates[0];
+        const isFocused = estate.estate_id === focusId;
+        const marker = L.circleMarker(
+          [estate.latitude, estate.longitude],
+          {
+            radius: isFocused ? 8 : 5,
+            weight: isFocused ? 3 : 1,
+            color: isFocused ? "#123f3a" : "#ffffff",
+            fillColor: cluster.bucket.color,
+            fillOpacity: 0.92,
+            className: isFocused ? "map-marker-focus" : undefined,
+          },
+        );
 
-      marker.bindTooltip(tooltipElement(estate), {
-        direction: "top",
-        offset: [0, -6],
-        opacity: 1,
+        marker.bindTooltip(tooltipElement(estate), {
+          direction: "top",
+          offset: [0, -6],
+          opacity: 1,
+        });
+        marker.on("click", () => onSelectRef.current(estate));
+        marker.addTo(layer);
+        if (isFocused) focusedMarkerRef.current = marker;
+        continue;
+      }
+
+      const marker = L.marker([cluster.latitude, cluster.longitude], {
+        icon: L.divIcon({
+          className: "map-cluster-icon",
+          html: `<span style="background:${cluster.bucket.color}">${cluster.count}</span>`,
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+        }),
+        title: `${cluster.count} estates`,
       });
-      marker.on("click", () => onSelectRef.current(estate));
+      marker.bindTooltip(
+        `${cluster.count} estates · click to zoom`,
+        { direction: "top", offset: [0, -20], opacity: 1 },
+      );
+      marker.on("click", () => {
+        const activeMap = mapRef.current;
+        if (!activeMap) return;
+        const nextZoom = Math.min(
+          CLUSTER_MAX_ZOOM,
+          activeMap.getZoom() + 2,
+        );
+        activeMap.setView(
+          [cluster.latitude, cluster.longitude],
+          nextZoom,
+          { animate: true },
+        );
+      });
       marker.addTo(layer);
     }
 
+    focusedMarkerRef.current?.openTooltip();
+  }, [clusters, focusEstate?.estateId, viewportVersion]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
     const bounds = boundsFor(selection.visible);
     if (bounds) {
       map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
@@ -130,6 +200,23 @@ export function EstateMap({ estates, onSelect }: Props) {
       map.setView(HK_CENTER, DEFAULT_ZOOM);
     }
   }, [selection]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const estateId = focusEstate?.estateId;
+    if (!map || !estateId) return;
+    const estate = estates.find((item) => item.estate_id === estateId);
+    if (!estate || !hasCoordinates(estate)) return;
+    if (districtId) {
+      setDistrictId("");
+      return;
+    }
+    map.setView(
+      [estate.latitude, estate.longitude],
+      CLUSTER_MAX_ZOOM,
+      { animate: true },
+    );
+  }, [focusEstate, estates, districtId]);
 
   const fitToData = () => {
     const map = mapRef.current;
@@ -149,9 +236,10 @@ export function EstateMap({ estates, onSelect }: Props) {
           <p className="eyebrow">Map</p>
           <h2>Estate map</h2>
           <p className="muted">
-            Estates plotted at their coordinates. Colour shows the 12-month
-            average net-ft price (latest transaction as a fallback); select a
-            marker to open the estate detail panel.
+            Estates plotted at their coordinates. Nearby estates are grouped
+            into numbered clusters; zoom in to split them. Colour shows the
+            12-month average net-ft price (latest transaction as a fallback);
+            select a marker to open the estate detail panel.
           </p>
         </div>
         <p className="result-count">
@@ -178,7 +266,22 @@ export function EstateMap({ estates, onSelect }: Props) {
         <button type="button" className="button" onClick={fitToData}>
           Fit to data
         </button>
+        {districtId && onOpenEstates ? (
+          <button
+            type="button"
+            className="button"
+            onClick={() => onOpenEstates(districtId)}
+          >
+            View estates in this district
+          </button>
+        ) : null}
       </div>
+
+      <p className="muted map-status">
+        {zoom < CLUSTER_MAX_ZOOM
+          ? `${formatNumber(clusters.length)} groups at this zoom · numbers cluster nearby estates`
+          : `${formatNumber(selection.visible.length)} mapped · individual estates`}
+      </p>
 
       <div className="map-shell">
         {selection.visible.length === 0 ? (
@@ -213,6 +316,9 @@ export function EstateMap({ estates, onSelect }: Props) {
               {bucket.label}
             </span>
           ))}
+          <p className="map-legend-note">
+            Cluster colour follows the most common price bucket in the group.
+          </p>
         </div>
       </div>
 
