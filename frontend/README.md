@@ -14,7 +14,9 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - shareable `?estate=<id>` deep links that open the estate view
 - district trends for sale price, rent, and transaction volume with level,
   indexed, and 12-month-change views, plus a multi-district comparison chart
-- estate map with district filtering and price-bucketed markers
+- estate map with district filtering, price-bucketed markers, zoom-aware
+  clustering, district-to-list linking, and “Show on map” from the estate
+  drawer
 - recent-transactions table with search, district/date filters, sorting, and
   pagination
 - catalogue view with dataset cards, provenance, freshness, quality, caveats,
@@ -67,10 +69,14 @@ query string while keeping the search filters. On a missing file, the history an
 section-level message while the estate summary still renders.
 
 The map plots estate coordinates from `estate_summary` over OpenStreetMap
-tiles. Markers are coloured by the 12-month average net-ft price, with the
-latest transaction price as a fallback; the legend documents the buckets. Tiles
-are fetched from `tile.openstreetmap.org` at runtime and are not bundled or
-cached by the app; attribution is shown on the map.
+tiles. Nearby estates are grouped into numbered screen-space clusters and split
+as you zoom; cluster colour follows the most common price bucket in the group.
+Markers are coloured by the 12-month average net-ft price, with the latest
+transaction price as a fallback; the legend documents the buckets. Selecting a
+district can open the matching estate list, and the estate drawer can jump back
+to the map with the estate centred and highlighted. Tiles are fetched from
+`tile.openstreetmap.org` at runtime and are not bundled or cached by the app;
+attribution is shown on the map.
 
 ## Quickstart
 

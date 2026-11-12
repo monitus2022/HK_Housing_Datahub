@@ -199,8 +199,10 @@ is a market overview built from estate summary and district monthly rows:
 median price/rent/yield KPIs, a sale-versus-rent index, a district league table,
 and a price-versus-yield scatter. Estate history, district trends, and recent
 transactions load their data files on demand, and the map plots estate
-coordinates over OpenStreetMap tiles. Estate views are linkable with
-`?estate=<id>`. There is no backend-for-frontend or live API. For local development, `scripts/serve_snapshot.py` serves a snapshot
+coordinates over OpenStreetMap tiles. The map groups nearby estates into
+screen-space clusters at lower zooms, splits them as you zoom in, can open the
+matching estate list for a district, and accepts a focused estate from the
+drawer. Estate views are linkable with `?estate=<id>`. There is no backend-for-frontend or live API. For local development, `scripts/serve_snapshot.py` serves a snapshot
 with CORS and gzip headers. Deployment settings are in
 [`deployment.md`](deployment.md).
 

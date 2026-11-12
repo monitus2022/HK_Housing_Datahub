@@ -280,7 +280,8 @@ The frontend opens on a visual market overview with KPIs, a sale/rent pulse,
 a district league table, and a yield scatter. It also covers estate search and
 detail (including price history and recent transactions), district trends with
 level/index/change views and comparisons, an estate map, recent transactions,
-and the data catalogue. See
+and the data catalogue. The map clusters nearby estates at low zoom and links
+selections with the estate list and drawer. See
 [`frontend/README.md`](frontend/README.md) and
 [`docs/deployment.md`](docs/deployment.md) for Cloudflare Pages/R2 setup.
 
@@ -400,8 +401,10 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   district league, yield scatter), then estate search and detail (price
   history, recent transactions, numeric filters, shareable state), trend views
   with level/index/change modes and district comparison, the estate map, recent
-  transactions, and the data catalogue. The map uses OpenStreetMap tiles at
-  runtime; no map data is bundled or redistributed.
+  transactions, and the data catalogue. The map clusters nearby estates at low
+  zoom, links district selection to the estate list, and can open an estate
+  from its drawer. It uses OpenStreetMap tiles at runtime; no map data is
+  bundled or redistributed.
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
