@@ -24,9 +24,10 @@ layer for a public dashboard.
 - Chunks wiki text and stores Sentence Transformer embeddings in ChromaDB.
 - Provides read-only baseline and quality audits, five materialized analytics
   marts, and a versioned serving snapshot published to R2.
-- Includes a static React frontend with dataset overview, estate search,
-  estate price history, district price trends, an estate map, and recent
-  transactions.
+- Includes a static React frontend with a visual market overview (KPIs,
+  sale/rent pulse, district league, yield scatter), estate search, estate price
+  history, district trend views and comparisons, an estate map, recent
+  transactions, and a data catalogue.
 
 ## Architecture
 
@@ -275,9 +276,11 @@ echo 'VITE_DASHBOARD_BASE_URL=http://localhost:8787' > .env.local
 npm run dev
 ```
 
-The frontend covers the overview, estate search and detail (including price
-history and recent transactions), district price trends, an estate map, and
-recent transactions. See
+The frontend opens on a visual market overview with KPIs, a sale/rent pulse,
+a district league table, and a yield scatter. It also covers estate search and
+detail (including price history and recent transactions), district trends with
+level/index/change views and comparisons, an estate map, recent transactions,
+and the data catalogue. See
 [`frontend/README.md`](frontend/README.md) and
 [`docs/deployment.md`](docs/deployment.md) for Cloudflare Pages/R2 setup.
 
@@ -393,9 +396,11 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   walks all of `data/`, including the SQLite database and Chroma store. Do not
   point it at a public bucket.
 - No live API. The serving layer is a versioned snapshot, not a query service.
-- The frontend covers the overview, estate search and detail (price history,
-  recent transactions, numeric filters, shareable state), district price
-  trends, the estate map, and recent transactions. The map uses OpenStreetMap tiles at
+- The frontend opens on a visual market overview (KPIs, sale/rent pulse,
+  district league, yield scatter), then estate search and detail (price
+  history, recent transactions, numeric filters, shareable state), trend views
+  with level/index/change modes and district comparison, the estate map, recent
+  transactions, and the data catalogue. The map uses OpenStreetMap tiles at
   runtime; no map data is bundled or redistributed.
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional

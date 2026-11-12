@@ -2,7 +2,9 @@
 
 Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 
-- dataset overview cards
+- visualization-first market overview with median price/rent/yield KPIs, a
+  sale-versus-rent pulse, a district league table, and a price-versus-yield
+  scatter
 - estate search with text, district, price, net-ft price, area, bedroom, MTR,
   and school-net filters, sorting, and pagination; filter state lives in the URL
 - estate detail panel with latest transaction, 12-month stats, market date,
@@ -10,8 +12,8 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - `W`/Wiki badges link to the estate's Chinese Wikipedia page when the
   snapshot provides a title; older snapshots show a non-link badge
 - shareable `?estate=<id>` deep links that open the estate view
-- district trends for sale price, rent, and transaction volume with a
-  12-month change summary
+- district trends for sale price, rent, and transaction volume with level,
+  indexed, and 12-month-change views, plus a multi-district comparison chart
 - estate map with district filtering and price-bucketed markers
 - recent-transactions table with search, district/date filters, sorting, and
   pagination

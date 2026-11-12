@@ -194,11 +194,13 @@ The manifest and cache contract is in [`serving.md`](serving.md).
 
 `frontend/` is a Vite + React + TypeScript static app deployed at
 <https://hk-housing.monitus.org>. It fetches `dashboard/manifest.json`, then uses
-`manifest.files.estate_summary`; it never hardcodes a build ID. Estate history,
-district trends, and recent transactions load their data files on demand, and
-the map plots estate coordinates over OpenStreetMap tiles. Estate views are
-linkable with `?estate=<id>`. There is no backend-for-frontend or
-live API. For local development, `scripts/serve_snapshot.py` serves a snapshot
+`manifest.files.estate_summary`; it never hardcodes a build ID. The default view
+is a market overview built from estate summary and district monthly rows:
+median price/rent/yield KPIs, a sale-versus-rent index, a district league table,
+and a price-versus-yield scatter. Estate history, district trends, and recent
+transactions load their data files on demand, and the map plots estate
+coordinates over OpenStreetMap tiles. Estate views are linkable with
+`?estate=<id>`. There is no backend-for-frontend or live API. For local development, `scripts/serve_snapshot.py` serves a snapshot
 with CORS and gzip headers. Deployment settings are in
 [`deployment.md`](deployment.md).
 
@@ -261,9 +263,9 @@ credentials.
 - Phase 7 (optional sample database) is deferred.
 - Phase 8 added the handoff documentation; see [`decisions.md`](decisions.md)
   and [`roadmap.md`](roadmap.md).
-- The frontend in `frontend/` covers the overview, estate search, district
-  price trends, an estate map, and recent transactions. Further work is tracked
-  in [`roadmap.md`](roadmap.md).
+- The frontend in `frontend/` opens on a visual market overview, then estate
+  search, trend views with comparisons, the estate map, recent transactions, and
+  the data catalogue. Further work is tracked in [`roadmap.md`](roadmap.md).
 - The ML workplan is deferred.
 
 ## Failure modes
