@@ -194,7 +194,8 @@ export function buildMarketPulse(
 
   const baseSale = base.saleValue;
   const baseRent = base.rentValue;
-  const points: MarketPulsePoint[] = windowed.map((row) => ({
+  const covered = windowed.filter((row) => row.month >= base.month);
+  const points: MarketPulsePoint[] = covered.map((row) => ({
     month: row.month,
     saleIndex:
       row.saleValue === null ? null : (row.saleValue / baseSale) * 100,
@@ -242,6 +243,7 @@ export interface DistrictLeagueEntry {
   month: string;
   price: number;
   changePct: number | null;
+  changeBasisMonth: string | null;
   yieldPct: number | null;
   txCount: number;
   rentCount: number;
@@ -331,10 +333,6 @@ export function buildDistrictLeague(
         break;
       }
     }
-    if (rent === null && district.rent.length > 0) {
-      rent = district.rent[district.rent.length - 1];
-    }
-
     entries.push({
       id,
       nameEn: district.nameEn,
@@ -342,6 +340,7 @@ export function buildDistrictLeague(
       month: latest.month,
       price: latest.value,
       changePct,
+      changeBasisMonth: previous?.month ?? null,
       yieldPct:
         rent !== null ? ((rent.value * 12) / latest.value) * 100 : null,
       txCount: latest.count,

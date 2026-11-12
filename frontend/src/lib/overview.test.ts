@@ -146,6 +146,31 @@ describe("buildMarketPulse", () => {
     expect(pulse.points[0].rentValue).toBeCloseTo(60);
   });
 
+  it("starts both series at the common sale and rent coverage month", () => {
+    const pulse = buildMarketPulse(
+      [
+        row("A", "2023-01", 100, null, 1, 0),
+        row("A", "2023-02", 110, 55, 1, 1),
+        row("A", "2023-03", 120, 60, 1, 1),
+      ],
+      60,
+    );
+
+    expect(pulse.baseMonth).toBe("2023-02");
+    expect(pulse.points.map((point) => point.month)).toEqual([
+      "2023-02",
+      "2023-03",
+    ]);
+    expect(pulse.saleSeries.map((point) => point.month)).toEqual([
+      "2023-02",
+      "2023-03",
+    ]);
+    expect(pulse.rentSeries.map((point) => point.month)).toEqual([
+      "2023-02",
+      "2023-03",
+    ]);
+  });
+
   it("returns no indexed series when sale and rent never overlap", () => {
     const pulse = buildMarketPulse(
       [
@@ -178,6 +203,7 @@ describe("buildDistrictLeague", () => {
       rentCount: 4,
     });
     expect(a?.changePct).toBeCloseTo(10);
+    expect(a?.changeBasisMonth).toBe("2024-01");
     expect(a?.yieldPct).toBeCloseTo(6);
     expect(league.find((entry) => entry.id === "B")?.yieldPct).toBeNull();
   });
@@ -186,6 +212,7 @@ describe("buildDistrictLeague", () => {
     const league = buildDistrictLeague([
       row("A", "2025-01", 10000, 50, 1, 1),
       row("A", "2025-02", 12000, null, 1, 0),
+      row("A", "2025-03", null, 60, 0, 1),
     ]);
 
     expect(league[0].month).toBe("2025-02");

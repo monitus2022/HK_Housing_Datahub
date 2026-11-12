@@ -133,8 +133,8 @@ export function MarketOverview({
           <p className="card-label">Median rent</p>
           <p className="card-value">{formatCompactHkd(kpis.medianRent)}</p>
           <p className="card-note">
-            HKD/ft² over 12 months · {formatNumber(kpis.estatesWithRent)}{" "}
-            estates
+            HKD/ft² per month over 12 months ·{" "}
+            {formatNumber(kpis.estatesWithRent)} estates
           </p>
         </article>
         <article className="card">
@@ -158,6 +158,14 @@ export function MarketOverview({
         </article>
       </section>
 
+      {error && !loading ? (
+        <InlineError
+          title="Market charts are unavailable"
+          message={error}
+          onRetry={() => setReloadToken((value) => value + 1)}
+        />
+      ) : null}
+
       <div className="overview-layout">
         <section className="panel overview-pulse">
           <div className="panel-heading">
@@ -167,24 +175,18 @@ export function MarketOverview({
             </div>
             {pulse?.baseMonth ? (
               <p className="result-count">
-                Base {formatMonth(pulse.baseMonth)}
+                Common from {formatMonth(pulse.baseMonth)}
               </p>
             ) : null}
           </div>
           {loading ? (
             <InlineLoading label="Loading the market pulse…" />
-          ) : error ? (
-            <InlineError
-              title="The market pulse is unavailable"
-              message={error}
-              onRetry={() => setReloadToken((value) => value + 1)}
-            />
-          ) : pulseGeometry ? (
+          ) : error ? null : pulseGeometry ? (
             <LineChart
               geometry={pulseGeometry}
               formatValue={(value) => value.toFixed(0)}
               ariaLabel="Hong Kong sale price and rent indexed to 100"
-              caption="District averages weighted by transaction count and indexed to 100 at the first month where sale and rent overlap. Rent history covers roughly the last three years."
+              caption="District averages weighted by transaction count and indexed to 100. Both lines start at the first month where sale and rent overlap; rent history covers roughly the last three years."
             />
           ) : (
             <EmptyNotice title="No overlapping sale and rent history">
@@ -248,8 +250,10 @@ export function MarketOverview({
             </div>
           </dl>
           <p className="muted coverage-note">
-            Sales through {formatMonth(manifest.data_through.transactions)} ·
-            market data through {formatMonth(manifest.data_through.market)} ·
+            Sales through{" "}
+            {formatMonth(manifest.data_through.transactions?.slice(0, 7) ?? null)} ·
+            market data through{" "}
+            {formatMonth(manifest.data_through.market?.slice(0, 7) ?? null)} ·
             build <code>{manifest.build_id}</code>
           </p>
         </section>
@@ -266,13 +270,7 @@ export function MarketOverview({
           </div>
           {loading ? (
             <InlineLoading label="Loading district rankings…" />
-          ) : error ? (
-            <InlineError
-              title="District rankings are unavailable"
-              message={error}
-              onRetry={() => setReloadToken((value) => value + 1)}
-            />
-          ) : league.length === 0 ? (
+          ) : error ? null : league.length === 0 ? (
             <EmptyNotice title="No district sale data">
               <p>This snapshot has no positive district sale prices yet.</p>
             </EmptyNotice>
@@ -285,7 +283,11 @@ export function MarketOverview({
                     <th scope="col" className="numeric">
                       Price
                     </th>
-                    <th scope="col" className="numeric">
+                    <th
+                      scope="col"
+                      className="numeric"
+                      title="Nearest earlier month at least 12 months before each district's latest sale month"
+                    >
                       12m
                     </th>
                     <th scope="col" className="numeric">
@@ -324,6 +326,11 @@ export function MarketOverview({
                               ? "stat-up"
                               : "stat-down"
                         }`}
+                        title={
+                          entry.changeBasisMonth
+                            ? `Versus ${formatMonth(entry.changeBasisMonth)}`
+                            : "No earlier comparison month"
+                        }
                       >
                         {formatPercent(entry.changePct)}
                       </td>
@@ -337,6 +344,10 @@ export function MarketOverview({
                   ))}
                 </tbody>
               </table>
+              <p className="muted table-note">
+                Latest available sale month per district; 12m compares with
+                the nearest earlier month at least a year before it.
+              </p>
             </div>
           )}
         </section>
@@ -350,13 +361,7 @@ export function MarketOverview({
           </div>
           {loading ? (
             <InlineLoading label="Loading the yield comparison…" />
-          ) : error ? (
-            <InlineError
-              title="The yield comparison is unavailable"
-              message={error}
-              onRetry={() => setReloadToken((value) => value + 1)}
-            />
-          ) : scatter ? (
+          ) : error ? null : scatter ? (
             <figure className="chart-figure">
               <svg
                 className="scatter-chart"

@@ -1035,6 +1035,11 @@ select:focus {
   background: var(--surface);
 }
 
+.table-note {
+  margin: 8px 4px 0;
+  font-size: 0.75rem;
+}
+
 .link-button {
   border: 0;
   background: none;

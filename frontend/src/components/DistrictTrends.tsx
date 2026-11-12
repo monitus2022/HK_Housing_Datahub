@@ -101,9 +101,9 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
   }, [manifest, reloadToken]);
 
   useEffect(() => {
-    if (focusDistrict?.districtId) {
-      setDistrictId(focusDistrict.districtId);
-    }
+    if (!focusDistrict?.districtId) return;
+    setDistrictId(focusDistrict.districtId);
+    document.getElementById("trends-heading")?.focus();
   }, [focusDistrict]);
 
   const districts = useMemo(() => (rows ? listTrendDistricts(rows) : []), [rows]);
@@ -139,7 +139,7 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
     return buildMultiLineGeometry(lines, DEFAULT_CHART_OPTIONS);
   }, [rows, districtId, compareIds, districts, metric, window, viewMode]);
 
-  const metricAvailable = series.length > 0;
+  const metricAvailable = levelSeries.length > 0;
   const metricName = METRIC_LABELS[metric].toLowerCase();
   const positiveMonths = series.filter((point) => point.value > 0).length;
   const viewCaption =
@@ -147,14 +147,18 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
       ? "Each series is indexed to 100 at its first positive month in the window."
       : viewMode === "change"
         ? "Each point is the percentage change versus the nearest month at least 12 months earlier."
-        : `${METRIC_LABELS[metric]} in ${METRIC_UNITS[metric]}, averaged from transactions in each month.`;
+        : metric === "volume"
+          ? "Transactions per month in the selected district and window."
+          : `${METRIC_LABELS[metric]} in ${METRIC_UNITS[metric]}, averaged from transactions in each month.`;
 
   return (
     <section className="panel" aria-label="District price trends">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Trends</p>
-          <h2>District price trends</h2>
+          <h2 id="trends-heading" tabIndex={-1}>
+            District price trends
+          </h2>
           <p className="muted">
             Monthly average net-ft price and transaction volume by district.
             Windows end at the latest month with data for the selected metric.
@@ -326,6 +330,20 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
                   district.
                 </p>
               )}
+            </EmptyNotice>
+          ) : series.length === 0 ? (
+            <EmptyNotice
+              title={
+                viewMode === "change"
+                  ? "Not enough history for a 12-month change"
+                  : "No positive values to index"
+              }
+            >
+              <p>
+                {viewMode === "change"
+                  ? "This district has level data, but not at least two points a year apart in the selected window. Try a wider window."
+                  : "This district has level data, but no positive values to use as an index base in the selected window."}
+              </p>
             </EmptyNotice>
           ) : (
             <>
