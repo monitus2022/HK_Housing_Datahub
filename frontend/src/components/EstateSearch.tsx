@@ -26,6 +26,8 @@ import {
   formatHkd,
   formatNumber,
 } from "../lib/format";
+import { wikiUrl } from "../lib/wiki";
+import { isRowActivation } from "../lib/activation";
 
 const PAGE_SIZE = 25;
 
@@ -52,6 +54,28 @@ function flag(label: string, active: boolean, title: string) {
     >
       {label}
     </span>
+  );
+}
+
+function wikiFlag(estate: EstateSummary) {
+  const url = wikiUrl(estate.wiki_title);
+  if (!url) {
+    return flag("W", estate.has_wiki === 1, "Has wiki data");
+  }
+  return (
+    <a
+      className={`flag flag-link ${
+        estate.has_wiki === 1 ? "flag-on" : "flag-off"
+      }`}
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title="Open the Chinese Wikipedia page"
+      aria-label={`Open the Wikipedia page for ${estate.estate_name_en}`}
+      onClick={(event) => event.stopPropagation()}
+    >
+      W
+    </a>
   );
 }
 
@@ -454,10 +478,9 @@ export function EstateSearch({ estates, onSelect }: Props) {
                     tabIndex={0}
                     onClick={() => onSelect(estate)}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelect(estate);
-                      }
+                      if (!isRowActivation(event)) return;
+                      event.preventDefault();
+                      onSelect(estate);
                     }}
                     aria-label={`Open ${estate.estate_name_en}`}
                   >
@@ -492,7 +515,7 @@ export function EstateSearch({ estates, onSelect }: Props) {
                           estate.has_transactions === 1,
                           "Has transactions",
                         )}
-                        {flag("W", estate.has_wiki === 1, "Has wiki data")}
+                        {wikiFlag(estate)}
                       </span>
                     </td>
                   </tr>

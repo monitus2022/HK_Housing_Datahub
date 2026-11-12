@@ -7,12 +7,16 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
   and school-net filters, sorting, and pagination; filter state lives in the URL
 - estate detail panel with latest transaction, 12-month stats, market date,
   coverage flags, monthly price and rent history, and recent transactions
+- `W`/Wiki badges link to the estate's Chinese Wikipedia page when the
+  snapshot provides a title; older snapshots show a non-link badge
 - shareable `?estate=<id>` deep links that open the estate view
 - district trends for sale price, rent, and transaction volume with a
   12-month change summary
 - estate map with district filtering and price-bucketed markers
 - recent-transactions table with search, district/date filters, sorting, and
   pagination
+- catalogue view with dataset cards, provenance, freshness, quality, caveats,
+  and expandable table/column detail
 
 - **Live deployment:** <https://hk-housing.monitus.org>
 - **If the snapshot does not load:** see the deployment troubleshooting in
@@ -25,7 +29,7 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - TypeScript
 - Leaflet + OpenStreetMap tiles for the map
 - Plain CSS (no UI framework)
-- Vitest for the pure search, trend, map, and transaction helpers
+- Vitest for the pure search, trend, map, transaction, wiki, and activation helpers
 
 ## Data contract
 
@@ -43,14 +47,15 @@ and each file is cached per build ID for the life of the page:
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_monthly}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.transaction_recent}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.estate_monthly}
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.catalog}
 ```
 
 It never hardcodes a build ID or file name. The published snapshot is described
 in [`../docs/serving.md`](../docs/serving.md). Large data files are gzipped; the
 loader lets the browser decode R2's `Content-Encoding: gzip`, and falls back to
 manual `DecompressionStream` for local servers that return raw `.gz` bytes. If a
-snapshot predates the trends, transactions, or estate-history file, only that
-section shows an error; the overview and estate search keep working.
+snapshot predates the trends, transactions, estate-history, or catalogue file,
+only that section shows an error; the overview and estate search keep working.
 
 Search state is linkable too: `q`, `sort`, `district`, price/area ranges,
 `bedrooms`, `mtr`, and `school` are serialized in the query string and restored

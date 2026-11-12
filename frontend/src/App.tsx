@@ -8,15 +8,17 @@ import { EstateDetail } from "./components/EstateDetail";
 import { DistrictTrends } from "./components/DistrictTrends";
 import { EstateMap } from "./components/EstateMap";
 import { RecentTransactions } from "./components/RecentTransactions";
+import { DataCatalogView } from "./components/DataCatalog";
 import { estateIdFromSearch, withEstateParam } from "./lib/urlState";
 
-type View = "search" | "trends" | "map" | "transactions";
+type View = "search" | "trends" | "map" | "transactions" | "catalogue";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "search", label: "Estates" },
   { id: "trends", label: "Trends" },
   { id: "map", label: "Map" },
   { id: "transactions", label: "Transactions" },
+  { id: "catalogue", label: "Catalogue" },
 ];
 
 export default function App() {
@@ -228,6 +230,9 @@ export default function App() {
                   estates={data.estates}
                   onSelectEstate={setSelected}
                 />
+              ) : null}
+              {view === "catalogue" ? (
+                <DataCatalogView manifest={data.manifest} />
               ) : null}
             </div>
           </>

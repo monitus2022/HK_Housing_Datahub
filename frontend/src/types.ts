@@ -53,6 +53,7 @@ export interface EstateSummary {
   has_market: number;
   has_transactions: number;
   has_wiki: number;
+  wiki_title?: string | null;
 }
 
 /** One row per district and calendar month (mart_district_monthly). */
@@ -102,4 +103,63 @@ export interface RecentTransaction {
 export interface DashboardData {
   manifest: Manifest;
   estates: EstateSummary[];
+}
+
+export interface CatalogColumn {
+  name: string;
+  type: string | null;
+  nullable: boolean;
+  primary_key: boolean;
+  null_count: number;
+}
+
+export interface CatalogForeignKey {
+  column: string;
+  references_table: string;
+  references_column: string;
+}
+
+export interface CatalogTable {
+  name: string;
+  description: string | null;
+  grain: string | null;
+  caveats: string | null;
+  row_count: number;
+  columns: CatalogColumn[];
+  foreign_keys: CatalogForeignKey[];
+}
+
+export interface CatalogDataset {
+  id: string;
+  name: string;
+  layer: string;
+  description: string | null;
+  source: string | null;
+  refresh: string | null;
+  licence: string | null;
+  owner: string | null;
+  caveats: string | null;
+  artifacts: string[] | null;
+  table_count: number;
+  row_count: number;
+  tables: CatalogTable[];
+}
+
+export interface DataCatalog {
+  version: number;
+  generated_at: string;
+  database: { name: string; table_count: number; row_count: number };
+  quality: {
+    status: string;
+    critical_failures: number;
+    warning_failures: number;
+    checks_total: number;
+  } | null;
+  manifest: {
+    build_id: string;
+    schema_version: number;
+    data_through: DataThrough;
+    coverage: Coverage;
+  } | null;
+  datasets: CatalogDataset[];
 }

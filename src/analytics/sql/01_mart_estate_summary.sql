@@ -144,7 +144,8 @@ SELECT
     es.school_nets,
     CASE WHEN lm.estate_id IS NOT NULL THEN 1 ELSE 0 END AS has_market,
     CASE WHEN lt.estate_id IS NOT NULL THEN 1 ELSE 0 END AS has_transactions,
-    CASE WHEN w.estate_name IS NOT NULL THEN 1 ELSE 0 END AS has_wiki
+    CASE WHEN w.estate_name IS NOT NULL THEN 1 ELSE 0 END AS has_wiki,
+    w.title AS wiki_title
 FROM estates e
 LEFT JOIN regions r ON e.region_id = r.region_id
 LEFT JOIN subregions sr ON e.subregion_id = sr.subregion_id
