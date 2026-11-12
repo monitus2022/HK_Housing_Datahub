@@ -74,7 +74,8 @@ as you zoom; cluster colour follows the most common price bucket in the group.
 Markers are coloured by the 12-month average net-ft price, with the latest
 transaction price as a fallback; the legend documents the buckets. Selecting a
 district can open the matching estate list, and the estate drawer can jump back
-to the map with the estate centred and highlighted. Tiles are fetched from
+to the map with the estate centred and highlighted; that focus is one-shot and
+cleared when you leave the map. Tiles are fetched from
 `tile.openstreetmap.org` at runtime and are not bundled or cached by the app;
 attribution is shown on the map.
 

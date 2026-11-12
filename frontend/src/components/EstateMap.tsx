@@ -99,6 +99,7 @@ export function EstateMap({
       zoom: DEFAULT_ZOOM,
       scrollWheelZoom: true,
       worldCopyJump: true,
+      zoomAnimation: false,
     });
 
     L.tileLayer(TILE_URL, {
@@ -117,9 +118,13 @@ export function EstateMap({
     mapRef.current = map;
 
     return () => {
+      map.stop();
+      map.off();
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
+      appliedFocusRef.current = null;
+      openedTooltipRef.current = null;
     };
   }, []);
 
@@ -172,7 +177,6 @@ export function EstateMap({
           iconAnchor: [22, 22],
         }),
         title: `${cluster.count} estates. Activate to zoom in.`,
-        alt: `${cluster.count} estates. Activate to zoom in.`,
       });
       const priceLabel = cluster.mixedBuckets
         ? "mixed price buckets"
@@ -195,6 +199,12 @@ export function EstateMap({
         );
       });
       marker.addTo(layer);
+      marker
+        .getElement()
+        ?.setAttribute(
+          "aria-label",
+          `${cluster.count} estates. Activate to zoom in.`,
+        );
     }
 
     if (
@@ -210,13 +220,23 @@ export function EstateMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    // Do not start a fit animation while a focus request is still pending.
+    if (
+      mapFocusAction(
+        focusEstate?.nonce,
+        appliedFocusRef.current,
+        districtId,
+      ) !== "skip"
+    ) {
+      return;
+    }
     const bounds = boundsFor(selection.visible);
     if (bounds) {
       map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
     } else {
       map.setView(HK_CENTER, DEFAULT_ZOOM);
     }
-  }, [selection]);
+  }, [selection, focusEstate, districtId]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -241,7 +261,7 @@ export function EstateMap({
     map.setView(
       [estate.latitude, estate.longitude],
       CLUSTER_MAX_ZOOM,
-      { animate: true },
+      { animate: false },
     );
   }, [focusEstate, estates, districtId]);
 

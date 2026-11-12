@@ -67,10 +67,15 @@ export default function App() {
     }));
     setSelected(null);
     setView("map");
-    window.setTimeout(() => {
-      document.getElementById("estate-map-region")?.focus();
-    }, 50);
   }, []);
+
+  useEffect(() => {
+    if (view !== "map" || !mapFocus) return;
+    const handle = window.setTimeout(() => {
+      document.getElementById("estate-map-region")?.focus();
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [view, mapFocus]);
 
   useEffect(() => {
     if (view !== "map") setMapFocus(null);
