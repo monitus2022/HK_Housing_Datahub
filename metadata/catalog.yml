@@ -1,0 +1,161 @@
+version: 1
+owner: HK Housing Datahub
+datasets:
+  - id: agency_raw
+    name: HKP agency data
+    layer: raw
+    description: Raw estate, building, unit, transaction, market, school-net, MTR, and facility data crawled from Hong Kong Property.
+    source: Hong Kong Property APIs
+    refresh: Manual/full crawl; usually with a dataset refresh
+    licence: Source terms apply; see the project disclaimer
+    caveats: >-
+      Scraped data. Some areas and bedrooms are missing or zero, coordinates and
+      operation dates have gaps, and MTR lines are not exhaustive.
+  - id: analytics_marts
+    name: Analytics marts
+    layer: mart
+    description: Denormalized, rebuilt-on-demand tables used by the serving snapshot and dashboard.
+    source: Derived from the agency raw tables
+    refresh: Rebuilt after every crawl (scripts/build_marts.py)
+    licence: Derived from source data
+    caveats: >-
+      Sale windows are relative to the latest sale date, not today. Rent covers
+      roughly the last three years of HKP lease transactions.
+  - id: wikipedia
+    name: Wikipedia estate text
+    layer: wiki
+    description: Chinese Wikipedia sections and tables for matched estates, stored as partition JSON and used for estate context and RAG.
+    source: Chinese Wikipedia API
+    refresh: Manual wiki pipeline (WikiOrchestrator)
+    licence: CC BY-SA; attribute Wikipedia
+    artifacts:
+      - data/wiki/wiki_data_partition_*.json
+      - Chroma collection for RAG chunks
+    caveats: Exact Chinese-name matching only; 824 of 9,750 estates matched in the current reference data.
+  - id: rag_embeddings
+    name: RAG embeddings
+    layer: rag
+    description: Chunked wiki text embedded with a multilingual sentence-transformer and stored in ChromaDB for retrieval experiments.
+    source: Derived from Wikipedia estate text
+    refresh: Manual RAG pipeline (RAGOrchestrator)
+    licence: Derived from CC BY-SA text
+    artifacts:
+      - data/chroma_db/ (local ChromaDB store)
+    caveats: Local Chroma store only; not served by the static dashboard and not exposed through an API yet.
+  - id: serving_snapshot
+    name: Serving snapshot
+    layer: serving
+    description: Versioned JSON files published to R2 and read by the static dashboard.
+    source: Analytics marts
+    refresh: Manual publish (scripts/publish_dashboard.py); daily automation is backlog
+    licence: Derived from source data
+    artifacts:
+      - data/serving/{build_id}/manifest.json
+      - data/serving/{build_id}/catalog.json
+      - data/serving/{build_id}/*.json.gz
+    caveats: The manifest is authoritative; file names and schema versions can change between builds.
+  - id: operations
+    name: Pipeline run metadata
+    layer: operations
+    description: Run records for agency and refresh pipelines.
+    source: Pipeline runs
+    refresh: Written at runtime
+    licence: Internal
+    caveats: Only agent-pipeline runs are recorded; serving publishes and marts are not yet tracked here.
+
+tables:
+  regions:
+    dataset: agency_raw
+    description: Top-level Hong Kong regions.
+    grain: One row per region.
+  subregions:
+    dataset: agency_raw
+    description: Subregions within a region.
+    grain: One row per subregion.
+  districts:
+    dataset: agency_raw
+    description: HKP districts used by the dashboard filters and trends.
+    grain: One row per district.
+  estates:
+    dataset: agency_raw
+    description: Estates and their location, address, coordinates, and operation dates.
+    grain: One row per estate.
+    caveats: English addresses can be empty; some coordinates and operation dates are missing.
+  estate_school_nets:
+    dataset: agency_raw
+    description: School-net mapping for estates.
+    grain: One row per estate × school net.
+    caveats: The ID is the primary-school net while the stored name comes from the secondary-school net.
+  estate_facilities:
+    dataset: agency_raw
+    description: Estate-to-facility mapping.
+    grain: One row per estate × facility.
+  facilities:
+    dataset: agency_raw
+    description: Facility lookup.
+    grain: One row per facility.
+  estate_mtr_lines:
+    dataset: agency_raw
+    description: MTR lines serving an estate.
+    grain: One row per estate × MTR line.
+    caveats: The mapper keeps only the first line per ingest, so coverage is incomplete.
+  estate_monthly_market_info:
+    dataset: agency_raw
+    description: Monthly estate-level sale and rent market aggregates from HKP.
+    grain: One row per estate × month.
+    caveats: Sale values are populated; source rent values are zero and are not used by the marts.
+  phases:
+    dataset: agency_raw
+    description: Estate phases.
+    grain: One row per phase.
+  buildings:
+    dataset: agency_raw
+    description: Buildings or blocks within an estate/phase.
+    grain: One row per building.
+  units:
+    dataset: agency_raw
+    description: Units, floor/flat labels, areas, and bedroom counts.
+    grain: One row per unit.
+    caveats: Area and bedroom values can be null or non-positive in the source.
+  unit_features:
+    dataset: agency_raw
+    description: Unit feature mappings.
+    grain: One row per unit × feature.
+  transactions:
+    dataset: agency_raw
+    description: Sale transactions for units.
+    grain: One row per sale transaction.
+    caveats: There is no transaction-type column; rows are treated as sales.
+  rental_transactions:
+    dataset: agency_raw
+    description: Lease/rental transactions fetched from the HKP district transaction search.
+    grain: One row per rental transaction.
+    caveats: HKP only exposes a 1-year or 3-year lookback; district queries can overlap combined districts.
+  pipeline_runs:
+    dataset: operations
+    description: Agency pipeline run records.
+    grain: One row per pipeline run.
+  mart_estate_summary:
+    dataset: analytics_marts
+    description: One-row-per-estate dashboard summary with latest sale/rent, 12-month stats, MTR/school nets, and coverage flags.
+    grain: One row per estate.
+    caveats: Windows end at the later of the latest sale and rental dates.
+  mart_district_monthly:
+    dataset: analytics_marts
+    description: District × month sale and rent aggregates for trends.
+    grain: One row per district × month.
+    caveats: Rent covers roughly three years; sale history is longer.
+  mart_estate_monthly:
+    dataset: analytics_marts
+    description: Estate × month sale and rent series used by the estate history view.
+    grain: One row per estate × month.
+    caveats: Rent-only months are included; zero prices/rents are omitted from the matching charts.
+  mart_transaction_recent:
+    dataset: analytics_marts
+    description: Sale transactions from the last 24 months.
+    grain: One row per sale transaction.
+    caveats: Window is relative to the latest sale date, not today.
+  mart_coverage:
+    dataset: analytics_marts
+    description: Estate coverage counts for buildings, units, transactions, market data, and wiki.
+    grain: One row per estate.

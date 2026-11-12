@@ -4,6 +4,9 @@ This document explains the grain, keys, and caveats of the current SQLite
 model. The ER diagram is [`db.dbml`](db.dbml); the SQLAlchemy models in
 `src/models/agency/sql_db.py` are the source of truth. `pipeline_runs` and the
 five analytics marts are current tables; only the deferred ML mart is planned.
+Dataset purpose, provenance, licences, refresh cadence, per-table row counts,
+and column-level schema detail live in the generated
+[`data-catalog.md`](data-catalog.md), seeded by `metadata/catalog.yml`.
 
 All row counts below are from the 2026-11-09 baseline snapshot in
 [`baseline-stats.md`](baseline-stats.md).
