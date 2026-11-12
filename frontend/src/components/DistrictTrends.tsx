@@ -2,15 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import type { DistrictMonthly, Manifest } from "../types";
 import { loadDistrictMonthly } from "../lib/dashboard";
 import {
+  applyTrendView,
   buildChartGeometry,
+  buildMultiLineGeometry,
   buildTrendSeries,
   DEFAULT_CHART_OPTIONS,
   listTrendDistricts,
   METRIC_LABELS,
   METRIC_UNITS,
   summarizeTrend,
+  VIEW_LABELS,
   WINDOWS,
   type TrendMetric,
+  type TrendView,
   type TrendWindow,
 } from "../lib/trends";
 import {
@@ -20,15 +24,11 @@ import {
   formatPercent,
 } from "../lib/format";
 import { EmptyNotice, InlineError, InlineLoading } from "./Status";
+import { LineChart } from "./LineChart";
 
 interface Props {
   manifest: Manifest;
-}
-
-function formatValue(metric: TrendMetric, value: number): string {
-  return metric === "volume"
-    ? formatNumber(Math.round(value))
-    : formatCompactHkd(value);
+  focusDistrict?: { districtId: string; nonce: number };
 }
 
 function summaryValue(metric: TrendMetric, value: number | null): string {
@@ -38,7 +38,24 @@ function summaryValue(metric: TrendMetric, value: number | null): string {
     : formatCompactHkd(value);
 }
 
-export function DistrictTrends({ manifest }: Props) {
+function formatViewValue(
+  metric: TrendMetric,
+  view: TrendView,
+  value: number | null,
+): string {
+  if (value === null) return "—";
+  if (view === "index") return value.toFixed(0);
+  if (view === "change") return formatPercent(value);
+  return summaryValue(metric, value);
+}
+
+function viewUnit(metric: TrendMetric, view: TrendView): string {
+  if (view === "index") return "index (base 100)";
+  if (view === "change") return "% versus year earlier";
+  return METRIC_UNITS[metric];
+}
+
+export function DistrictTrends({ manifest, focusDistrict }: Props) {
   const [rows, setRows] = useState<DistrictMonthly[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +63,8 @@ export function DistrictTrends({ manifest }: Props) {
   const [districtId, setDistrictId] = useState("");
   const [metric, setMetric] = useState<TrendMetric>("sale");
   const [window, setWindow] = useState<TrendWindow>("60");
+  const [viewMode, setViewMode] = useState<TrendView>("level");
+  const [compareIds, setCompareIds] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +75,13 @@ export function DistrictTrends({ manifest }: Props) {
       .then((data) => {
         if (cancelled) return;
         setRows(data);
-        setDistrictId((current) => current || data[0]?.district_id || "");
+        setDistrictId(
+          (current) =>
+            current ||
+            focusDistrict?.districtId ||
+            data[0]?.district_id ||
+            "",
+        );
       })
       .catch((loadError: unknown) => {
         if (cancelled) return;
@@ -75,19 +100,54 @@ export function DistrictTrends({ manifest }: Props) {
     };
   }, [manifest, reloadToken]);
 
+  useEffect(() => {
+    if (focusDistrict?.districtId) {
+      setDistrictId(focusDistrict.districtId);
+    }
+  }, [focusDistrict]);
+
   const districts = useMemo(() => (rows ? listTrendDistricts(rows) : []), [rows]);
-  const series = useMemo(
+  const levelSeries = useMemo(
     () => (rows ? buildTrendSeries(rows, districtId, metric, window) : []),
     [rows, districtId, metric, window],
+  );
+  const series = useMemo(
+    () => applyTrendView(levelSeries, viewMode),
+    [levelSeries, viewMode],
   );
   const summary = useMemo(() => summarizeTrend(series), [series]);
   const geometry = useMemo(
     () => buildChartGeometry(series, DEFAULT_CHART_OPTIONS),
     [series],
   );
+  const comparison = useMemo(() => {
+    if (!rows || compareIds.length === 0) return null;
+    const ids = [districtId, ...compareIds].filter(
+      (id, index, all) => id && all.indexOf(id) === index,
+    );
+    const names = new Map(districts.map((district) => [district.id, district.nameEn]));
+    const lines = ids
+      .map((id) => ({
+        id,
+        label: names.get(id) ?? id,
+        points: applyTrendView(
+          buildTrendSeries(rows, id, metric, window),
+          viewMode,
+        ),
+      }))
+      .filter((line) => line.points.length > 0);
+    return buildMultiLineGeometry(lines, DEFAULT_CHART_OPTIONS);
+  }, [rows, districtId, compareIds, districts, metric, window, viewMode]);
 
   const metricAvailable = series.length > 0;
   const metricName = METRIC_LABELS[metric].toLowerCase();
+  const positiveMonths = series.filter((point) => point.value > 0).length;
+  const viewCaption =
+    viewMode === "index"
+      ? "Each series is indexed to 100 at its first positive month in the window."
+      : viewMode === "change"
+        ? "Each point is the percentage change versus the nearest month at least 12 months earlier."
+        : `${METRIC_LABELS[metric]} in ${METRIC_UNITS[metric]}, averaged from transactions in each month.`;
 
   return (
     <section className="panel" aria-label="District price trends">
@@ -162,6 +222,21 @@ export function DistrictTrends({ manifest }: Props) {
               </select>
             </label>
             <label className="field">
+              <span>View</span>
+              <select
+                value={viewMode}
+                onChange={(event) =>
+                  setViewMode(event.target.value as TrendView)
+                }
+              >
+                {(Object.keys(VIEW_LABELS) as TrendView[]).map((key) => (
+                  <option key={key} value={key}>
+                    {VIEW_LABELS[key]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
               <span>Window</span>
               <select
                 value={window}
@@ -176,6 +251,64 @@ export function DistrictTrends({ manifest }: Props) {
                 ))}
               </select>
             </label>
+          </div>
+
+          <div className="compare-controls">
+            <label className="field field-grow">
+              <span>Compare districts</span>
+              <select
+                value=""
+                onChange={(event) => {
+                  const id = event.target.value;
+                  if (!id) return;
+                  setCompareIds((current) =>
+                    current.includes(id) || id === districtId
+                      ? current
+                      : [...current, id].slice(0, 3),
+                  );
+                }}
+              >
+                <option value="">Add a district…</option>
+                {districts
+                  .filter(
+                    (district) =>
+                      district.id !== districtId &&
+                      !compareIds.includes(district.id),
+                  )
+                  .map((district) => (
+                    <option key={district.id} value={district.id}>
+                      {district.nameEn}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {compareIds.length > 0 ? (
+              <div className="compare-chips">
+                {compareIds.map((id) => {
+                  const district = districts.find((item) => item.id === id);
+                  return (
+                    <span key={id} className="compare-chip">
+                      {district?.nameEn ?? id}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${district?.nameEn ?? id} from the comparison`}
+                        onClick={() =>
+                          setCompareIds((current) =>
+                            current.filter((item) => item !== id),
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="muted compare-hint">
+                Add up to three districts to compare on one chart.
+              </p>
+            )}
           </div>
 
           {!metricAvailable ? (
@@ -198,45 +331,72 @@ export function DistrictTrends({ manifest }: Props) {
             <>
               <div className="stat-row">
                 <div className="stat-tile">
-                  <p className="stat-label">Latest</p>
-                  <p className="stat-value">
-                    {summaryValue(metric, summary.latest?.value ?? null)}
+                  <p className="stat-label">
+                    {viewMode === "change" ? "Latest change" : "Latest"}
+                  </p>
+                  <p
+                    className={`stat-value ${
+                      viewMode === "change" && summary.latest !== null
+                        ? summary.latest.value >= 0
+                          ? "stat-up"
+                          : "stat-down"
+                        : ""
+                    }`}
+                  >
+                    {formatViewValue(
+                      metric,
+                      viewMode,
+                      summary.latest?.value ?? null,
+                    )}
                   </p>
                   <p className="stat-note">
                     {formatMonth(summary.latest?.month ?? null)} ·{" "}
-                    {METRIC_UNITS[metric]}
+                    {viewUnit(metric, viewMode)}
                   </p>
                 </div>
                 <div className="stat-tile">
                   <p className="stat-label">
-                    {summary.changeIsAnnual ? "12-month change" : "Change"}
-                  </p>
-                  <p
-                    className={`stat-value ${
-                      summary.changePct === null
-                        ? ""
-                        : summary.changePct >= 0
-                          ? "stat-up"
-                          : "stat-down"
-                    }`}
-                  >
-                    {formatPercent(summary.changePct)}
-                  </p>
-                  <p className="stat-note">
-                    {summary.changeBasisMonth === null
-                      ? "No earlier comparison month"
+                    {viewMode === "change"
+                      ? "Positive months"
                       : summary.changeIsAnnual
-                        ? `Versus ${formatMonth(summary.changeBasisMonth)}`
-                        : `Versus ${formatMonth(
-                            summary.changeBasisMonth,
-                          )}, the nearest earlier month`}
+                        ? "12-month change"
+                        : "Change"}
+                  </p>
+                  {viewMode === "change" ? (
+                    <p className="stat-value">
+                      {formatNumber(positiveMonths)} /{" "}
+                      {formatNumber(summary.months)}
+                    </p>
+                  ) : (
+                    <p
+                      className={`stat-value ${
+                        summary.changePct === null
+                          ? ""
+                          : summary.changePct >= 0
+                            ? "stat-up"
+                            : "stat-down"
+                      }`}
+                    >
+                      {formatPercent(summary.changePct)}
+                    </p>
+                  )}
+                  <p className="stat-note">
+                    {viewMode === "change"
+                      ? "Months with a positive annual change"
+                      : summary.changeBasisMonth === null
+                        ? "No earlier comparison month"
+                        : summary.changeIsAnnual
+                          ? `Versus ${formatMonth(summary.changeBasisMonth)}`
+                          : `Versus ${formatMonth(
+                              summary.changeBasisMonth,
+                            )}, the nearest earlier month`}
                   </p>
                 </div>
                 <div className="stat-tile">
                   <p className="stat-label">Range</p>
                   <p className="stat-value stat-value-small">
-                    {summaryValue(metric, summary.min)} –{" "}
-                    {summaryValue(metric, summary.max)}
+                    {formatViewValue(metric, viewMode, summary.min)} –{" "}
+                    {formatViewValue(metric, viewMode, summary.max)}
                   </p>
                   <p className="stat-note">Lowest and highest in the window</p>
                 </div>
@@ -261,7 +421,7 @@ export function DistrictTrends({ manifest }: Props) {
                     className="trend-chart"
                     viewBox={`0 0 ${DEFAULT_CHART_OPTIONS.width} ${DEFAULT_CHART_OPTIONS.height}`}
                     role="img"
-                    aria-label={`${METRIC_LABELS[metric]} for the selected district, ${summary.months} months`}
+                    aria-label={`${METRIC_LABELS[metric]} (${VIEW_LABELS[viewMode]}) for the selected district, ${summary.months} months`}
                   >
                     <defs>
                       <linearGradient
@@ -302,7 +462,7 @@ export function DistrictTrends({ manifest }: Props) {
                           textAnchor="end"
                           className="chart-axis-label"
                         >
-                          {formatValue(metric, tick.value)}
+                          {formatViewValue(metric, viewMode, tick.value)}
                         </text>
                       </g>
                     ))}
@@ -320,8 +480,8 @@ export function DistrictTrends({ manifest }: Props) {
                       >
                         <title>
                           {formatMonth(item.point.month)}:{" "}
-                          {formatValue(metric, item.point.value)}{" "}
-                          {METRIC_UNITS[metric]}
+                          {formatViewValue(metric, viewMode, item.point.value)}{" "}
+                          {viewUnit(metric, viewMode)}
                         </title>
                       </circle>
                     ))}
@@ -345,12 +505,30 @@ export function DistrictTrends({ manifest }: Props) {
                       {formatMonth(series[series.length - 1]?.month ?? null)}
                     </text>
                   </svg>
-                  <figcaption className="muted">
-                    {metric === "volume"
-                      ? "Transactions per month in the selected district and window."
-                      : `${METRIC_LABELS[metric]} in ${METRIC_UNITS[metric]}, averaged from transactions in each month.`}
-                  </figcaption>
+                  <figcaption className="muted">{viewCaption}</figcaption>
                 </figure>
+              ) : null}
+
+              {comparison && compareIds.length > 0 ? (
+                <section className="trend-comparison" aria-label="District comparison">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">Comparison</p>
+                      <h3>Selected district versus comparison</h3>
+                    </div>
+                    <p className="result-count">
+                      {comparison.series.length} districts
+                    </p>
+                  </div>
+                  <LineChart
+                    geometry={comparison}
+                    formatValue={(value) =>
+                      formatViewValue(metric, viewMode, value)
+                    }
+                    ariaLabel={`${METRIC_LABELS[metric]} comparison for ${comparison.series.length} districts`}
+                    caption={viewCaption}
+                  />
+                </section>
               ) : null}
             </>
           )}

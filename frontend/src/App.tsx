@@ -2,18 +2,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DashboardData, EstateSummary } from "./types";
 import { loadDashboard } from "./lib/dashboard";
 import { formatDate } from "./lib/format";
-import { OverviewCards } from "./components/OverviewCards";
 import { EstateSearch } from "./components/EstateSearch";
 import { EstateDetail } from "./components/EstateDetail";
 import { DistrictTrends } from "./components/DistrictTrends";
 import { EstateMap } from "./components/EstateMap";
 import { RecentTransactions } from "./components/RecentTransactions";
 import { DataCatalogView } from "./components/DataCatalog";
+import { MarketOverview } from "./components/MarketOverview";
 import { estateIdFromSearch, withEstateParam } from "./lib/urlState";
 
-type View = "search" | "trends" | "map" | "transactions" | "catalogue";
+type View =
+  | "overview"
+  | "search"
+  | "trends"
+  | "map"
+  | "transactions"
+  | "catalogue";
 
 const VIEWS: { id: View; label: string }[] = [
+  { id: "overview", label: "Overview" },
   { id: "search", label: "Estates" },
   { id: "trends", label: "Trends" },
   { id: "map", label: "Map" },
@@ -24,14 +31,25 @@ const VIEWS: { id: View; label: string }[] = [
 export default function App() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [selected, setSelected] = useState<EstateSummary | null>(null);
-  const [view, setView] = useState<View>("search");
+  const [view, setView] = useState<View>("overview");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
+  const [trendFocus, setTrendFocus] = useState({
+    districtId: "",
+    nonce: 0,
+  });
   const initialEstateId = useRef<string | null>(
     estateIdFromSearch(window.location.search),
   );
   const closeDetail = useCallback(() => setSelected(null), []);
+  const openTrends = useCallback((districtId: string) => {
+    setTrendFocus((current) => ({
+      districtId,
+      nonce: current.nonce + 1,
+    }));
+    setView("trends");
+  }, []);
 
   useEffect(() => {
     const estateId = initialEstateId.current;
@@ -117,8 +135,8 @@ export default function App() {
           <p className="eyebrow">Hong Kong housing data</p>
           <h1>HK Housing Datahub</h1>
           <p className="hero-lede">
-            A static view of estate, transaction, and monthly market data.
-            Search estates, compare district price trends, explore the map, and
+            A static view of Hong Kong housing data. Start with the market
+            overview, then search estates, compare trends, explore the map, and
             browse recent transactions.
           </p>
           {data ? (
@@ -159,8 +177,6 @@ export default function App() {
 
         {data && !error ? (
           <>
-            <OverviewCards manifest={data.manifest} />
-
             <div
               className="view-tabs"
               role="tablist"
@@ -209,6 +225,13 @@ export default function App() {
               id="view-panel"
               aria-labelledby={`tab-${view}`}
             >
+              {view === "overview" ? (
+                <MarketOverview
+                  manifest={data.manifest}
+                  estates={data.estates}
+                  onOpenTrends={openTrends}
+                />
+              ) : null}
               {view === "search" ? (
                 <EstateSearch
                   estates={data.estates}
@@ -216,7 +239,10 @@ export default function App() {
                 />
               ) : null}
               {view === "trends" ? (
-                <DistrictTrends manifest={data.manifest} />
+                <DistrictTrends
+                  manifest={data.manifest}
+                  focusDistrict={trendFocus}
+                />
               ) : null}
               {view === "map" ? (
                 <EstateMap
