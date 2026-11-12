@@ -2,6 +2,7 @@ import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Manifest } from "../types";
 import {
+  loadCatalog,
   loadDashboard,
   loadDistrictMonthly,
   loadEstateMonthly,
@@ -24,6 +25,7 @@ const manifest: Manifest = {
     estate_summary: "estate_summary.json.gz",
     district_monthly: "district_monthly.json.gz",
     estate_monthly: "estate_monthly.json.gz",
+    catalog: "catalog.json",
     transaction_recent: "transaction_recent.json.gz",
   },
   source: ["HKP"],
@@ -161,6 +163,29 @@ describe("on-demand dataset loaders", () => {
     );
   });
 
+  it("loads the data catalogue from the manifest file", async () => {
+    const catalog = {
+      version: 1,
+      generated_at: "2026-11-12T00:00:00+00:00",
+      database: { name: "agency.db", table_count: 1, row_count: 1 },
+      quality: null,
+      manifest: null,
+      datasets: [],
+    };
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(catalog));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const rows = await loadCatalog({
+      ...manifest,
+      build_id: "build-catalog",
+    });
+
+    expect(rows).toEqual(catalog);
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/dashboard/build-catalog/catalog.json",
+    );
+  });
+
   it("loads recent transactions from the manifest file", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(transactions));
     vi.stubGlobal("fetch", fetchMock);
@@ -197,6 +222,18 @@ describe("on-demand dataset loaders", () => {
     const rows = await loadRecentTransactions(cachedManifest);
     expect(rows).toEqual(transactions);
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("explains when a snapshot predates the catalogue", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+
+    await expect(
+      loadCatalog({
+        ...manifest,
+        build_id: "build-old-catalog",
+        files: { estate_summary: "estate_summary.json.gz" },
+      }),
+    ).rejects.toThrow("does not include catalog");
   });
 
   it("explains when a snapshot predates a dataset file", async () => {

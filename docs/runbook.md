@@ -377,7 +377,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 93 tests: Phase 2–6 coverage (upserts, run metadata, quality
+`tests/` contains 96 tests: Phase 2–6 and catalogue coverage (upserts, run metadata, quality
 checks, response models, table mapping, duplicate-input dedupe, synthetic mart
 builds, serving manifest/publish planning), phase-id mapping and repair, plus
 offline RAG storage tests for upsert/prune idempotency. The boto3-only
