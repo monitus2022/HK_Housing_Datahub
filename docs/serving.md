@@ -35,15 +35,16 @@ bootstrap and load the catalogue without extra decoding.
 
 ## Published snapshot
 
-Build `20261111T194346Z-f4ee06` (`schema_version` 4) is the current published
+Build `20261112T090805Z-61f72e` (`schema_version` 5) is the current published
 snapshot in the `hk-housing-datahub` bucket. It superseded
-`20261111T122457Z-1fd8dd` as the pointer on 2026-11-12. It carries refreshed data
-(transactions through 2026-11-08, rentals through 2026-11-10, market data
-through 2026-09-30, 9,750 estates), `transaction_recent.json.gz` (~2.1 MB
-gzipped for 87,393 display rows), and `estate_monthly.json.gz` (~1.3 MB),
-taking the snapshot to ~4.6 MB. The remote `dashboard/manifest.json` and every
-referenced file were read back successfully; the gzip, cache, and CORS headers
-were verified.
+`20261111T194346Z-f4ee06` as the pointer on 2026-11-12. It carries the refreshed
+dataset (transactions through 2026-11-08, rentals through 2026-11-10, market
+data through 2026-09-30, 9,750 estates), adds `catalog.json` (~28 KB across 6
+datasets and 21 tables) plus `wiki_title` for 824 estates, and includes
+`transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display rows) and
+`estate_monthly.json.gz` (~1.3 MB), taking the snapshot to ~4.6 MB. The remote
+`dashboard/manifest.json` and every referenced file were read back successfully;
+the gzip, cache, and CORS headers were verified.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
@@ -166,11 +167,11 @@ prices/rents are stored as `0` and the frontend drops them from the matching
 series. The file is loaded lazily when an
 estate view opens; the frontend only reads the requested estate.
 
-Schema 5 adds `catalog.json`; the currently published build is schema 4, so a
-schema-4 pointer serves no catalogue and the Catalogue view shows a missing-file
-message until a schema-5 snapshot is published. Older schema-3/2 snapshots
-without `estate_monthly` still work; the estate view shows a section-level
-message for missing history.
+Schema 5 adds `catalog.json` and `wiki_title`; the current published build is
+schema 5. A schema-4 pointer serves no catalogue, so the Catalogue view shows a
+missing-file message, and its wiki badges stay non-links; older schema-3/2
+snapshots without `estate_monthly` still work, with a section-level message for
+missing history.
 
 ## Data catalogue export
 
