@@ -67,7 +67,14 @@ export default function App() {
     }));
     setSelected(null);
     setView("map");
+    window.setTimeout(() => {
+      document.getElementById("estate-map-region")?.focus();
+    }, 50);
   }, []);
+
+  useEffect(() => {
+    if (view !== "map") setMapFocus(null);
+  }, [view]);
 
   const openEstatesForDistrict = useCallback((districtId: string) => {
     const next = searchStateToSearch(

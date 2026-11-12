@@ -5,6 +5,7 @@ import {
   clusterMapEstates,
   hasCoordinates,
   mapPrice,
+  mapFocusAction,
   mapPriceSource,
   NO_PRICE_BUCKET,
   PRICE_BUCKETS,
@@ -186,10 +187,19 @@ describe("clusterMapEstates", () => {
     expect(grouped?.longitude).toBeCloseTo(114.1005, 4);
     expect(grouped?.mixedBuckets).toBe(true);
     expect(grouped?.bucket.id).toBe("8k-12k");
-    expect(grouped?.bounds).toEqual([
-      [22.3, 114.1],
-      [22.301, 114.101],
-    ]);
+  });
+
+  it("breaks dominant bucket ties by the documented bucket order", () => {
+    const clusters = clusterMapEstates(
+      [
+        estate("higher", "D", 22.3, 114.1, 13000),
+        estate("lower", "D", 22.301, 114.101, 9000),
+      ],
+      11,
+    );
+
+    expect(clusters[0].bucket.id).toBe("8k-12k");
+    expect(clusters[0].mixedBuckets).toBe(true);
   });
 
   it("shows individual estates at the maximum cluster zoom", () => {
@@ -212,5 +222,18 @@ describe("clusterMapEstates", () => {
       ).reduce((total, cluster) => total + cluster.count, 0),
     ).toBe(2);
     expect(clusterMapEstates([], 11)).toEqual([]);
+  });
+});
+
+describe("mapFocusAction", () => {
+  it("skips missing or already-applied focus requests", () => {
+    expect(mapFocusAction(null, null, "")).toBe("skip");
+    expect(mapFocusAction(undefined, 2, "D")).toBe("skip");
+    expect(mapFocusAction(3, 3, "D")).toBe("skip");
+  });
+
+  it("clears a district before centring a new focus request", () => {
+    expect(mapFocusAction(4, 3, "D")).toBe("clear-district");
+    expect(mapFocusAction(4, 3, "")).toBe("center");
   });
 });

@@ -1428,6 +1428,11 @@ select:focus {
     font-size: 0.68rem;
   }
 
+  .map-legend-note {
+    max-width: 130px;
+    font-size: 0.6rem;
+  }
+
   .sort-inline {
     flex-direction: column;
     align-items: stretch;

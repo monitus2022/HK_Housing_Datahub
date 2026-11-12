@@ -9,6 +9,7 @@ import {
   clusterMapEstates,
   DEFAULT_ZOOM,
   hasCoordinates,
+  mapFocusAction,
   HK_CENTER,
   mapPrice,
   mapPriceSource,
@@ -68,10 +69,13 @@ export function EstateMap({
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const focusedMarkerRef = useRef<L.CircleMarker | null>(null);
+  const appliedFocusRef = useRef<number | null>(null);
+  const openedTooltipRef = useRef<number | null>(null);
   const onSelectRef = useRef(onSelect);
   const [districtId, setDistrictId] = useState("");
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [viewportVersion, setViewportVersion] = useState(0);
+  const [renderedGroups, setRenderedGroups] = useState(0);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -109,6 +113,7 @@ export function EstateMap({
       setViewportVersion((value) => value + 1);
     });
     map.on("moveend", () => setViewportVersion((value) => value + 1));
+    map.on("resize", () => setViewportVersion((value) => value + 1));
     mapRef.current = map;
 
     return () => {
@@ -130,6 +135,7 @@ export function EstateMap({
     const visibleClusters = clusters.filter((cluster) =>
       viewBounds.contains([cluster.latitude, cluster.longitude]),
     );
+    setRenderedGroups(visibleClusters.length);
 
     for (const cluster of visibleClusters) {
       if (cluster.count === 1) {
@@ -165,10 +171,14 @@ export function EstateMap({
           iconSize: [44, 44],
           iconAnchor: [22, 22],
         }),
-        title: `${cluster.count} estates`,
+        title: `${cluster.count} estates. Activate to zoom in.`,
+        alt: `${cluster.count} estates. Activate to zoom in.`,
       });
+      const priceLabel = cluster.mixedBuckets
+        ? "mixed price buckets"
+        : cluster.bucket.label;
       marker.bindTooltip(
-        `${cluster.count} estates · click to zoom`,
+        `${cluster.count} estates · ${priceLabel} · click to zoom`,
         { direction: "top", offset: [0, -20], opacity: 1 },
       );
       marker.on("click", () => {
@@ -187,8 +197,15 @@ export function EstateMap({
       marker.addTo(layer);
     }
 
-    focusedMarkerRef.current?.openTooltip();
-  }, [clusters, focusEstate?.estateId, viewportVersion]);
+    if (
+      focusedMarkerRef.current &&
+      focusEstate &&
+      openedTooltipRef.current !== focusEstate.nonce
+    ) {
+      focusedMarkerRef.current.openTooltip();
+      openedTooltipRef.current = focusEstate.nonce;
+    }
+  }, [clusters, focusEstate, viewportVersion]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -203,14 +220,24 @@ export function EstateMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    const estateId = focusEstate?.estateId;
-    if (!map || !estateId) return;
-    const estate = estates.find((item) => item.estate_id === estateId);
-    if (!estate || !hasCoordinates(estate)) return;
-    if (districtId) {
+    const action = mapFocusAction(
+      focusEstate?.nonce,
+      appliedFocusRef.current,
+      districtId,
+    );
+    if (!map || action === "skip") return;
+    if (action === "clear-district") {
       setDistrictId("");
       return;
     }
+    const estate = estates.find(
+      (item) => item.estate_id === focusEstate?.estateId,
+    );
+    if (!estate || !hasCoordinates(estate)) {
+      if (focusEstate) appliedFocusRef.current = focusEstate.nonce;
+      return;
+    }
+    if (focusEstate) appliedFocusRef.current = focusEstate.nonce;
     map.setView(
       [estate.latitude, estate.longitude],
       CLUSTER_MAX_ZOOM,
@@ -279,8 +306,8 @@ export function EstateMap({
 
       <p className="muted map-status">
         {zoom < CLUSTER_MAX_ZOOM
-          ? `${formatNumber(clusters.length)} groups at this zoom · numbers cluster nearby estates`
-          : `${formatNumber(selection.visible.length)} mapped · individual estates`}
+          ? `${formatNumber(renderedGroups)} groups in view · ${formatNumber(clusters.length)} across selection`
+          : `${formatNumber(renderedGroups)} markers in view · ${formatNumber(selection.visible.length)} mapped`}
       </p>
 
       <div className="map-shell">
@@ -298,9 +325,11 @@ export function EstateMap({
         ) : null}
         <div
           ref={containerRef}
+          id="estate-map-region"
           className="map-canvas"
           role="region"
           aria-label="Map of Hong Kong estates"
+          tabIndex={-1}
         />
         <div className="map-legend" aria-label="Net ft price legend">
           <p className="map-legend-title">

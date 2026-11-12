@@ -156,7 +156,6 @@ export interface MapCluster {
   estates: Array<EstateSummary & { latitude: number; longitude: number }>;
   bucket: PriceBucket;
   mixedBuckets: boolean;
-  bounds: LatLngBounds;
 }
 
 export interface ClusterOptions {
@@ -197,8 +196,17 @@ function dominantBucket(estates: EstateSummary[]): {
       counts.set(bucket.id, { bucket, count: 1 });
     }
   }
+  const bucketOrder = new Map(
+    [...PRICE_BUCKETS, NO_PRICE_BUCKET].map((bucket, index) => [
+      bucket.id,
+      index,
+    ]),
+  );
   const ordered = [...counts.values()].sort(
-    (left, right) => right.count - left.count,
+    (left, right) =>
+      right.count - left.count ||
+      (bucketOrder.get(left.bucket.id) ?? 0) -
+        (bucketOrder.get(right.bucket.id) ?? 0),
   );
   return {
     bucket: ordered[0]?.bucket ?? NO_PRICE_BUCKET,
@@ -210,6 +218,24 @@ type LocatedEstate = EstateSummary & {
   latitude: number;
   longitude: number;
 };
+
+export type MapFocusAction = "skip" | "clear-district" | "center";
+
+/**
+ * Decide how a focus request should be handled.
+ *
+ * A focus request is one-shot: once its nonce has been applied, later district
+ * changes must not clear the filter or re-centre the map.
+ */
+export function mapFocusAction(
+  focusNonce: number | null | undefined,
+  appliedNonce: number | null,
+  districtId: string,
+): MapFocusAction {
+  if (focusNonce === null || focusNonce === undefined) return "skip";
+  if (appliedNonce === focusNonce) return "skip";
+  return districtId ? "clear-district" : "center";
+}
 
 /**
  * Group estates into a deterministic screen-space grid at the given zoom.
@@ -238,10 +264,6 @@ export function clusterMapEstates(
       estates: [estate],
       bucket: priceBucket(mapPrice(estate)),
       mixedBuckets: false,
-      bounds: [
-        [estate.latitude, estate.longitude],
-        [estate.latitude, estate.longitude],
-      ],
     }));
   }
 
@@ -261,17 +283,9 @@ export function clusterMapEstates(
 
   return [...groups.entries()]
     .map(([key, group]) => {
-      let minLat = group[0].latitude;
-      let maxLat = group[0].latitude;
-      let minLng = group[0].longitude;
-      let maxLng = group[0].longitude;
       let latSum = 0;
       let lngSum = 0;
       for (const estate of group) {
-        minLat = Math.min(minLat, estate.latitude);
-        maxLat = Math.max(maxLat, estate.latitude);
-        minLng = Math.min(minLng, estate.longitude);
-        maxLng = Math.max(maxLng, estate.longitude);
         latSum += estate.latitude;
         lngSum += estate.longitude;
       }
@@ -284,10 +298,6 @@ export function clusterMapEstates(
         estates: group,
         bucket: dominant.bucket,
         mixedBuckets: dominant.mixed,
-        bounds: [
-          [minLat, minLng],
-          [maxLat, maxLng],
-        ] as LatLngBounds,
       };
     })
     .sort(
