@@ -7,6 +7,8 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
   and school-net filters, sorting, and pagination; filter state lives in the URL
 - estate detail panel with latest transaction, 12-month stats, market date,
   coverage flags, monthly price and rent history, and recent transactions
+- `W`/Wiki badges link to the estate's Chinese Wikipedia page when the
+  snapshot provides a title; older snapshots show a non-link badge
 - shareable `?estate=<id>` deep links that open the estate view
 - district trends for sale price, rent, and transaction volume with a
   12-month change summary
@@ -27,7 +29,7 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - TypeScript
 - Leaflet + OpenStreetMap tiles for the map
 - Plain CSS (no UI framework)
-- Vitest for the pure search, trend, map, and transaction helpers
+- Vitest for the pure search, trend, map, transaction, wiki, and activation helpers
 
 ## Data contract
 

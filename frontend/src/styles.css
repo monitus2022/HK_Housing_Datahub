@@ -320,6 +320,10 @@ select:focus {
   color: var(--accent);
 }
 
+.flag-link {
+  text-decoration: none;
+}
+
 .flag-off {
   background: #eef2f4;
   color: #96a4ad;

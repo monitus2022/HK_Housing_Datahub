@@ -165,7 +165,8 @@ Notes:
 1. Rental transactions are fetched separately with `scripts/fetch_rentals.py`
    (HKP `tx_type=L`, 1–3 year lookback).
 2. The builder reads the raw SQLite tables and the wiki JSON estate names.
-3. It creates a connection-local `wiki_estates` temp table for `has_wiki`.
+3. It creates a connection-local `wiki_estates` temp table for `has_wiki`
+   and the Wikipedia page title.
 4. It runs ordered SQL files: raw indexes, five mart definitions, then mart
    lookup indexes.
 5. It drops/recreates the marts on every run; existing raw data and columns
