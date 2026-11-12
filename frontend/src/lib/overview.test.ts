@@ -208,6 +208,16 @@ describe("buildDistrictLeague", () => {
     expect(league.find((entry) => entry.id === "B")?.yieldPct).toBeNull();
   });
 
+  it("does not use a rent month after the latest sale month", () => {
+    const league = buildDistrictLeague([
+      row("A", "2025-02", 12000, null, 1, 0),
+      row("A", "2025-03", null, 60, 0, 1),
+    ]);
+
+    expect(league[0].month).toBe("2025-02");
+    expect(league[0].yieldPct).toBeNull();
+  });
+
   it("uses the latest rent at or before the latest sale month", () => {
     const league = buildDistrictLeague([
       row("A", "2025-01", 10000, 50, 1, 1),

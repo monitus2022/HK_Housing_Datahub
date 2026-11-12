@@ -275,80 +275,82 @@ export function MarketOverview({
               <p>This snapshot has no positive district sale prices yet.</p>
             </EmptyNotice>
           ) : (
-            <div className="table-wrap overview-league-table">
-              <table className="estate-table">
-                <thead>
-                  <tr>
-                    <th scope="col">District</th>
-                    <th scope="col" className="numeric">
-                      Price
-                    </th>
-                    <th
-                      scope="col"
-                      className="numeric"
-                      title="Nearest earlier month at least 12 months before each district's latest sale month"
-                    >
-                      12m
-                    </th>
-                    <th scope="col" className="numeric">
-                      Yield
-                    </th>
-                    <th scope="col" className="numeric">
-                      Tx
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {league.map((entry) => (
-                    <tr key={entry.id}>
-                      <td>
-                        <button
-                          type="button"
-                          className="link-button"
-                          onClick={() => onOpenTrends(entry.id)}
-                        >
-                          {entry.nameEn}
-                        </button>
-                        {entry.nameZh ? (
-                          <span className="estate-name-zh">
-                            {entry.nameZh}
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="numeric">
-                        {formatCompactHkd(entry.price)}
-                      </td>
-                      <td
-                        className={`numeric ${
-                          entry.changePct === null
-                            ? ""
-                            : entry.changePct >= 0
-                              ? "stat-up"
-                              : "stat-down"
-                        }`}
-                        title={
-                          entry.changeBasisMonth
-                            ? `Versus ${formatMonth(entry.changeBasisMonth)}`
-                            : "No earlier comparison month"
-                        }
+            <>
+              <div className="table-wrap overview-league-table">
+                <table className="estate-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">District</th>
+                      <th scope="col" className="numeric">
+                        Price
+                      </th>
+                      <th
+                        scope="col"
+                        className="numeric"
+                        title="Nearest earlier month at least 12 months before each district's latest sale month"
                       >
-                        {formatPercent(entry.changePct)}
-                      </td>
-                      <td className="numeric">
-                        {formatYield(entry.yieldPct)}
-                      </td>
-                      <td className="numeric">
-                        {formatNumber(entry.txCount)}
-                      </td>
+                        12m
+                      </th>
+                      <th scope="col" className="numeric">
+                        Yield
+                      </th>
+                      <th scope="col" className="numeric">
+                        Tx
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {league.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => onOpenTrends(entry.id)}
+                          >
+                            {entry.nameEn}
+                          </button>
+                          {entry.nameZh ? (
+                            <span className="estate-name-zh">
+                              {entry.nameZh}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="numeric">
+                          {formatCompactHkd(entry.price)}
+                        </td>
+                        <td
+                          className={`numeric ${
+                            entry.changePct === null
+                              ? ""
+                              : entry.changePct >= 0
+                                ? "stat-up"
+                                : "stat-down"
+                          }`}
+                          title={
+                            entry.changeBasisMonth
+                              ? `Versus ${formatMonth(entry.changeBasisMonth)}`
+                              : "No earlier comparison month"
+                          }
+                        >
+                          {formatPercent(entry.changePct)}
+                        </td>
+                        <td className="numeric">
+                          {formatYield(entry.yieldPct)}
+                        </td>
+                        <td className="numeric">
+                          {formatNumber(entry.txCount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <p className="muted table-note">
                 Latest available sale month per district; 12m compares with
                 the nearest earlier month at least a year before it.
               </p>
-            </div>
+            </>
           )}
         </section>
 
