@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { DistrictMonthly } from "../types";
 import {
+  applyTrendView,
   buildChartGeometry,
+  buildMultiLineGeometry,
   buildTrendSeries,
   listTrendDistricts,
   summarizeTrend,
@@ -245,5 +247,86 @@ describe("buildChartGeometry", () => {
 
   it("returns null for no points", () => {
     expect(buildChartGeometry([])).toBeNull();
+  });
+});
+
+describe("applyTrendView", () => {
+  const points = [
+    { month: "2024-01", value: 100, txCount: 1 },
+    { month: "2025-01", value: 110, txCount: 2 },
+    { month: "2025-02", value: 99, txCount: 3 },
+  ];
+
+  it("leaves level points unchanged", () => {
+    expect(applyTrendView(points, "level")).toEqual(points);
+  });
+
+  it("indexes from the first positive point", () => {
+    expect(
+      applyTrendView(
+        [
+          { month: "2024-01", value: 0, txCount: 0 },
+          { month: "2024-02", value: 50, txCount: 1 },
+          { month: "2024-03", value: 75, txCount: 1 },
+        ],
+        "index",
+      ),
+    ).toEqual([
+      { month: "2024-02", value: 100, txCount: 1 },
+      { month: "2024-03", value: 150, txCount: 1 },
+    ]);
+  });
+
+  it("computes 12-month percentage change with the nearest earlier point", () => {
+    const changes = applyTrendView(points, "change");
+    expect(changes).toHaveLength(2);
+    expect(changes[0].month).toBe("2025-01");
+    expect(changes[0].value).toBeCloseTo(10);
+    expect(changes[1].month).toBe("2025-02");
+    expect(changes[1].value).toBeCloseTo(-1);
+  });
+});
+
+describe("buildMultiLineGeometry", () => {
+  it("puts multiple series on a shared scale and month axis", () => {
+    const geometry = buildMultiLineGeometry(
+      [
+        {
+          id: "sale",
+          label: "Sale",
+          points: [
+            { month: "2025-01", value: 100, txCount: 1 },
+            { month: "2025-03", value: 120, txCount: 1 },
+          ],
+        },
+        {
+          id: "rent",
+          label: "Rent",
+          points: [
+            { month: "2025-01", value: 50, txCount: 1 },
+            { month: "2025-02", value: 60, txCount: 1 },
+          ],
+        },
+      ],
+      {
+        width: 200,
+        height: 100,
+        paddingLeft: 20,
+        paddingRight: 20,
+        paddingTop: 10,
+        paddingBottom: 10,
+      },
+    );
+
+    expect(geometry?.series).toHaveLength(2);
+    expect(geometry?.series[0].linePath.startsWith("M")).toBe(true);
+    expect(geometry?.yTicks).toHaveLength(4);
+    expect(geometry?.series[0].points).toHaveLength(2);
+  });
+
+  it("returns null when every series is empty", () => {
+    expect(
+      buildMultiLineGeometry([{ id: "a", label: "A", points: [] }]),
+    ).toBeNull();
   });
 });
