@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
-import type { DistrictMonthly, EstateSummary } from "../types";
+import type {
+  DistrictMonthly,
+  EstateSummary,
+  RecentTransaction,
+} from "../types";
 import {
   buildDistrictLeague,
   buildMarketPulse,
   buildOverviewKpis,
   buildScatterGeometry,
+  buildTopEstatesByValue,
   buildYieldPoints,
+  filterDistrictRows,
   median,
 } from "./overview";
 
@@ -66,6 +72,26 @@ function row(
     rent_tx_count: rentCount,
     avg_net_ft_rent: rent,
     total_rent_tx_amount: 0,
+  };
+}
+
+function transaction(
+  estate: string,
+  date: string,
+  price: number | null,
+  district = "District D",
+): RecentTransaction {
+  return {
+    tx_date: date,
+    price,
+    net_ft_price: null,
+    estate_id: estate,
+    estate_name_en: `Estate ${estate}`,
+    district_id: "D",
+    district_name_en: district,
+    area: null,
+    net_area: null,
+    bedroom: null,
   };
 }
 
@@ -248,5 +274,63 @@ describe("yield scatter", () => {
       expect(Number.isFinite(point.x)).toBe(true);
       expect(Number.isFinite(point.y)).toBe(true);
     }
+  });
+});
+
+describe("filterDistrictRows", () => {
+  const rows = [row("A", "2025-01", 100, 50), row("B", "2025-01", 200, 80)];
+
+  it("keeps all rows for the All Hong Kong option", () => {
+    expect(filterDistrictRows(rows, "")).toHaveLength(2);
+  });
+
+  it("keeps only the selected district", () => {
+    expect(filterDistrictRows(rows, "B")).toEqual([rows[1]]);
+  });
+});
+
+describe("buildTopEstatesByValue", () => {
+  const transactions = [
+    transaction("E1", "2026-10-01", 100),
+    transaction("E1", "2026-01-01", 50),
+    transaction("E1", "2025-11-08", 10),
+    transaction("E1", "2025-09-30", 999),
+    transaction("E2", "2026-05-01", 300),
+    transaction("E3", "2026-06-01", null),
+    transaction("E4", "2026-07-01", 0),
+  ];
+
+  it("sums positive prices inside the trailing window and ranks estates", () => {
+    const result = buildTopEstatesByValue(
+      transactions,
+      10,
+      12,
+      "2026-11-08",
+    );
+
+    expect(result.start).toBe("2025-11-08");
+    expect(result.end).toBe("2026-11-08");
+    expect(result.entries.map((entry) => entry.id)).toEqual(["E2", "E1"]);
+    expect(result.entries[0]).toMatchObject({
+      totalValue: 300,
+      txCount: 1,
+    });
+    expect(result.entries[1]).toMatchObject({
+      totalValue: 160,
+      txCount: 3,
+    });
+  });
+
+  it("limits the result and defaults the window end to the latest transaction", () => {
+    const result = buildTopEstatesByValue(transactions, 1, 12);
+
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0].id).toBe("E2");
+    expect(result.end).toBe("2026-10-01");
+  });
+
+  it("clamps month-end starts across shorter months", () => {
+    const result = buildTopEstatesByValue([], 10, 12, "2024-02-29");
+    expect(result.start).toBe("2023-02-28");
   });
 });

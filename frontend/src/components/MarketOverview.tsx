@@ -1,17 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
-import type { DistrictMonthly, EstateSummary, Manifest } from "../types";
-import { loadDistrictMonthly } from "../lib/dashboard";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  DistrictMonthly,
+  EstateSummary,
+  Manifest,
+  RecentTransaction,
+} from "../types";
+import {
+  loadDistrictMonthly,
+  loadRecentTransactions,
+} from "../lib/dashboard";
 import {
   buildDistrictLeague,
   buildMarketPulse,
   buildOverviewKpis,
   buildScatterGeometry,
+  buildTopEstatesByValue,
   buildYieldPoints,
   DEFAULT_SCATTER_OPTIONS,
+  filterDistrictRows,
 } from "../lib/overview";
-import { buildMultiLineGeometry } from "../lib/trends";
+import {
+  buildMultiLineGeometry,
+  listTrendDistricts,
+} from "../lib/trends";
 import {
   formatCompactHkd,
+  formatDate,
   formatMonth,
   formatNumber,
   formatPercent,
@@ -24,6 +38,7 @@ interface Props {
   manifest: Manifest;
   estates: EstateSummary[];
   onOpenTrends: (districtId: string) => void;
+  onSelectEstate?: (estate: EstateSummary) => void;
 }
 
 function formatYield(value: number | null): string {
@@ -36,11 +51,21 @@ export function MarketOverview({
   manifest,
   estates,
   onOpenTrends,
+  onSelectEstate,
 }: Props) {
   const [rows, setRows] = useState<DistrictMonthly[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
+  const [transactions, setTransactions] = useState<
+    RecentTransaction[] | null
+  >(null);
+  const [txError, setTxError] = useState<string | null>(null);
+  const [txLoading, setTxLoading] = useState(true);
+  const [txReloadToken, setTxReloadToken] = useState(0);
+  const [txRequested, setTxRequested] = useState(false);
+  const [pulseDistrictId, setPulseDistrictId] = useState("");
+  const topEstatesRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,10 +93,96 @@ export function MarketOverview({
     };
   }, [manifest, reloadToken]);
 
+  useEffect(() => {
+    if (loading) return;
+    const check = () => {
+      const node = topEstatesRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.top <= window.innerHeight + 120 && rect.bottom >= -120) {
+        setTxRequested(true);
+      }
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, [loading]);
+
+  useEffect(() => {
+    if (!txRequested) return;
+    let cancelled = false;
+    setTxLoading(true);
+    setTxError(null);
+
+    loadRecentTransactions(manifest)
+      .then((data) => {
+        if (!cancelled) setTransactions(data);
+      })
+      .catch((loadError: unknown) => {
+        if (cancelled) return;
+        setTxError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Could not load recent transactions.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setTxLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [manifest, txReloadToken, txRequested]);
+
   const kpis = useMemo(() => buildOverviewKpis(estates), [estates]);
-  const pulse = useMemo(
-    () => (rows ? buildMarketPulse(rows) : null),
+  const districts = useMemo(
+    () => (rows ? listTrendDistricts(rows) : []),
     [rows],
+  );
+
+  useEffect(() => {
+    if (
+      pulseDistrictId &&
+      districts.length > 0 &&
+      !districts.some((district) => district.id === pulseDistrictId)
+    ) {
+      setPulseDistrictId("");
+    }
+  }, [districts, pulseDistrictId]);
+  const pulseDistrictName = useMemo(
+    () =>
+      districts.find((district) => district.id === pulseDistrictId)?.nameEn ??
+      "",
+    [districts, pulseDistrictId],
+  );
+  const pulse = useMemo(() => {
+    if (!rows) return null;
+    return buildMarketPulse(filterDistrictRows(rows, pulseDistrictId));
+  }, [rows, pulseDistrictId]);
+  const topEstates = useMemo(
+    () =>
+      transactions
+        ? buildTopEstatesByValue(
+            transactions,
+            10,
+            12,
+            manifest.data_through.transactions,
+          )
+        : null,
+    [transactions, manifest.data_through.transactions],
+  );
+  const maxTopValue = useMemo(
+    () =>
+      Math.max(
+        1,
+        ...(topEstates?.entries.map((entry) => entry.totalValue) ?? []),
+      ),
+    [topEstates],
   );
   const pulseGeometry = useMemo(
     () =>
@@ -108,9 +219,9 @@ export function MarketOverview({
           <p className="eyebrow">Overview</p>
           <h2>Hong Kong housing at a glance</h2>
           <p className="muted">
-            Estate-level medians, the sale-versus-rent pulse, and the latest
-            district picture from the current snapshot. No new statistics are
-            computed on the server.
+            Estate-level medians, the sale-versus-rent pulse, top transacted
+            estates, and the latest district picture from the current snapshot.
+            No new statistics are computed on the server.
           </p>
         </div>
         <p className="result-count">
@@ -179,17 +290,46 @@ export function MarketOverview({
               </p>
             ) : null}
           </div>
+          <div className="pulse-toolbar">
+            <label className="field">
+              <span>Area</span>
+              <select
+                value={pulseDistrictId}
+                onChange={(event) =>
+                  setPulseDistrictId(event.target.value)
+                }
+              >
+                <option value="">All Hong Kong</option>
+                {districts.map((district) => (
+                  <option key={district.id} value={district.id}>
+                    {district.nameEn}
+                    {district.nameZh ? ` · ${district.nameZh}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           {loading ? (
             <InlineLoading label="Loading the market pulse…" />
           ) : error ? null : pulseGeometry ? (
             <LineChart
               geometry={pulseGeometry}
               formatValue={(value) => value.toFixed(0)}
-              ariaLabel="Hong Kong sale price and rent indexed to 100"
-              caption="District averages weighted by transaction count and indexed to 100. Both lines start at the first month where sale and rent overlap; rent history covers roughly the last three years."
+              ariaLabel={`${pulseDistrictName || "Hong Kong"} sale price and rent indexed to 100`}
+              caption={
+                pulseDistrictId
+                  ? `Monthly averages for ${pulseDistrictName}, indexed to 100. Both lines start at the first month where sale and rent overlap; rent history covers roughly the last three years.`
+                  : "District averages weighted by transaction count and indexed to 100. Both lines start at the first month where sale and rent overlap; rent history covers roughly the last three years."
+              }
             />
           ) : (
-            <EmptyNotice title="No overlapping sale and rent history">
+            <EmptyNotice
+              title={
+                pulseDistrictId
+                  ? `No overlapping sale and rent history for ${pulseDistrictName}`
+                  : "No overlapping sale and rent history"
+              }
+            >
               <p>
                 The snapshot needs at least one month with both sale and rent
                 values to build this chart.
@@ -259,7 +399,98 @@ export function MarketOverview({
         </section>
       </div>
 
-      <div className="overview-layout overview-layout-even">
+      <section ref={topEstatesRef} className="panel overview-top-estates">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Value</p>
+            <h3>Top estates by transacted value</h3>
+          </div>
+          <p className="result-count">
+            {txRequested
+              ? `${formatNumber(topEstates?.entries.length ?? 0)} estates`
+              : "—"}
+          </p>
+        </div>
+        {!txRequested ? (
+          <p className="muted">
+            Top estates load when this section enters view.
+          </p>
+        ) : txLoading ? (
+          <InlineLoading label="Loading top estates…" />
+        ) : txError ? (
+          <InlineError
+            title="Top estates are unavailable"
+            message={txError}
+            onRetry={() => setTxReloadToken((value) => value + 1)}
+          />
+        ) : !topEstates || topEstates.entries.length === 0 ? (
+          <EmptyNotice title="No positive transaction values">
+            <p>
+              The recent-transaction file has no positive prices in the
+              trailing 12 months.
+            </p>
+          </EmptyNotice>
+        ) : (
+          <>
+            <p className="muted top-estates-window">
+              Trailing 12 months: {formatDate(topEstates.start)} –{" "}
+              {formatDate(topEstates.end)}. Sum of positive transaction
+              prices per estate.
+            </p>
+            <ol className="top-estate-list" role="list">
+              {topEstates.entries.map((entry, index) => {
+                const estate = estates.find(
+                  (item) => item.estate_id === entry.id,
+                );
+                return (
+                  <li key={entry.id} className="top-estate-row">
+                    <span className="top-estate-rank" aria-hidden="true">
+                      {index + 1}
+                    </span>
+                    <div className="top-estate-main">
+                      <div className="top-estate-label">
+                        {estate && onSelectEstate ? (
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => onSelectEstate(estate)}
+                          >
+                            {entry.name}
+                          </button>
+                        ) : (
+                          <strong>{entry.name}</strong>
+                        )}
+                        <span className="muted" title={entry.district}>
+                          {entry.district}
+                        </span>
+                      </div>
+                      <div className="top-estate-track" aria-hidden="true">
+                        <span
+                          className="top-estate-bar"
+                          style={{
+                            width: `${Math.max(
+                              2,
+                              (entry.totalValue / maxTopValue) * 100,
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="top-estate-value">
+                      <strong>{formatCompactHkd(entry.totalValue)}</strong>
+                      <span>
+                        {formatNumber(entry.txCount)} tx
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        )}
+      </section>
+
+      <div className="overview-stack">
         <section className="panel overview-league">
           <div className="panel-heading">
             <div>
