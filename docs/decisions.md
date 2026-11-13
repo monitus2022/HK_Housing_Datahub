@@ -36,7 +36,7 @@ validation before commit.
 transactions, and monthly market data over 1M+ rows, repeatedly, with different
 date-window logic.
 
-**Decision:** Materialize five marts in SQLite and rebuild them as a batch step.
+**Decision:** Materialize the analytics marts in SQLite and rebuild them as a batch step.
 Document each mart's grain.
 
 **Consequences:** Fast, stable reads and a clear export contract. Marts are
@@ -63,13 +63,14 @@ CORS must be configured on the bucket.
 target. The frontend reads the manifest and the files it names.
 
 **Decision:** Gzip `estate_summary`, `district_monthly`, `transaction_recent`,
-`estate_monthly`, `district_price_bands`, and `coverage` JSON; serve them with
+`estate_monthly`, `district_price_bands`, `rvd_benchmarks`, and `coverage`
+JSON; serve them with
 `Content-Encoding: gzip`. Keep `manifest.json`, `overview.json`, `catalog.json`,
 and `segment_summary.json` plain. `transaction_recent` exports display columns
 only, and `mart_estate_monthly` uses a compact month-indexed payload (~5.1 MB
 uncompressed). Parquet remains optional for external analytics.
 
-**Consequences:** The snapshot is ~5.0 MB and browsers decompress transparently.
+**Consequences:** The snapshot is ~5.1 MB and browsers decompress transparently.
 The frontend must use `manifest.files` rather than hardcoded names. Parquet can
 be added later without changing the manifest shape. The district-monthly file loads with the Overview;
 the estate-history, catalogue, and transaction files load on demand, with
