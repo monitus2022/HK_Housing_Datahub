@@ -356,8 +356,22 @@ A retry cannot always reach 100% coverage. Rows stay `NULL` when the HKP payload
 omits `mkt_type`/`transaction_type`, when a stored `tx_id` is no longer present
 in the refreshed payload, or when the building request keeps failing. Note that
 `unmatched` counts payload `tx_id`s that have no stored row, which is the
-opposite direction. Re-run with `--only-null` after a while, but treat the
-remaining `NULL` count as a documented coverage gap rather than an error.
+opposite direction.
+
+The 2026-11-14 retry of all 4,818 buildings that still had untyped rows
+processed 4,775 successfully (`matched=914,211`) but moved only **one** row from
+`NULL` to typed (`remaining_null` 16,411 → 16,410). The outcome is therefore
+final for this dataset:
+
+- 55 buildings (291 rows) are entirely untyped; the retry's 43 failures were
+  responses rejected by `BuildingInfoResponse` because the `building` field was
+  absent.
+- The rest sit in otherwise-typed buildings whose stored `tx_id`s either are no
+  longer returned by HKP or come back without a sale type.
+
+Treat the remaining `NULL` count as a documented coverage gap, not an error, and
+do not rerun the retry expecting a change. A future full crawl (which would
+re-ingest transactions from scratch) is the only way to revisit it.
 
 The script updates existing transactions by `tx_id`, never inserts rows, and
 reports `source_updates`, `matched`, `updated`, `unmatched`, and
