@@ -11,9 +11,11 @@ import {
   buildScatterGeometry,
   buildTopEstatesByValue,
   buildYieldPoints,
+  defaultSaleType,
   filterDistrictRows,
   hasSaleTypeData,
   median,
+  saleTypeCoverage,
 } from "./overview";
 
 function estate(overrides: Partial<EstateSummary>): EstateSummary {
@@ -374,5 +376,18 @@ describe("hasSaleTypeData", () => {
     );
     expect(hasSaleTypeData([transaction("E1", "2026-01-01", 100)])).toBe(false);
     expect(hasSaleTypeData([])).toBe(false);
+  });
+});
+
+describe("sale-type coverage", () => {
+  it("reports the typed share and chooses the default basis", () => {
+    const rows = [
+      transaction("A", "2026-01-01", 100, "D", "2"),
+      transaction("B", "2026-01-01", 100, "D", null),
+    ];
+    expect(saleTypeCoverage(rows)).toBe(0.5);
+    expect(defaultSaleType(0.5)).toBe("all");
+    expect(defaultSaleType(1)).toBe("second");
+    expect(saleTypeCoverage([])).toBe(0);
   });
 });

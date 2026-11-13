@@ -376,8 +376,22 @@ export interface TopEstateEntry {
 
 export type SaleTypeFilter = "all" | "first" | "second";
 
+export const SALE_TYPE_COVERAGE_THRESHOLD = 0.95;
+
+export function saleTypeCoverage(transactions: RecentTransaction[]): number {
+  if (transactions.length === 0) return 0;
+  const typed = transactions.filter((transaction) =>
+    Boolean(transaction.mkt_type),
+  ).length;
+  return typed / transactions.length;
+}
+
 export function hasSaleTypeData(transactions: RecentTransaction[]): boolean {
-  return transactions.some((transaction) => Boolean(transaction.mkt_type));
+  return saleTypeCoverage(transactions) > 0;
+}
+
+export function defaultSaleType(coverage: number): SaleTypeFilter {
+  return coverage >= SALE_TYPE_COVERAGE_THRESHOLD ? "second" : "all";
 }
 
 export interface TopEstatesResult {

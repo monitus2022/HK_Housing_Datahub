@@ -17,8 +17,10 @@ import {
   buildTopEstatesByValue,
   buildYieldPoints,
   DEFAULT_SCATTER_OPTIONS,
+  defaultSaleType,
   filterDistrictRows,
   hasSaleTypeData,
+  saleTypeCoverage,
   type SaleTypeFilter,
 } from "../lib/overview";
 import {
@@ -66,7 +68,7 @@ export function MarketOverview({
   const [txLoading, setTxLoading] = useState(true);
   const [txReloadToken, setTxReloadToken] = useState(0);
   const [txRequested, setTxRequested] = useState(false);
-  const [saleType, setSaleType] = useState<SaleTypeFilter>("second");
+  const [saleType, setSaleType] = useState<SaleTypeFilter>("all");
   const [pulseDistrictId, setPulseDistrictId] = useState("");
   const topEstatesRef = useRef<HTMLElement>(null);
 
@@ -167,11 +169,19 @@ export function MarketOverview({
     if (!rows) return null;
     return buildMarketPulse(filterDistrictRows(rows, pulseDistrictId));
   }, [rows, pulseDistrictId]);
+  const coverage = useMemo(
+    () => (transactions ? saleTypeCoverage(transactions) : 0),
+    [transactions],
+  );
   const hasSaleTypes = useMemo(
     () => (transactions ? hasSaleTypeData(transactions) : false),
     [transactions],
   );
+  useEffect(() => {
+    if (transactions) setSaleType(defaultSaleType(coverage));
+  }, [transactions, coverage]);
   const effectiveSaleType: SaleTypeFilter = hasSaleTypes ? saleType : "all";
+  const coveragePct = Math.round(coverage * 1000) / 10;
   const topEstates = useMemo(
     () =>
       transactions
@@ -426,6 +436,23 @@ export function MarketOverview({
               : "—"}
           </p>
         </div>
+        {hasSaleTypes ? (
+          <div className="top-estates-controls">
+            <label className="field">
+              <span>Sale type</span>
+              <select
+                value={saleType}
+                onChange={(event) =>
+                  setSaleType(event.target.value as SaleTypeFilter)
+                }
+              >
+                <option value="second">2nd hand (resale)</option>
+                <option value="first">1st hand</option>
+                <option value="all">All sale types</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
         {!txRequested ? (
           <p className="muted">
             Top estates load when this section enters view.
@@ -449,30 +476,15 @@ export function MarketOverview({
           </EmptyNotice>
         ) : (
           <>
-            {hasSaleTypes ? (
-              <div className="top-estates-controls">
-                <label className="field">
-                  <span>Sale type</span>
-                  <select
-                    value={saleType}
-                    onChange={(event) =>
-                      setSaleType(event.target.value as SaleTypeFilter)
-                    }
-                  >
-                    <option value="second">2nd hand (resale)</option>
-                    <option value="first">1st hand</option>
-                    <option value="all">All sale types</option>
-                  </select>
-                </label>
-              </div>
-            ) : null}
             <p className="muted top-estates-window">
               Trailing 12 months: {formatDate(topEstates.start)} –{" "}
               {formatDate(topEstates.end)}. Sum of positive{" "}
               {topEstatesLabel} per estate.
               {!hasSaleTypes
                 ? " This snapshot does not include sale types; showing all sales."
-                : ""}
+                : coverage < 1
+                  ? ` Sale types cover ${coveragePct}% of recent transactions; unclassified rows are excluded.`
+                  : ""}
             </p>
             <ol className="top-estate-list" role="list">
               {topEstates.entries.map((entry, index) => {
