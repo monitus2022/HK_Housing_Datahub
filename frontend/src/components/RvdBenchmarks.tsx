@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { Manifest, RvdBenchmarks as RvdData } from "../types";
 import { loadRvdBenchmarks } from "../lib/dashboard";
 import {
-  buildRvdSeries,
+  buildRvdClassSeries,
+  RVD_CLASSES,
+  RVD_CLASS_DEFINITIONS,
   RVD_MEASURES,
   RVD_REGIONS,
-  rvdClassesForMeasure,
   rvdHkdM2ToFt2,
   type RvdMeasure,
 } from "../lib/rvd";
@@ -40,14 +41,23 @@ function unitLabel(
   return measure === "rent" ? "HKD/m² per month" : "HKD/m²";
 }
 
+function measureUnit(
+  measure: RvdMeasure,
+): "index" | "hkd_m2" | "percent" {
+  if (measure === "price_index" || measure === "rent_index") return "index";
+  if (measure === "yield") return "percent";
+  return "hkd_m2";
+}
+
 export function RvdBenchmarks({ manifest }: Props) {
   const [data, setData] = useState<RvdData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [measure, setMeasure] = useState<RvdMeasure>("price_index");
-  const [propertyClass, setPropertyClass] = useState("ALL");
   const [regionCode, setRegionCode] = useState("hk");
+  const [selectedClasses, setSelectedClasses] =
+    useState<string[]>(RVD_CLASSES);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,33 +85,65 @@ export function RvdBenchmarks({ manifest }: Props) {
     };
   }, [manifest, reloadToken]);
 
-  useEffect(() => {
-    const classes = rvdClassesForMeasure(measure);
-    if (!classes.includes(propertyClass)) {
-      setPropertyClass(classes[0]);
-    }
-  }, [measure, propertyClass]);
-
-  const result = useMemo(
-    () => buildRvdSeries(data, { measure, propertyClass, regionCode }),
-    [data, measure, propertyClass, regionCode],
+  const classSeries = useMemo(
+    () =>
+      buildRvdClassSeries(
+        data,
+        measure,
+        regionCode,
+        selectedClasses,
+      ),
+    [data, measure, regionCode, selectedClasses],
   );
+  const unit = classSeries[0]?.unit ?? measureUnit(measure);
   const geometry = useMemo(
     () =>
-      buildMultiLineGeometry([
-        { id: "rvd", label: result.title, points: result.points },
-      ]),
-    [result],
+      buildMultiLineGeometry(
+        classSeries.map((series) => ({
+          id: series.propertyClass,
+          label: series.label,
+          points: series.points,
+        })),
+      ),
+    [classSeries],
   );
-  const latest = result.points[result.points.length - 1] ?? null;
-  const classes = rvdClassesForMeasure(measure);
-  const showRegion = measure === "rent" || measure === "price";
+  const provisionalMonths = useMemo(
+    () =>
+      [...new Set(classSeries.flatMap((series) => series.provisionalMonths))]
+        .sort(),
+    [classSeries],
+  );
+  const firstMonth =
+    classSeries
+      .map((series) => series.points[0]?.month)
+      .filter((month): month is string => Boolean(month))
+      .sort()[0] ?? null;
+  const lastMonth =
+    classSeries
+      .map((series) => series.points[series.points.length - 1]?.month)
+      .filter((month): month is string => Boolean(month))
+      .sort()
+      .pop() ?? null;
   const provisionalRange =
-    result.provisionalMonths.length > 0
-      ? `${formatMonth(result.provisionalMonths[0])} – ${formatMonth(
-          result.provisionalMonths[result.provisionalMonths.length - 1],
+    provisionalMonths.length > 0
+      ? `${formatMonth(provisionalMonths[0])} – ${formatMonth(
+          provisionalMonths[provisionalMonths.length - 1],
         )}`
       : null;
+  const showRegion = measure === "rent" || measure === "price";
+
+  const toggleClass = (propertyClass: string) => {
+    setSelectedClasses((current) => {
+      if (current.includes(propertyClass)) {
+        return current.length === 1
+          ? current
+          : current.filter((item) => item !== propertyClass);
+      }
+      return RVD_CLASSES.filter(
+        (item) => current.includes(item) || item === propertyClass,
+      );
+    });
+  };
 
   return (
     <section className="trend-rvd" aria-label="Official RVD benchmarks">
@@ -121,10 +163,18 @@ export function RvdBenchmarks({ manifest }: Props) {
         <summary>How to read this</summary>
         <p>
           RVD publishes region and property-class aggregates, not individual
-          estates. Classes A–E are based on saleable area, while HKP data uses
-          net area and estate transactions, so these figures are benchmarks —
-          not estate valuations.
+          estates. Classes A–E are based on <strong>saleable area</strong>,
+          while HKP data uses net area and estate transactions, so these
+          figures are benchmarks — not estate valuations.
         </p>
+        <dl className="rvd-class-definitions">
+          {RVD_CLASS_DEFINITIONS.map((item) => (
+            <div key={item.id}>
+              <dt>Class {item.id}</dt>
+              <dd>{item.label}</dd>
+            </div>
+          ))}
+        </dl>
         <p>
           Rents and prices are in HKD/m². Divide by 10.7639 for HKD/ft².
           Provisional months are marked. Suppressed values are omitted, not
@@ -149,35 +199,11 @@ export function RvdBenchmarks({ manifest }: Props) {
           <span>Measure</span>
           <select
             value={measure}
-            onChange={(event) => {
-              const next = event.target.value as RvdMeasure;
-              const nextClasses = rvdClassesForMeasure(next);
-              setMeasure(next);
-              if (!nextClasses.includes(propertyClass)) {
-                setPropertyClass(nextClasses[0]);
-              }
-            }}
+            onChange={(event) => setMeasure(event.target.value as RvdMeasure)}
           >
             {RVD_MEASURES.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Class</span>
-          <select
-            value={propertyClass}
-            onChange={(event) => setPropertyClass(event.target.value)}
-          >
-            {classes.map((value) => (
-              <option key={value} value={value}>
-                {value === "ALL"
-                  ? "All classes"
-                  : value === "ABC" || value === "DE"
-                    ? `Classes ${value}`
-                    : `Class ${value}`}
               </option>
             ))}
           </select>
@@ -199,6 +225,27 @@ export function RvdBenchmarks({ manifest }: Props) {
         ) : null}
       </div>
 
+      <fieldset className="rvd-classes">
+        <legend>Classes</legend>
+        {RVD_CLASSES.map((propertyClass) => (
+          <label
+            key={propertyClass}
+            className={`rvd-class-chip ${
+              selectedClasses.includes(propertyClass)
+                ? "rvd-class-chip-active"
+                : ""
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={selectedClasses.includes(propertyClass)}
+              onChange={() => toggleClass(propertyClass)}
+            />
+            Class {propertyClass}
+          </label>
+        ))}
+      </fieldset>
+
       {loading ? (
         <InlineLoading label="Loading RVD benchmarks…" />
       ) : error ? (
@@ -207,7 +254,7 @@ export function RvdBenchmarks({ manifest }: Props) {
           message={error}
           onRetry={() => setReloadToken((value) => value + 1)}
         />
-      ) : !latest || !geometry ? (
+      ) : classSeries.length === 0 || !geometry ? (
         <EmptyNotice title="No RVD data for this selection">
           <p>
             The snapshot has no RVD rows for this measure, class, and region.
@@ -215,58 +262,51 @@ export function RvdBenchmarks({ manifest }: Props) {
         </EmptyNotice>
       ) : (
         <>
-          <div className="stat-row">
-            <div className="stat-tile">
-              <p className="stat-label">Latest</p>
-              <p className="stat-value stat-value-small">
-                {formatRvdValue(result.unit, latest.value)}
-              </p>
-              <p className="stat-note">
-                {formatMonth(latest.month)} ·{" "}
-                {unitLabel(result.unit, measure)}
-              </p>
-            </div>
-            {result.unit === "hkd_m2" ? (
-              <div className="stat-tile">
-                <p className="stat-label">Per square foot</p>
-                <p className="stat-value stat-value-small">
-                  {formatCompactHkd(rvdHkdM2ToFt2(latest.value))}
-                </p>
-                <p className="stat-note">
-                  HKD/ft²{measure === "rent" ? " per month" : ""} conversion
-                </p>
-              </div>
-            ) : null}
-            <div className="stat-tile">
-              <p className="stat-label">Observations</p>
-              <p className="stat-value">
-                {formatNumber(result.points.length)}
-              </p>
-              <p className="stat-note">
-                {formatMonth(result.points[0]?.month ?? null)} –{" "}
-                {formatMonth(latest.month)}
-              </p>
-            </div>
+          <div className="rvd-latest-grid">
+            {classSeries.map((series) => {
+              const latest = series.points[series.points.length - 1];
+              return (
+                <div key={series.propertyClass} className="rvd-latest-item">
+                  <strong>{series.label}</strong>
+                  <span className="rvd-latest-value">
+                    {formatRvdValue(series.unit, latest.value)}
+                  </span>
+                  <span className="muted">
+                    {formatMonth(latest.month)}
+                  </span>
+                  {series.unit === "hkd_m2" ? (
+                    <span className="muted">
+                      {formatCompactHkd(rvdHkdM2ToFt2(latest.value))}
+                      {measure === "rent" ? "/ft²/mo" : "/ft²"}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="rvd-meta">
+            <span>{unitLabel(unit, measure)}</span>
+            <span>
+              {formatMonth(firstMonth)} – {formatMonth(lastMonth)}
+            </span>
+            <span>{formatNumber(classSeries.length)} classes</span>
             {provisionalRange ? (
-              <div className="stat-tile stat-tile-warn">
-                <p className="stat-label">Provisional</p>
-                <p className="stat-value stat-value-small">
-                  {result.provisionalMonths.length} months
-                </p>
-                <p className="stat-note">{provisionalRange}</p>
-              </div>
+              <span className="rvd-provisional">
+                Provisional: {provisionalRange}
+              </span>
             ) : null}
           </div>
 
           <LineChart
             geometry={geometry}
-            formatValue={(value) => formatRvdValue(result.unit, value)}
-            ariaLabel={result.title}
+            formatValue={(value) => formatRvdValue(unit, value)}
+            ariaLabel={`RVD ${measure} by property class`}
             showDots={false}
-            caption={`${result.title}. RVD aggregate benchmark; ${
-              result.unit === "hkd_m2"
-                ? `values in HKD/m²${measure === "rent" ? " per month" : ""} (divide by 10.7639 for HKD/ft²${measure === "rent" ? " per month" : ""})`
-                : result.unit === "percent"
+            caption={`RVD aggregate benchmark by saleable-area class; ${
+              unit === "hkd_m2"
+                ? `values in HKD/m²${measure === "rent" ? " per month" : ""} (divide by 10.7639 for HKD/ft²)`
+                : unit === "percent"
                   ? "percentage returns"
                   : "index, 1999 = 100"
             }.`}

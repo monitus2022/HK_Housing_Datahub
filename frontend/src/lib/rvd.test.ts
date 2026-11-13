@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { RvdBenchmarks } from "../types";
-import { buildRvdSeries, rvdHkdM2ToFt2 } from "./rvd";
+import {
+  buildRvdClassSeries,
+  buildRvdSeries,
+  rvdHkdM2ToFt2,
+} from "./rvd";
 
 const data: RvdBenchmarks = {
   rents: [
@@ -122,5 +126,24 @@ describe("buildRvdSeries", () => {
 
   it("converts HKD per square metre to HKD per square foot", () => {
     expect(rvdHkdM2ToFt2(100000)).toBeCloseTo(9290.3, 1);
+  });
+});
+
+describe("buildRvdClassSeries", () => {
+  it("returns multiple class lines and filters empty classes", () => {
+    const indices = buildRvdClassSeries(data, "price_index", "hk", [
+      "ALL",
+      "A",
+      "E",
+    ]);
+    expect(indices.map((series) => series.label)).toEqual([
+      "Class ALL",
+      "Class A",
+    ]);
+
+    const rents = buildRvdClassSeries(data, "rent", "hk", ["A", "B"]);
+    expect(rents).toHaveLength(1);
+    expect(rents[0].label).toBe("Class A");
+    expect(rents[0].unit).toBe("hkd_m2");
   });
 });

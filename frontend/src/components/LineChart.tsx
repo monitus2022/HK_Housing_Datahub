@@ -1,7 +1,14 @@
 import { DEFAULT_CHART_OPTIONS, type MultiLineGeometry } from "../lib/trends";
 import { formatMonth } from "../lib/format";
 
-const SERIES_COLORS = ["var(--accent)", "#d97706", "#2563eb", "#7c3aed"];
+const SERIES_COLORS = [
+  "var(--accent)",
+  "#d97706",
+  "#2563eb",
+  "#7c3aed",
+  "#dc2626",
+  "#0891b2",
+];
 
 interface Props {
   geometry: MultiLineGeometry;
