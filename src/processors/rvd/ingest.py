@@ -110,7 +110,12 @@ def parse_monthly_frame(
         if not 1 <= month <= 12:
             continue
         month_key = f"{year:04d}-{month:02d}"
-        record: dict[str, Any] = {"month": month_key}
+        flag = frame.iat[index, 6]
+        provisional = 1 if isinstance(flag, str) and flag.strip() == "*" else 0
+        record: dict[str, Any] = {
+            "month": month_key,
+            "is_provisional": provisional,
+        }
         for key, column in columns.items():
             record[key] = clean_number(frame.iat[index, column])
         by_month[month_key] = record
@@ -122,7 +127,7 @@ def _region_class_rows(parsed: Iterable[dict[str, Any]]) -> list[dict[str, Any]]
     rows: list[dict[str, Any]] = []
     for record in parsed:
         for key, value in record.items():
-            if key == "month" or value is None:
+            if key in {"month", "is_provisional"}:
                 continue
             region, property_class = key.split(":")
             rows.append(
@@ -131,6 +136,7 @@ def _region_class_rows(parsed: Iterable[dict[str, Any]]) -> list[dict[str, Any]]
                     "property_class": property_class,
                     "month": record["month"],
                     "value_hkd_m2": value,
+                    "is_provisional": record["is_provisional"],
                 }
             )
     return rows
@@ -155,7 +161,7 @@ def parse_indices(
     rows: list[dict[str, Any]] = []
     for record in parse_monthly_frame(read_monthly_sheet(path), INDEX_COLUMNS):
         for property_class, value in record.items():
-            if property_class == "month" or value is None:
+            if property_class in {"month", "is_provisional"}:
                 continue
             rows.append(
                 {
@@ -163,6 +169,7 @@ def parse_indices(
                     "property_class": property_class,
                     "month": record["month"],
                     "value": value,
+                    "is_provisional": record["is_provisional"],
                 }
             )
     return rows
@@ -172,13 +179,14 @@ def parse_yields(path: Path | str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for record in parse_monthly_frame(read_monthly_sheet(path), YIELD_COLUMNS):
         for property_class, value in record.items():
-            if property_class == "month" or value is None:
+            if property_class in {"month", "is_provisional"}:
                 continue
             rows.append(
                 {
                     "property_class": property_class,
                     "month": record["month"],
                     "yield_pct": value,
+                    "is_provisional": record["is_provisional"],
                 }
             )
     return rows
@@ -196,7 +204,12 @@ def download_rvd(destination: Path | str) -> dict[str, Path]:
             headers={"User-Agent": "HK-Housing-Datahub/0.1"},
         )
         with urllib.request.urlopen(request, timeout=60) as response:
-            target.write_bytes(response.read())
+            payload = response.read()
+        if not payload.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+            raise ValueError(f"RVD download is not an XLS workbook: {filename}")
+        temporary = target.with_suffix(target.suffix + ".part")
+        temporary.write_bytes(payload)
+        temporary.replace(target)
         paths[key] = target
         housing_logger.info(f"Downloaded RVD {filename} ({target.stat().st_size} bytes)")
     return paths
@@ -226,50 +239,60 @@ def ingest_rvd_rows(
 
         connection.executemany(
             "INSERT OR REPLACE INTO rvd_rents "
-            "(region_code, property_class, month, value_hkd_m2) "
-            "VALUES (?, ?, ?, ?)",
+            "(region_code, property_class, month, value_hkd_m2, "
+            "is_provisional) VALUES (?, ?, ?, ?, ?)",
             [
                 (
                     row["region_code"],
                     row["property_class"],
                     row["month"],
                     row["value_hkd_m2"],
+                    row["is_provisional"],
                 )
                 for row in rents
             ],
         )
         connection.executemany(
             "INSERT OR REPLACE INTO rvd_prices "
-            "(region_code, property_class, month, value_hkd_m2) "
-            "VALUES (?, ?, ?, ?)",
+            "(region_code, property_class, month, value_hkd_m2, "
+            "is_provisional) VALUES (?, ?, ?, ?, ?)",
             [
                 (
                     row["region_code"],
                     row["property_class"],
                     row["month"],
                     row["value_hkd_m2"],
+                    row["is_provisional"],
                 )
                 for row in prices
             ],
         )
         connection.executemany(
             "INSERT OR REPLACE INTO rvd_indices "
-            "(index_type, property_class, month, value) VALUES (?, ?, ?, ?)",
+            "(index_type, property_class, month, value, is_provisional) "
+            "VALUES (?, ?, ?, ?, ?)",
             [
                 (
                     row["index_type"],
                     row["property_class"],
                     row["month"],
                     row["value"],
+                    row["is_provisional"],
                 )
                 for row in indices
             ],
         )
         connection.executemany(
             "INSERT OR REPLACE INTO rvd_yields "
-            "(property_class, month, yield_pct) VALUES (?, ?, ?)",
+            "(property_class, month, yield_pct, is_provisional) "
+            "VALUES (?, ?, ?, ?)",
             [
-                (row["property_class"], row["month"], row["yield_pct"])
+                (
+                    row["property_class"],
+                    row["month"],
+                    row["yield_pct"],
+                    row["is_provisional"],
+                )
                 for row in yields
             ],
         )
@@ -319,4 +342,28 @@ def load_rvd(db_path: Path | str, source_dir: Path | str) -> dict[str, int]:
         "price",
     )
     yields = parse_yields(directory / RVD_FILES["yields"])
+
+    minimums = {
+        "rents": 4000,
+        "prices": 4000,
+        "indices": 5000,
+        "yields": 1500,
+    }
+    counts = {
+        "rents": len(rents),
+        "prices": len(prices),
+        "indices": len(indices),
+        "yields": len(yields),
+    }
+    short = [
+        f"{name}={counts[name]} (expected at least {minimums[name]})"
+        for name in counts
+        if counts[name] < minimums[name]
+    ]
+    if short:
+        raise ValueError(
+            "RVD parse produced suspiciously few rows; refusing to replace "
+            "the benchmark tables: " + ", ".join(short)
+        )
+
     return ingest_rvd_rows(db_path, rents, prices, indices, yields)

@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from processors.rvd import download_rvd, load_rvd  # noqa: E402
+from xlrd.biffh import XLRDError  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.skip_download:
             download_rvd(args.source_dir)
         counts = load_rvd(args.db, args.source_dir)
-    except (FileNotFoundError, OSError) as exc:
+    except (FileNotFoundError, OSError, ValueError, XLRDError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

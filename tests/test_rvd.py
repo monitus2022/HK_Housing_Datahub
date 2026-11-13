@@ -34,10 +34,17 @@ def make_frame(rows: list[dict[int, object]]) -> pd.DataFrame:
     return frame
 
 
-def month_row(year: int | None, month: int, value: float) -> dict[int, object]:
+def month_row(
+    year: int | None,
+    month: int,
+    value: float,
+    provisional: bool = False,
+) -> dict[int, object]:
     row: dict[int, object] = {5: month}
     if year is not None:
         row[1] = year
+    if provisional:
+        row[6] = "*"
     for column in REGION_CLASS_COLUMNS.values():
         row[column] = value
     for column in INDEX_COLUMNS.values():
@@ -60,7 +67,7 @@ def test_clean_number_handles_rvd_markers():
 def test_parse_monthly_frame_forward_fills_year_and_skips_footnotes():
     frame = make_frame(
         [
-            {1: 2020, 5: 1, 8: 100.0},
+            {1: 2020, 5: 1, 6: "*", 8: 100.0},
             {5: 2.0, 8: 110.0},
             {1: 2021, 5: 1, 8: 120.0},
             {5: 13, 8: 999.0},
@@ -75,6 +82,8 @@ def test_parse_monthly_frame_forward_fills_year_and_skips_footnotes():
         "2021-01",
     ]
     assert rows[1]["value"] == 110.0
+    assert rows[0]["is_provisional"] == 1
+    assert rows[1]["is_provisional"] == 0
 
 
 @patch("processors.rvd.ingest.read_monthly_sheet")
@@ -92,6 +101,7 @@ def test_parse_rents_and_prices_expand_region_class(read_sheet):
         "property_class": "A",
         "month": "2020-01",
         "value_hkd_m2": 100.0,
+        "is_provisional": 0,
     }
 
 
@@ -117,6 +127,7 @@ def test_ingest_is_idempotent(tmp_path):
             "property_class": "A",
             "month": "2020-01",
             "value_hkd_m2": 100.0,
+            "is_provisional": 0,
         }
     ]
     prices = [
@@ -125,6 +136,7 @@ def test_ingest_is_idempotent(tmp_path):
             "property_class": "A",
             "month": "2020-01",
             "value_hkd_m2": 200000.0,
+            "is_provisional": 0,
         }
     ]
     indices = [
@@ -133,6 +145,7 @@ def test_ingest_is_idempotent(tmp_path):
             "property_class": "A",
             "month": "2020-01",
             "value": 150.0,
+            "is_provisional": 0,
         }
     ]
     yields = [
@@ -140,6 +153,7 @@ def test_ingest_is_idempotent(tmp_path):
             "property_class": "A",
             "month": "2020-01",
             "yield_pct": 3.0,
+            "is_provisional": 0,
         }
     ]
 
@@ -166,3 +180,49 @@ def test_ingest_is_idempotent(tmp_path):
 def test_load_rvd_requires_all_workbooks(tmp_path):
     with pytest.raises(FileNotFoundError, match=RVD_FILES["rents"]):
         load_rvd(tmp_path / "rvd.db", tmp_path)
+
+def test_ingest_preserves_provisional_flags_and_nulls(tmp_path):
+    db = tmp_path / "rvd.db"
+    rents = [
+        {
+            "region_code": "hk",
+            "property_class": "A",
+            "month": "2026-09",
+            "value_hkd_m2": 500.0,
+            "is_provisional": 1,
+        },
+        {
+            "region_code": "kln",
+            "property_class": "E",
+            "month": "2026-09",
+            "value_hkd_m2": None,
+            "is_provisional": 1,
+        },
+    ]
+
+    counts = ingest_rvd_rows(db, rents, [], [], [])
+
+    assert counts["rvd_rents"] == 2
+    connection = sqlite3.connect(db)
+    try:
+        rows = connection.execute(
+            "SELECT region_code, value_hkd_m2, is_provisional "
+            "FROM rvd_rents ORDER BY region_code"
+        ).fetchall()
+    finally:
+        connection.close()
+    assert rows == [("hk", 500.0, 1), ("kln", None, 1)]
+
+
+def test_load_rvd_refuses_suspiciously_small_parses(tmp_path):
+    for filename in RVD_FILES.values():
+        (tmp_path / filename).write_bytes(b"placeholder")
+
+    with (
+        patch("processors.rvd.ingest.parse_rents", return_value=[]),
+        patch("processors.rvd.ingest.parse_prices", return_value=[]),
+        patch("processors.rvd.ingest.parse_indices", return_value=[]),
+        patch("processors.rvd.ingest.parse_yields", return_value=[]),
+    ):
+        with pytest.raises(ValueError, match="refusing to replace"):
+            load_rvd(tmp_path / "rvd.db", tmp_path)
