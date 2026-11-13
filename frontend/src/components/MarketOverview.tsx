@@ -68,7 +68,8 @@ export function MarketOverview({
   const [txLoading, setTxLoading] = useState(true);
   const [txReloadToken, setTxReloadToken] = useState(0);
   const [txRequested, setTxRequested] = useState(false);
-  const [saleType, setSaleType] = useState<SaleTypeFilter>("all");
+  const [saleTypeOverride, setSaleTypeOverride] =
+    useState<SaleTypeFilter | null>(null);
   const [pulseDistrictId, setPulseDistrictId] = useState("");
   const topEstatesRef = useRef<HTMLElement>(null);
 
@@ -170,16 +171,24 @@ export function MarketOverview({
     return buildMarketPulse(filterDistrictRows(rows, pulseDistrictId));
   }, [rows, pulseDistrictId]);
   const coverage = useMemo(
-    () => (transactions ? saleTypeCoverage(transactions) : 0),
-    [transactions],
+    () =>
+      transactions
+        ? saleTypeCoverage(
+            transactions,
+            manifest.data_through.transactions,
+          )
+        : 0,
+    [transactions, manifest.data_through.transactions],
   );
   const hasSaleTypes = useMemo(
-    () => (transactions ? hasSaleTypeData(transactions) : false),
-    [transactions],
+    () =>
+      transactions
+        ? hasSaleTypeData(transactions, manifest.data_through.transactions)
+        : false,
+    [transactions, manifest.data_through.transactions],
   );
-  useEffect(() => {
-    if (transactions) setSaleType(defaultSaleType(coverage));
-  }, [transactions, coverage]);
+  const saleType: SaleTypeFilter =
+    saleTypeOverride ?? defaultSaleType(coverage);
   const effectiveSaleType: SaleTypeFilter = hasSaleTypes ? saleType : "all";
   const coveragePct = Math.round(coverage * 1000) / 10;
   const topEstates = useMemo(
@@ -443,7 +452,9 @@ export function MarketOverview({
               <select
                 value={saleType}
                 onChange={(event) =>
-                  setSaleType(event.target.value as SaleTypeFilter)
+                  setSaleTypeOverride(
+                    event.target.value as SaleTypeFilter,
+                  )
                 }
               >
                 <option value="second">2nd hand (resale)</option>
@@ -483,7 +494,11 @@ export function MarketOverview({
               {!hasSaleTypes
                 ? " This snapshot does not include sale types; showing all sales."
                 : coverage < 1
-                  ? ` Sale types cover ${coveragePct}% of recent transactions; unclassified rows are excluded.`
+                  ? ` Sale types cover ${coveragePct}% of recent transactions.${
+                      effectiveSaleType === "all"
+                        ? ""
+                        : " Unclassified rows are excluded from this view."
+                    }`
                   : ""}
             </p>
             <ol className="top-estate-list" role="list">

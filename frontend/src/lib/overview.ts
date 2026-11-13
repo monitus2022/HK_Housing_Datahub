@@ -378,16 +378,38 @@ export type SaleTypeFilter = "all" | "first" | "second";
 
 export const SALE_TYPE_COVERAGE_THRESHOLD = 0.95;
 
-export function saleTypeCoverage(transactions: RecentTransaction[]): number {
+export function saleTypeCoverage(
+  transactions: RecentTransaction[],
+  asOf: string | null = null,
+  months = 12,
+): number {
   if (transactions.length === 0) return 0;
-  const typed = transactions.filter((transaction) =>
+  let end = asOf;
+  if (!end) {
+    for (const transaction of transactions) {
+      if (transaction.tx_date && (!end || transaction.tx_date > end)) {
+        end = transaction.tx_date;
+      }
+    }
+  }
+  const start = end ? shiftMonths(end, months) : null;
+  const scoped = transactions.filter((transaction) => {
+    if (start && transaction.tx_date < start) return false;
+    if (end && transaction.tx_date > end) return false;
+    return true;
+  });
+  if (scoped.length === 0) return 0;
+  const typed = scoped.filter((transaction) =>
     Boolean(transaction.mkt_type),
   ).length;
-  return typed / transactions.length;
+  return typed / scoped.length;
 }
 
-export function hasSaleTypeData(transactions: RecentTransaction[]): boolean {
-  return saleTypeCoverage(transactions) > 0;
+export function hasSaleTypeData(
+  transactions: RecentTransaction[],
+  asOf: string | null = null,
+): boolean {
+  return saleTypeCoverage(transactions, asOf) > 0;
 }
 
 export function defaultSaleType(coverage: number): SaleTypeFilter {
@@ -420,7 +442,8 @@ function shiftMonths(date: string, months: number): string | null {
  *
  * The window is relative to `asOf` (the snapshot's sale data-through date), or
  * the latest transaction date when `asOf` is omitted. Only positive prices are
- * summed; estates without one are omitted.
+ * summed. `saleType` keeps all, first-hand, or second-hand rows; estates
+ * without a matching positive price are omitted.
  */
 export function buildTopEstatesByValue(
   transactions: RecentTransaction[],

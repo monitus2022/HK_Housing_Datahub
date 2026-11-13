@@ -387,7 +387,17 @@ describe("sale-type coverage", () => {
     ];
     expect(saleTypeCoverage(rows)).toBe(0.5);
     expect(defaultSaleType(0.5)).toBe("all");
+    expect(defaultSaleType(0.95)).toBe("second");
     expect(defaultSaleType(1)).toBe("second");
     expect(saleTypeCoverage([])).toBe(0);
+    expect(
+      saleTypeCoverage(
+        [
+          transaction("recent", "2026-10-01", 100, "D", "2"),
+          transaction("old", "2024-01-01", 100, "D", null),
+        ],
+        "2026-11-08",
+      ),
+    ).toBe(1);
   });
 });
