@@ -9,6 +9,7 @@ from models.agency.responses import BuildingInfoResponse
 from processors.agency.sale_type_backfill import (
     apply_sale_type_updates,
     extract_sale_types,
+    loading_buildings_missing_sale_type,
 )
 
 
@@ -150,3 +151,60 @@ def test_dry_run_does_not_alter_a_legacy_schema(tmp_path: Path):
     finally:
         connection.close()
     assert columns == ["tx_id"]
+
+
+def test_loading_buildings_missing_sale_type_targets_null_rows(tmp_path: Path):
+    db = tmp_path / "retry.db"
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute(
+            "CREATE TABLE units (unit_id TEXT PRIMARY KEY, building_id TEXT NOT NULL)"
+        )
+        connection.execute(
+            "CREATE TABLE transactions ("
+            "tx_id TEXT PRIMARY KEY, unit_id TEXT NOT NULL, mkt_type TEXT)"
+        )
+        connection.executemany(
+            "INSERT INTO units VALUES (?, ?)",
+            [("U1", "B1"), ("U2", "B1"), ("U3", "B2"), ("U4", "B3"), ("U5", "B3")],
+        )
+        connection.executemany(
+            "INSERT INTO transactions VALUES (?, ?, ?)",
+            [
+                ("T1", "U1", "2"),
+                ("T2", "U2", None),
+                ("T3", "U3", "1"),
+                ("T4", "U4", None),
+                ("T5", "U5", "2"),
+            ],
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    assert loading_buildings_missing_sale_type(db) == ["B1", "B3"]
+    assert loading_buildings_missing_sale_type(db, limit=1) == ["B1"]
+    assert loading_buildings_missing_sale_type(db, limit=1, offset=1) == ["B3"]
+    assert loading_buildings_missing_sale_type(db, offset=1) == ["B3"]
+
+
+def test_loading_buildings_missing_sale_type_returns_empty_when_complete(
+    tmp_path: Path,
+):
+    db = tmp_path / "complete.db"
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute(
+            "CREATE TABLE units (unit_id TEXT PRIMARY KEY, building_id TEXT NOT NULL)"
+        )
+        connection.execute(
+            "CREATE TABLE transactions ("
+            "tx_id TEXT PRIMARY KEY, unit_id TEXT NOT NULL, mkt_type TEXT)"
+        )
+        connection.execute("INSERT INTO units VALUES ('U1', 'B1')")
+        connection.execute("INSERT INTO transactions VALUES ('T1', 'U1', '2')")
+        connection.commit()
+    finally:
+        connection.close()
+
+    assert loading_buildings_missing_sale_type(db) == []

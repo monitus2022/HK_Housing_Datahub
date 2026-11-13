@@ -341,7 +341,22 @@ python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
 # Full backfill (about 30k buildings; rate-limited by --delay)
 cp data/agency/agency_data.db data/agency/agency_data.db.pre-sale-types.bak
 python scripts/backfill_sale_types.py --db data/agency/agency_data.db --delay 0.1
+
+# Retry only buildings whose transactions are still untyped
+python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
+  --only-null --delay 0.1
 ```
+
+`--only-null` selects distinct buildings that still have at least one
+transaction with `mkt_type IS NULL` (joined through `units`). Use it to retry
+buildings that failed during an earlier run instead of refetching all ~30k
+buildings. The mode is reported in the completion line.
+
+A retry cannot always reach 100% coverage. Rows stay `NULL` when the HKP payload
+for a stored `tx_id` no longer exists (counted as `unmatched`), when the payload
+omits `mkt_type`/`transaction_type`, or when the building request keeps failing.
+Re-run with `--only-null` after a while, but treat the remaining `NULL` count as
+a documented coverage gap rather than an error.
 
 The script updates existing transactions by `tx_id`, never inserts rows, and
 reports `source_updates`, `matched`, `updated`, `unmatched`, and

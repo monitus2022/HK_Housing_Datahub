@@ -21,6 +21,38 @@ def _clean(value: Any) -> str | None:
     return text or None
 
 
+def loading_buildings_missing_sale_type(
+    db_path: Path | str,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[str]:
+    """Return buildings that still have transactions without a sale type.
+
+    Retries should target these buildings, not the whole database: a building
+    that failed during an earlier backfill keeps its transactions ``NULL``, so
+    it still appears here. Buildings whose rows are already typed are skipped.
+    """
+    sql = (
+        "SELECT DISTINCT u.building_id FROM transactions t "
+        "JOIN units u ON u.unit_id = t.unit_id "
+        "WHERE t.mkt_type IS NULL ORDER BY u.building_id"
+    )
+    params: tuple[int, ...] = ()
+    if limit is not None:
+        sql += " LIMIT ? OFFSET ?"
+        params = (limit, offset)
+    elif offset:
+        sql += " LIMIT -1 OFFSET ?"
+        params = (offset,)
+
+    connection = sqlite3.connect(f"file:{Path(db_path)}?mode=ro", uri=True)
+    try:
+        return [row[0] for row in connection.execute(sql, params)]
+    finally:
+        connection.close()
+
+
 def extract_sale_types(
     response: BuildingInfoResponse,
 ) -> dict[str, SaleType]:
