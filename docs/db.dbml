@@ -1,5 +1,5 @@
 // ER diagram for HK_Housing_Datahub.
-// Source of truth: src/models/agency/sql_db.py.
+// Source of truth: src/models/agency/sql_db.py and src/models/rvd/sql_db.py.
 // Baseline snapshot: docs/baseline-stats.md (2026-11-09).
 
 TableGroup location_hierarchy {
@@ -33,6 +33,13 @@ TableGroup lookup {
 
 TableGroup run_metadata {
   pipeline_runs
+}
+
+TableGroup rvd_benchmarks {
+  rvd_rents
+  rvd_prices
+  rvd_indices
+  rvd_yields
 }
 
 Table regions {
@@ -203,6 +210,53 @@ Table rental_transactions {
   building_name_en text
   source text
   Note: 'Lease/rental transactions from HKP tx_type=L. HKP supports only 1-year or 3-year lookbacks.'
+}
+
+Table rvd_rents {
+  region_code text [not null]
+  property_class text [not null]
+  month text [not null]
+  value_hkd_m2 real
+  is_provisional integer [not null]
+  indexes {
+    (region_code, property_class, month) [pk]
+  }
+  Note: 'Official RVD private domestic average rent, HKD/m2/month. NULL means suppressed.'
+}
+
+Table rvd_prices {
+  region_code text [not null]
+  property_class text [not null]
+  month text [not null]
+  value_hkd_m2 real
+  is_provisional integer [not null]
+  indexes {
+    (region_code, property_class, month) [pk]
+  }
+  Note: 'Official RVD private domestic average price, HKD/m2. NULL means suppressed.'
+}
+
+Table rvd_indices {
+  index_type text [not null]
+  property_class text [not null]
+  month text [not null]
+  value real
+  is_provisional integer [not null]
+  indexes {
+    (index_type, property_class, month) [pk]
+  }
+  Note: 'Territory-wide RVD rental/price indices, 1999 = 100.'
+}
+
+Table rvd_yields {
+  property_class text [not null]
+  month text [not null]
+  yield_pct real
+  is_provisional integer [not null]
+  indexes {
+    (property_class, month) [pk]
+  }
+  Note: 'Official RVD private domestic market yield, percent.'
 }
 
 Table pipeline_runs {
