@@ -3,7 +3,7 @@
 This document explains the grain, keys, and caveats of the current SQLite
 model. The ER diagram is [`db.dbml`](db.dbml); the SQLAlchemy models in
 `src/models/agency/sql_db.py` are the source of truth. `pipeline_runs` and the
-five analytics marts are current tables; only the deferred ML mart is planned.
+seven analytics marts are current tables; only the deferred ML mart is planned.
 Dataset purpose, provenance, licences, refresh cadence, per-table row counts,
 and column-level schema detail live in the generated
 [`data-catalog.md`](data-catalog.md), seeded by `metadata/catalog.yml`.
@@ -438,6 +438,48 @@ Grain: one row per estate. Unique key: `estate_id`. Rows: 9,750 (refreshed DB).
 | `unit_count` | integer | Units linked through buildings |
 | `tx_count` | integer | Transactions linked through units |
 | `has_wiki` | integer | 1 when the Chinese estate name matches a wiki JSON key |
+
+### `mart_district_price_bands`
+
+Grain: one row per district × calendar month. Unique key:
+(`district_id`, `month`). Rows: 19,791 in the refreshed DB.
+
+| Column | Type | Notes |
+|---|---|---|
+| `district_id` / `district_name_en` / `district_name_zh` | text | District |
+| `month` | text | `YYYY-MM` |
+| `sale_count` | integer | Positive sale transactions in the month |
+| `sale_p25` / `sale_median` / `sale_p75` | real | Sale net-ft price percentiles |
+| `rent_count` | integer | Positive rental transactions in the month |
+| `rent_p25` / `rent_median` / `rent_p75` | real | Monthly rent net-ft percentiles |
+| `gross_yield_pct` | real | `rent_median × 12 ÷ sale_median × 100` when both exist |
+
+Caveats: percentiles use positive net-ft prices and nearest-rank positions;
+medians average the two middle rows for even counts. Rent history covers about
+three years, sale history much longer. Gross yield is a district-level proxy,
+not a transaction-level return.
+
+### `mart_segment_summary`
+
+Grain: one row per segment type × segment value. Unique key:
+(`segment_type`, `segment_value`). Rows: 43 in the refreshed DB.
+
+| Column | Type | Notes |
+|---|---|---|
+| `segment_type` | text | `bedroom`, `area_band`, `age_band`, `mtr_line`, or `school_net` |
+| `segment_value` | text | Segment label, including `Unknown` for missing inputs |
+| `sale_count` / `sale_estates` | integer | Sale transactions and distinct estates |
+| `sale_p25` / `sale_median` / `sale_p75` | real | Sale net-ft price percentiles |
+| `rent_count` / `rent_estates` | integer | Rental transactions and distinct estates |
+| `rent_p25` / `rent_median` / `rent_p75` | real | Monthly rent net-ft percentiles |
+| `window_start` / `window_end` | date | Inclusive trailing-12-month window |
+| `gross_yield_pct` | real | Median-rent ÷ median-price yield proxy |
+
+Caveats: the window ends at the later of the latest sale and rental dates. MTR
+and school-net rows overlap because an estate can map to multiple lines or
+nets. `Unknown` groups cover missing bedroom, area, or operation-date values.
+The school-net label comes from the source name while the ID is the primary
+net; see the `estate_school_nets` caveat.
 
 ## Dates and timezone
 
