@@ -147,7 +147,7 @@ resolved from the current working directory, so run it from the repo root.
 
 ## Final handoff and post-release checks — 2026-11-11 (serving updated 2026-11-13)
 
-- **Tests:** `pytest -q` → 93 passed, including 9 offline RAG idempotency tests
+- **Tests:** `pytest -q` → 115 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
   `chromadb` skips the RAG test module and the boto3 legacy-upload test.
 - **Lint:** `ruff check src/main.py src/logger.py src/analytics src/quality src/serving
@@ -167,7 +167,7 @@ resolved from the current working directory, so run it from the repo root.
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261113T091522Z-4686d6` (`schema_version` 7), ~5.1 MB;
+- **Serving:** build `20261113T130704Z-2ac947` (`schema_version` 8), ~5.1 MB;
   verifier passed; all twelve files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
   cache, and CORS headers verified. It carries refreshed data (transactions
@@ -176,7 +176,8 @@ resolved from the current working directory, so run it from the repo root.
   `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 rows),
   `estate_monthly.json.gz` (~1.3 MB), `district_price_bands.json.gz` (~340 KB),
   `segment_summary.json` (~14 KB), and `rvd_benchmarks.json.gz` (~98 KB).
-  Earlier builds remain in the bucket.
+  The recent-transaction export is 97.6% typed by sale type. Earlier builds
+  remain in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
