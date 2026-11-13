@@ -37,14 +37,15 @@ bootstrap and load the catalogue without extra decoding.
 
 ## Published snapshot
 
-Build `20261112T090805Z-61f72e` (`schema_version` 5) is the current published
+Build `20261113T070357Z-8fc5d3` (`schema_version` 6) is the current published
 snapshot in the `hk-housing-datahub` bucket. It superseded
-`20261111T194346Z-f4ee06` as the pointer on 2026-11-12. It carries the refreshed
+`20261112T090805Z-61f72e` as the pointer on 2026-11-13. It carries the refreshed
 dataset (transactions through 2026-11-08, rentals through 2026-11-10, market
-data through 2026-09-30, 9,750 estates), adds `catalog.json` (~28 KB across 6
-datasets and 21 tables) plus `wiki_title` for 824 estates, and includes
-`transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display rows) and
-`estate_monthly.json.gz` (~1.3 MB), taking the snapshot to ~4.6 MB. The remote
+data through 2026-09-30, 9,750 estates), `catalog.json` (~32 KB across 6
+datasets and 23 tables) with `wiki_title` for 824 estates, and adds
+`district_price_bands.json.gz` (~340 KB) and `segment_summary.json` (~14 KB).
+It includes `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 display
+rows) and `estate_monthly.json.gz` (~1.3 MB), taking the snapshot to ~5.0 MB. The remote
 `dashboard/manifest.json` and every referenced file were read back successfully;
 the gzip, cache, and CORS headers were verified.
 
@@ -151,9 +152,9 @@ files without changing the existing contract.
 
 ## Estate monthly export
 
-`mart_estate_monthly` is exported as `estate_monthly.json.gz`: ~3.8 MB
+`mart_estate_monthly` is exported as `estate_monthly.json.gz`: ~5.1 MB
 uncompressed, ~1.3 MB gzipped. It is loaded once, lazily, when an estate view
-opens, and stays under the ~5 MB serving target. In a desktop Node 22 check,
+opens. In a desktop Node 22 check,
 gzip decompression plus JSON parse took about 43 ms (median of five runs).
 
 To keep the file compact, months are stored once and each estate maps to a list
@@ -193,7 +194,7 @@ transactions as low sample.
 
 Schema 6 adds the monthly district price bands and segment summary used by the
 Trends distribution and segment panels. Schema 5 added `catalog.json` and
-`wiki_title`. The current published build is schema 5; a schema-5 pointer has
+`wiki_title`. The current published build is schema 6; a schema-5 pointer has
 no bands/segments, so those panels show a missing-file message. A schema-4
 pointer also serves no catalogue, so the Catalogue view shows a missing-file
 message and its wiki badges stay non-links; older schema-3/2 snapshots without
