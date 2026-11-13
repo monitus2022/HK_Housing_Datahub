@@ -37,7 +37,8 @@ baseline. This file tracks work beyond it.
   district league, yield scatter, and level/index/change trend
   views with district comparison. Map clustering adds zoom-aware groups and
   map/list linking. Phase 2 adds medians, percentiles, segment marts, and
-  distribution charts. Remaining: broader accessibility/performance testing.
+  distribution charts, price-band charts, and segment comparisons. Remaining:
+  broader accessibility/performance testing.
 - **R2 public access and CORS** — configured: the snapshot is public at
   <https://hk-housing-datahub.monitus.org> and allows the
   `https://hk-housing.monitus.org` origin. See [`deployment.md`](deployment.md).

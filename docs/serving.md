@@ -24,11 +24,13 @@ data/serving/{build_id}/
   district_monthly.json.gz
   transaction_recent.json.gz
   estate_monthly.json.gz
+  district_price_bands.json.gz
+  segment_summary.json
   catalog.json
   coverage.json.gz
 ```
 
-The five large data files are gzip-compressed and uploaded with
+The large data files are gzip-compressed and uploaded with
 `Content-Encoding: gzip`; browsers decompress them transparently. `manifest.json`,
 `overview.json`, and `catalog.json` remain uncompressed so the frontend can
 bootstrap and load the catalogue without extra decoding.
@@ -82,7 +84,7 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 ```json
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "build_id": "20261201T000000Z-example",
   "generated_at": "2026-12-01T00:00:00+00:00",
   "data_through": {
@@ -100,7 +102,9 @@ Content types: JSON data is `application/json`; gzip files also carry
     "mart_district_monthly": 19840,
     "mart_estate_monthly": 245017,
     "mart_transaction_recent": 87393,
-    "mart_coverage": 9750
+    "mart_coverage": 9750,
+    "mart_district_price_bands": 19791,
+    "mart_segment_summary": 43
   },
   "files": {
     "overview": "overview.json",
@@ -108,6 +112,8 @@ Content types: JSON data is `application/json`; gzip files also carry
     "estate_summary": "estate_summary.json.gz",
     "transaction_recent": "transaction_recent.json.gz",
     "estate_monthly": "estate_monthly.json.gz",
+    "district_bands": "district_price_bands.json.gz",
+    "segment_summary": "segment_summary.json",
     "catalog": "catalog.json",
     "coverage": "coverage.json.gz"
   },
@@ -122,8 +128,8 @@ The frontend should:
    `https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file}`.
 3. Load `estate_summary` and `district_monthly` eagerly for the default
    Overview. Load `transaction_recent` when the top-estates panel approaches
-   the viewport; load `estate_monthly` and `catalog` when their views are
-   opened.
+   the viewport; load `estate_monthly`, `district_bands`, `segment_summary`,
+   and `catalog` when their views are opened.
 4. Use `data_through`, `coverage`, and `row_counts` for display labels and
    freshness warnings. `data_through` covers sale and market dates; rental
    freshness is not a separate field, but rental months are included in the
@@ -168,11 +174,30 @@ prices/rents are stored as `0` and the frontend drops them from the matching
 series. The file is loaded lazily when an
 estate view opens; the frontend only reads the requested estate.
 
-Schema 5 adds `catalog.json` and `wiki_title`; the current published build is
-schema 5. A schema-4 pointer serves no catalogue, so the Catalogue view shows a
-missing-file message, and its wiki badges stay non-links; older schema-3/2
-snapshots without `estate_monthly` still work, with a section-level message for
-missing history.
+## District price bands export
+
+`mart_district_price_bands` is exported as `district_price_bands.json.gz`:
+one row per district × month with sale and rent p25/median/p75 and a
+gross-yield proxy. Percentiles use positive net-ft prices and nearest-rank
+positions. The frontend loads it in Trends; months without positive
+transactions are absent and the chart connects the available months.
+
+## Segment summary export
+
+`mart_segment_summary` is exported as plain `segment_summary.json` (about 14 KB):
+trailing-12-month sale and rent medians by bedroom, area band, estate age band,
+MTR line, and school net. MTR and school-net rows overlap because an estate can
+map to multiple lines or nets; `Unknown` groups cover missing bedroom, area, or
+age values. The frontend hides `Unknown` and marks groups under 20
+transactions as low sample.
+
+Schema 6 adds the monthly district price bands and segment summary used by the
+Trends distribution and segment panels. Schema 5 added `catalog.json` and
+`wiki_title`. The current published build is schema 5; a schema-5 pointer has
+no bands/segments, so those panels show a missing-file message. A schema-4
+pointer also serves no catalogue, so the Catalogue view shows a missing-file
+message and its wiki badges stay non-links; older schema-3/2 snapshots without
+`estate_monthly` still work, with a section-level message for missing history.
 
 ## Data catalogue export
 

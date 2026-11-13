@@ -22,13 +22,13 @@ layer for a public dashboard.
   stores partition JSON files.
 - Loads agency data into a normalized SQLite schema.
 - Chunks wiki text and stores Sentence Transformer embeddings in ChromaDB.
-- Provides read-only baseline and quality audits, five materialized analytics
+- Provides read-only baseline and quality audits, seven materialized analytics
   marts, and a versioned serving snapshot published to R2.
 - Includes a static React frontend with a visual market overview (KPIs, a
   district-filterable sale/rent pulse, top estates by transacted value,
   district league, yield scatter), estate search, estate price history,
-  district trend views and comparisons, an estate map, recent transactions,
-  and a data catalogue.
+  district trend views and comparisons, price-distribution and segment
+  comparison charts, an estate map, recent transactions, and a data catalogue.
 
 ## Architecture
 
@@ -226,13 +226,15 @@ dashboard/{build_id}/estate_summary.json.gz
 dashboard/{build_id}/district_monthly.json.gz
 dashboard/{build_id}/transaction_recent.json.gz
 dashboard/{build_id}/estate_monthly.json.gz
+dashboard/{build_id}/district_price_bands.json.gz
+dashboard/{build_id}/segment_summary.json
 dashboard/{build_id}/catalog.json
 dashboard/{build_id}/coverage.json.gz
 ```
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The manifest
 is authoritative; the frontend fetches it first and then the files in
-`manifest.files`. The five large data files are gzip-compressed and versioned
+`manifest.files`. The large data files are gzip-compressed and versioned
 data files are immutable/long-cached; both the top-level and versioned manifests
 are short-cached (`max-age=60`). `overview.json` and `catalog.json` remain plain.
 The catalogue is generated from `metadata/catalog.yml` plus read-only database
@@ -421,7 +423,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - `mart_estate_monthly` (~245k rows) is exported as a compact, lazily loaded
   `estate_monthly.json.gz` (~1.3 MB); `mart_transaction_recent` (~87k rows) is
   exported as trimmed JSON.
-- The snapshot gzips its five large JSON files (~4.6 MB total). The frontend
+- The snapshot gzips its large JSON files (~5.0 MB total) and keeps the two new
+  phase-2 files small (~340 KB gzipped bands and ~14 KB segments). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent trends come from HKP rental (`tx_type=L`) transactions and cover the
   last three years; RVD is not integrated.

@@ -2,10 +2,12 @@ import type {
   DashboardData,
   DataCatalog,
   DistrictMonthly,
+  DistrictPriceBand,
   EstateMonthlyHistory,
   EstateSummary,
   Manifest,
   RecentTransaction,
+  SegmentSummary,
 } from "../types";
 
 const baseUrl = (import.meta.env.VITE_DASHBOARD_BASE_URL ?? "").replace(
@@ -105,6 +107,20 @@ export async function loadDistrictMonthly(
   manifest: Manifest,
 ): Promise<DistrictMonthly[]> {
   return fetchVersionedJson<DistrictMonthly[]>(manifest, "district_monthly");
+}
+
+/** Monthly district price distribution. Loaded by the trends view. */
+export async function loadDistrictPriceBands(
+  manifest: Manifest,
+): Promise<DistrictPriceBand[]> {
+  return fetchVersionedJson<DistrictPriceBand[]>(manifest, "district_bands");
+}
+
+/** Trailing-12-month segment stats. Loaded by the trends view. */
+export async function loadSegmentSummary(
+  manifest: Manifest,
+): Promise<SegmentSummary[]> {
+  return fetchVersionedJson<SegmentSummary[]>(manifest, "segment_summary");
 }
 
 /** Catalogue and data cards. Loaded on demand by the catalogue view. */

@@ -16,6 +16,9 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - shareable `?estate=<id>` deep links that open the estate view
 - district trends for sale price, rent, and transaction volume with level,
   indexed, and 12-month-change views, plus a multi-district comparison chart
+- price-distribution bands (p25/median/p75) for sale or rent, and a
+  trailing-12-month all-Hong-Kong segment comparison by bedroom, area, age,
+  MTR line, or school net; groups under 20 transactions are marked low sample
 - estate map with district filtering, price-bucketed markers, zoom-aware
   clustering, district-to-list linking, and “Show on map” from the estate
   drawer
@@ -56,6 +59,8 @@ for the life of the page:
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_monthly}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.transaction_recent}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.estate_monthly}
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_bands}
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.segment_summary}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.catalog}
 ```
 

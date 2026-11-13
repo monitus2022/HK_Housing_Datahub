@@ -26,6 +26,8 @@ MART_NAMES = [
     "mart_estate_monthly",
     "mart_transaction_recent",
     "mart_coverage",
+    "mart_district_price_bands",
+    "mart_segment_summary",
 ]
 
 
