@@ -473,3 +473,23 @@ def test_snapshot_without_rvd_tables_exports_empty_arrays(tmp_path):
     rvd = read_json(snapshot_dir / "rvd_benchmarks.json.gz")
 
     assert rvd == {"rents": [], "prices": [], "indices": [], "yields": []}
+
+
+def test_snapshot_rejects_a_mart_without_sale_type(tmp_path):
+    db_path = tmp_path / "serving-old-mart.db"
+    make_snapshot_db(db_path)
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.execute(
+            "ALTER TABLE mart_transaction_recent DROP COLUMN mkt_type"
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(RuntimeError, match="mkt_type"):
+        build_snapshot(
+            db_path,
+            output_root=tmp_path / "serving-old-mart",
+            build_id="old-mart",
+        )

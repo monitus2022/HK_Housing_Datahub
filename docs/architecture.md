@@ -172,8 +172,9 @@ Notes:
    and the Wikipedia page title.
 4. It runs ordered SQL files: raw indexes, five mart definitions, then mart
    lookup indexes.
-5. It drops/recreates the marts on every run; existing raw data and columns
-   are unchanged, though indexes are added and missing raw tables are created.
+5. It drops/recreates the marts on every run; existing rows and values are
+   preserved, while indexes, missing raw tables, and nullable additive columns
+   may be added.
 
 The resulting marts are documented in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts) and are the source for

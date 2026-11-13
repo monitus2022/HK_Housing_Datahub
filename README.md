@@ -346,7 +346,7 @@ pip install -r requirements-dev.txt
 pytest -q
 
 # Lint the files touched by the tidy-up so far
-ruff check src/main.py src/logger.py src/analytics src/quality src/serving src/processors/agency src/processors/rag src/models/agency/sql_db.py src/models/agency/outputs.py src/orchestrators scripts tests
+ruff check src/main.py src/logger.py src/analytics src/catalog src/quality src/serving src/processors/agency src/processors/rag src/processors/rvd src/models/agency/sql_db.py src/models/agency/migrations.py src/models/agency/outputs.py src/models/rvd src/orchestrators scripts tests
 
 # Frontend checks
 cd frontend
