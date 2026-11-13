@@ -342,7 +342,8 @@ python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
 cp data/agency/agency_data.db data/agency/agency_data.db.pre-sale-types.bak
 python scripts/backfill_sale_types.py --db data/agency/agency_data.db --delay 0.1
 
-# Retry only buildings whose transactions are still untyped
+# Retry only buildings whose transactions are still untyped (back up first)
+cp data/agency/agency_data.db data/agency/agency_data.db.pre-sale-type-retry.bak
 python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
   --only-null --delay 0.1
 ```
@@ -371,7 +372,8 @@ final for this dataset:
 
 Treat the remaining `NULL` count as a documented coverage gap, not an error, and
 do not rerun the retry expecting a change. A future full crawl (which would
-re-ingest transactions from scratch) is the only way to revisit it.
+re-ingest transactions from scratch) is the practical way to revisit the
+remainder.
 
 The script updates existing transactions by `tx_id`, never inserts rows, and
 reports `source_updates`, `matched`, `updated`, `unmatched`, and
