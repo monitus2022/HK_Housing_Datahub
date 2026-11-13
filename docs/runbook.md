@@ -299,6 +299,8 @@ mart_district_monthly     district x month
 mart_estate_monthly       estate x month (full sale history + ~3y rent, ~245k rows)
 mart_transaction_recent   last 24 months
 mart_coverage             one row per estate
+mart_district_price_bands district x month p25/median/p75 for sale and rent
+mart_segment_summary      trailing-12-month medians by segment
 ```
 
 The builder drops and recreates the `mart_*` tables and creates idempotent raw

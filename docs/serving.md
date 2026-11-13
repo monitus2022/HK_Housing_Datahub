@@ -179,8 +179,8 @@ estate view opens; the frontend only reads the requested estate.
 `mart_district_price_bands` is exported as `district_price_bands.json.gz`:
 one row per district × month with sale and rent p25/median/p75 and a
 gross-yield proxy. Percentiles use positive net-ft prices and nearest-rank
-positions. The frontend loads it in Trends and leaves gaps for months without
-enough transactions.
+positions. The frontend loads it in Trends; months without positive
+transactions are absent and the chart connects the available months.
 
 ## Segment summary export
 
@@ -188,7 +188,8 @@ enough transactions.
 trailing-12-month sale and rent medians by bedroom, area band, estate age band,
 MTR line, and school net. MTR and school-net rows overlap because an estate can
 map to multiple lines or nets; `Unknown` groups cover missing bedroom, area, or
-age values.
+age values. The frontend hides `Unknown` and marks groups under 20
+transactions as low sample.
 
 Schema 6 adds the monthly district price bands and segment summary used by the
 Trends distribution and segment panels. Schema 5 added `catalog.json` and

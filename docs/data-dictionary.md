@@ -479,7 +479,8 @@ Caveats: the window ends at the later of the latest sale and rental dates. MTR
 and school-net rows overlap because an estate can map to multiple lines or
 nets. `Unknown` groups cover missing bedroom, area, or operation-date values.
 The school-net label comes from the source name while the ID is the primary
-net; see the `estate_school_nets` caveat.
+net; see the `estate_school_nets` caveat. The frontend hides `Unknown` groups
+and marks groups under 20 transactions as low sample.
 
 ## Dates and timezone
 
