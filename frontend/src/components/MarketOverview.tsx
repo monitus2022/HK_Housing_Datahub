@@ -94,6 +94,7 @@ export function MarketOverview({
   }, [manifest, reloadToken]);
 
   useEffect(() => {
+    if (loading) return;
     const check = () => {
       const node = topEstatesRef.current;
       if (!node) return;
@@ -109,7 +110,7 @@ export function MarketOverview({
       window.removeEventListener("scroll", check);
       window.removeEventListener("resize", check);
     };
-  }, []);
+  }, [loading]);
 
   useEffect(() => {
     if (!txRequested) return;
@@ -405,10 +406,16 @@ export function MarketOverview({
             <h3>Top estates by transacted value</h3>
           </div>
           <p className="result-count">
-            {formatNumber(topEstates?.entries.length ?? 0)} estates
+            {txRequested
+              ? `${formatNumber(topEstates?.entries.length ?? 0)} estates`
+              : "—"}
           </p>
         </div>
-        {!txRequested || txLoading ? (
+        {!txRequested ? (
+          <p className="muted">
+            Top estates load when this section enters view.
+          </p>
+        ) : txLoading ? (
           <InlineLoading label="Loading top estates…" />
         ) : txError ? (
           <InlineError

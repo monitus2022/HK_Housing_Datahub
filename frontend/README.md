@@ -48,8 +48,9 @@ The app fetches, in order:
 
 The default Overview loads `district_monthly` on mount and requests
 `transaction_recent` when the top-estates panel approaches the viewport. Estate
-history, district trends, transactions, and the catalogue load their files on
-demand, and each file is cached per build ID for the life of the page:
+history, the transactions table, and the catalogue load their files on demand;
+district monthly is shared with the Overview. Each file is cached per build ID
+for the life of the page:
 
 ```text
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_monthly}
