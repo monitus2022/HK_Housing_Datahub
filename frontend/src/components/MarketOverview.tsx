@@ -18,6 +18,8 @@ import {
   buildYieldPoints,
   DEFAULT_SCATTER_OPTIONS,
   filterDistrictRows,
+  hasSaleTypeData,
+  type SaleTypeFilter,
 } from "../lib/overview";
 import {
   buildMultiLineGeometry,
@@ -64,6 +66,7 @@ export function MarketOverview({
   const [txLoading, setTxLoading] = useState(true);
   const [txReloadToken, setTxReloadToken] = useState(0);
   const [txRequested, setTxRequested] = useState(false);
+  const [saleType, setSaleType] = useState<SaleTypeFilter>("second");
   const [pulseDistrictId, setPulseDistrictId] = useState("");
   const topEstatesRef = useRef<HTMLElement>(null);
 
@@ -164,6 +167,11 @@ export function MarketOverview({
     if (!rows) return null;
     return buildMarketPulse(filterDistrictRows(rows, pulseDistrictId));
   }, [rows, pulseDistrictId]);
+  const hasSaleTypes = useMemo(
+    () => (transactions ? hasSaleTypeData(transactions) : false),
+    [transactions],
+  );
+  const effectiveSaleType: SaleTypeFilter = hasSaleTypes ? saleType : "all";
   const topEstates = useMemo(
     () =>
       transactions
@@ -172,10 +180,17 @@ export function MarketOverview({
             10,
             12,
             manifest.data_through.transactions,
+            effectiveSaleType,
           )
         : null,
-    [transactions, manifest.data_through.transactions],
+    [transactions, manifest.data_through.transactions, effectiveSaleType],
   );
+  const topEstatesLabel =
+    effectiveSaleType === "second"
+      ? "resale value"
+      : effectiveSaleType === "first"
+        ? "first-hand value"
+        : "transacted value";
   const maxTopValue = useMemo(
     () =>
       Math.max(
@@ -403,7 +418,7 @@ export function MarketOverview({
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Value</p>
-            <h3>Top estates by transacted value</h3>
+            <h3>Top estates by {topEstatesLabel}</h3>
           </div>
           <p className="result-count">
             {txRequested
@@ -424,18 +439,40 @@ export function MarketOverview({
             onRetry={() => setTxReloadToken((value) => value + 1)}
           />
         ) : !topEstates || topEstates.entries.length === 0 ? (
-          <EmptyNotice title="No positive transaction values">
+          <EmptyNotice
+            title={`No positive ${topEstatesLabel} in the last 12 months`}
+          >
             <p>
-              The recent-transaction file has no positive prices in the
-              trailing 12 months.
+              Try another sale type or check that the snapshot includes
+              positive transaction prices.
             </p>
           </EmptyNotice>
         ) : (
           <>
+            {hasSaleTypes ? (
+              <div className="top-estates-controls">
+                <label className="field">
+                  <span>Sale type</span>
+                  <select
+                    value={saleType}
+                    onChange={(event) =>
+                      setSaleType(event.target.value as SaleTypeFilter)
+                    }
+                  >
+                    <option value="second">2nd hand (resale)</option>
+                    <option value="first">1st hand</option>
+                    <option value="all">All sale types</option>
+                  </select>
+                </label>
+              </div>
+            ) : null}
             <p className="muted top-estates-window">
               Trailing 12 months: {formatDate(topEstates.start)} –{" "}
-              {formatDate(topEstates.end)}. Sum of positive transaction
-              prices per estate.
+              {formatDate(topEstates.end)}. Sum of positive{" "}
+              {topEstatesLabel} per estate.
+              {!hasSaleTypes
+                ? " This snapshot does not include sale types; showing all sales."
+                : ""}
             </p>
             <ol className="top-estate-list" role="list">
               {topEstates.entries.map((entry, index) => {

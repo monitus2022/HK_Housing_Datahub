@@ -374,6 +374,12 @@ export interface TopEstateEntry {
   txCount: number;
 }
 
+export type SaleTypeFilter = "all" | "first" | "second";
+
+export function hasSaleTypeData(transactions: RecentTransaction[]): boolean {
+  return transactions.some((transaction) => Boolean(transaction.mkt_type));
+}
+
 export interface TopEstatesResult {
   entries: TopEstateEntry[];
   start: string | null;
@@ -407,6 +413,7 @@ export function buildTopEstatesByValue(
   limit = 10,
   months = 12,
   asOf: string | null = null,
+  saleType: SaleTypeFilter = "all",
 ): TopEstatesResult {
   let end = asOf;
   if (!end) {
@@ -426,6 +433,8 @@ export function buildTopEstatesByValue(
     if (start && transaction.tx_date < start) continue;
     if (end && transaction.tx_date > end) continue;
     if (transaction.price === null || transaction.price <= 0) continue;
+    if (saleType === "first" && transaction.mkt_type !== "1") continue;
+    if (saleType === "second" && transaction.mkt_type !== "2") continue;
     const existing = grouped.get(transaction.estate_id);
     if (existing) {
       existing.totalValue += transaction.price;

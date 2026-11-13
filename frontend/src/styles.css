@@ -997,6 +997,14 @@ select:focus {
   margin: -6px 0 14px;
 }
 
+.top-estates-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: -2px 0 12px;
+}
+
 .top-estates-window {
   margin: 0 0 14px;
   font-size: 0.78rem;

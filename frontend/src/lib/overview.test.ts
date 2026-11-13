@@ -12,6 +12,7 @@ import {
   buildTopEstatesByValue,
   buildYieldPoints,
   filterDistrictRows,
+  hasSaleTypeData,
   median,
 } from "./overview";
 
@@ -80,11 +81,13 @@ function transaction(
   date: string,
   price: number | null,
   district = "District D",
+  mktType: string | null = null,
 ): RecentTransaction {
   return {
     tx_date: date,
     price,
     net_ft_price: null,
+    mkt_type: mktType,
     estate_id: estate,
     estate_name_en: `Estate ${estate}`,
     district_id: "D",
@@ -332,5 +335,44 @@ describe("buildTopEstatesByValue", () => {
   it("clamps month-end starts across shorter months", () => {
     const result = buildTopEstatesByValue([], 10, 12, "2024-02-29");
     expect(result.start).toBe("2023-02-28");
+  });
+});
+
+describe("top estates sale-type filtering", () => {
+  const mixed = [
+    transaction("first", "2026-06-01", 100, "D", "1"),
+    transaction("second", "2026-06-01", 200, "D", "2"),
+    transaction("unknown", "2026-06-01", 300, "D", null),
+  ];
+
+  it("filters first-hand and second-hand sales", () => {
+    expect(
+      buildTopEstatesByValue(mixed, 10, 12, "2026-11-08", "first").entries.map(
+        (entry) => entry.id,
+      ),
+    ).toEqual(["first"]);
+    expect(
+      buildTopEstatesByValue(mixed, 10, 12, "2026-11-08", "second").entries.map(
+        (entry) => entry.id,
+      ),
+    ).toEqual(["second"]);
+  });
+
+  it("keeps all sale types by default", () => {
+    expect(
+      buildTopEstatesByValue(mixed, 10, 12, "2026-11-08").entries.map(
+        (entry) => entry.id,
+      ),
+    ).toEqual(["unknown", "second", "first"]);
+  });
+});
+
+describe("hasSaleTypeData", () => {
+  it("detects sale-type availability and old snapshots", () => {
+    expect(hasSaleTypeData([transaction("E1", "2026-01-01", 100, "D", "2")])).toBe(
+      true,
+    );
+    expect(hasSaleTypeData([transaction("E1", "2026-01-01", 100)])).toBe(false);
+    expect(hasSaleTypeData([])).toBe(false);
   });
 });
