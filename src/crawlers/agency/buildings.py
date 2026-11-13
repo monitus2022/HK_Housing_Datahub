@@ -34,6 +34,12 @@ class BuildingsCrawler(BaseCrawler):
             time.sleep(0.1)
         return output
 
+    def fetch_building_by_id(
+        self, building_id: str
+    ) -> Optional[BuildingInfoResponse]:
+        """Fetch one building's unit and transaction payload."""
+        return self._fetch_single_building_by_building_id(building_id)
+
     def _fetch_single_building_by_building_id(
         self, building_id: str
     ) -> Optional[BuildingInfoResponse]:
