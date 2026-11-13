@@ -28,7 +28,8 @@ layer for a public dashboard.
   district-filterable sale/rent pulse, top estates by transacted value,
   district league, yield scatter), estate search, estate price history,
   district trend views and comparisons, price-distribution and segment
-  comparison charts, an estate map, recent transactions, and a data catalogue.
+  comparison charts, official RVD benchmark charts, an estate map, recent
+  transactions, and a data catalogue.
 
 ## Architecture
 
@@ -230,6 +231,7 @@ dashboard/{build_id}/transaction_recent.json.gz
 dashboard/{build_id}/estate_monthly.json.gz
 dashboard/{build_id}/district_price_bands.json.gz
 dashboard/{build_id}/segment_summary.json
+dashboard/{build_id}/rvd_benchmarks.json.gz
 dashboard/{build_id}/catalog.json
 dashboard/{build_id}/coverage.json.gz
 ```
@@ -378,8 +380,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 ## Known limitations
 
 - Scraped third-party data; not an official or authoritative source.
-- RVD benchmark ingestion is implemented as reference tables; the dashboard
-  benchmark charts are still planned.
+- RVD benchmarks are official aggregate series; they are charted separately and
+  are not matched to individual estates or districts.
 - The transaction table has no sale/rent type; it is treated as sales.
 - Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
   (583,266 null), missing coordinates (633 estates), missing `first_op_date`
@@ -430,8 +432,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   phase-2 files small (~340 KB gzipped bands and ~14 KB segments). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent trends come from HKP rental (`tx_type=L`) transactions and cover the
-  last three years; RVD benchmarks are stored separately and are not yet
-  charted.
+  last three years; RVD benchmarks are charted separately as region/class
+  aggregates.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap
@@ -445,8 +447,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
    recent transactions. *(implemented; see [`frontend/README.md`](frontend/README.md))*
 4. Add preview-origin CORS if preview deployments are needed. The refreshed
    snapshot is published and the frontend is deployed.
-5. RVD benchmark charts, incremental crawls, monitoring, optional Parquet for
-   external analytics, and broader accessibility/performance testing. See
+5. Incremental crawls, monitoring, optional Parquet for external analytics, and
+   broader accessibility/performance testing. See
    [`docs/roadmap.md`](docs/roadmap.md).
 6. ML: hedonic price model, deferred from `docs/workplan-ml.md`.
 

@@ -9,8 +9,9 @@ baseline. This file tracks work beyond it.
   reruns only fetch changed payloads. Today reruns are idempotent but still
   refetch everything.
 - **RVD benchmarks** — ingestion of official rents, prices, indices, and
-  yields at region × property-class granularity is implemented. Next: expose
-  long-history benchmark charts; district rent already comes from HKP rentals.
+  yields at region × property-class granularity is implemented, with a
+  long-history benchmark panel in Trends. District rent already comes from HKP
+  rentals.
 - **Better Wikipedia coverage** — handle more title variants, English pages,
   disambiguation pages, and missing/renamed estates. Improve `has_wiki` beyond
   exact-name matching.

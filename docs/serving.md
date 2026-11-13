@@ -26,6 +26,7 @@ data/serving/{build_id}/
   estate_monthly.json.gz
   district_price_bands.json.gz
   segment_summary.json
+  rvd_benchmarks.json.gz
   catalog.json
   coverage.json.gz
 ```
@@ -85,7 +86,7 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 ```json
 {
-  "schema_version": 6,
+  "schema_version": 7,
   "build_id": "20261201T000000Z-example",
   "generated_at": "2026-12-01T00:00:00+00:00",
   "data_through": {
@@ -115,6 +116,7 @@ Content types: JSON data is `application/json`; gzip files also carry
     "estate_monthly": "estate_monthly.json.gz",
     "district_bands": "district_price_bands.json.gz",
     "segment_summary": "segment_summary.json",
+    "rvd_benchmarks": "rvd_benchmarks.json.gz",
     "catalog": "catalog.json",
     "coverage": "coverage.json.gz"
   },
@@ -192,10 +194,20 @@ map to multiple lines or nets; `Unknown` groups cover missing bedroom, area, or
 age values. The frontend hides `Unknown` and marks groups under 20
 transactions as low sample.
 
-Schema 6 adds the monthly district price bands and segment summary used by the
-Trends distribution and segment panels. Schema 5 added `catalog.json` and
-`wiki_title`. The current published build is schema 6; a schema-5 pointer has
-no bands/segments, so those panels show a missing-file message. A schema-4
+## RVD benchmark export
+
+`rvd_benchmarks.json.gz` is a gzipped object with four arrays: `rents`,
+`prices`, `indices`, and `yields`. It carries the official Rating and Valuation
+Department aggregates by region, property class, and month, including
+provisional flags and `NULL` suppressed values. The frontend presents it as a
+separate benchmark — never as an estate-level match. If the RVD tables are
+absent, the snapshot writes empty arrays and the panel shows an empty state.
+
+Schema 7 adds the RVD benchmark export used by the Trends benchmark panel.
+Schema 6 added the monthly district price bands and segment summary. Schema 5
+added `catalog.json` and `wiki_title`. The current published build is schema 6;
+a schema-6 pointer has no RVD benchmarks, so that panel shows a missing-file
+message. A schema-5 pointer has no bands/segments either. A schema-4
 pointer also serves no catalogue, so the Catalogue view shows a missing-file
 message and its wiki badges stay non-links; older schema-3/2 snapshots without
 `estate_monthly` still work, with a section-level message for missing history.
