@@ -1,4 +1,8 @@
-import type { DistrictMonthly, EstateSummary } from "../types";
+import type {
+  DistrictMonthly,
+  EstateSummary,
+  RecentTransaction,
+} from "../types";
 import {
   formatMonth,
   parseMonth,
@@ -143,11 +147,12 @@ export interface MarketPulse {
 }
 
 /**
- * Build a Hong Kong-wide sale and rent pulse from district monthly rows.
+ * Build a sale and rent pulse from district monthly rows.
  *
- * District averages are weighted by their transaction counts. Both series are
+ * Pass one district's rows for a district pulse, or all rows for Hong Kong.
+ * District averages are weighted by transaction counts. Both series are
  * indexed to 100 at the first month where sale and rent overlap, so the lines
- * are comparable even though rent history is much shorter.
+ * are comparable even though rent history is shorter.
  */
 export function buildMarketPulse(
   rows: DistrictMonthly[],
@@ -349,6 +354,96 @@ export function buildDistrictLeague(
   }
 
   return entries.sort((left, right) => right.price - left.price);
+}
+
+/** Keep all rows for All Hong Kong, or only one district's rows. */
+export function filterDistrictRows(
+  rows: DistrictMonthly[],
+  districtId: string,
+): DistrictMonthly[] {
+  return districtId
+    ? rows.filter((row) => row.district_id === districtId)
+    : rows;
+}
+
+export interface TopEstateEntry {
+  id: string;
+  name: string;
+  district: string;
+  totalValue: number;
+  txCount: number;
+}
+
+export interface TopEstatesResult {
+  entries: TopEstateEntry[];
+  start: string | null;
+  end: string | null;
+  months: number;
+}
+
+function shiftMonths(date: string, months: number): string | null {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setUTCMonth(parsed.getUTCMonth() - months);
+  return parsed.toISOString().slice(0, 10);
+}
+
+/**
+ * Rank estates by total transacted value over a trailing window.
+ *
+ * The window is relative to `asOf` (the snapshot's sale data-through date), or
+ * the latest transaction date when `asOf` is omitted. Only positive prices are
+ * summed; estates without one are omitted.
+ */
+export function buildTopEstatesByValue(
+  transactions: RecentTransaction[],
+  limit = 10,
+  months = 12,
+  asOf: string | null = null,
+): TopEstatesResult {
+  let end = asOf;
+  if (!end) {
+    for (const transaction of transactions) {
+      if (transaction.tx_date && (!end || transaction.tx_date > end)) {
+        end = transaction.tx_date;
+      }
+    }
+  }
+  const start = end ? shiftMonths(end, months) : null;
+
+  const grouped = new Map<
+    string,
+    { name: string; district: string; totalValue: number; txCount: number }
+  >();
+  for (const transaction of transactions) {
+    if (start && transaction.tx_date <= start) continue;
+    if (end && transaction.tx_date > end) continue;
+    if (transaction.price === null || transaction.price <= 0) continue;
+    const existing = grouped.get(transaction.estate_id);
+    if (existing) {
+      existing.totalValue += transaction.price;
+      existing.txCount += 1;
+    } else {
+      grouped.set(transaction.estate_id, {
+        name: transaction.estate_name_en || transaction.estate_id,
+        district: transaction.district_name_en || "",
+        totalValue: transaction.price,
+        txCount: 1,
+      });
+    }
+  }
+
+  const entries = [...grouped.entries()]
+    .map(([id, entry]) => ({ id, ...entry }))
+    .sort(
+      (left, right) =>
+        right.totalValue - left.totalValue ||
+        right.txCount - left.txCount ||
+        left.name.localeCompare(right.name),
+    )
+    .slice(0, Math.max(1, limit));
+
+  return { entries, start, end, months };
 }
 
 export interface YieldPoint {
