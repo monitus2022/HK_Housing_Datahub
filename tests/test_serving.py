@@ -65,9 +65,9 @@ def make_snapshot_db(path: Path) -> None:
             );
             CREATE TABLE mart_transaction_recent (
                 tx_id TEXT, tx_date TEXT, price REAL, net_ft_price REAL,
-                estate_id TEXT, estate_name_en TEXT, district_id TEXT,
-                district_name_en TEXT, building_id TEXT, unit_id TEXT,
-                area REAL, net_area REAL, bedroom INTEGER
+                mkt_type TEXT, estate_id TEXT, estate_name_en TEXT,
+                district_id TEXT, district_name_en TEXT, building_id TEXT,
+                unit_id TEXT, area REAL, net_area REAL, bedroom INTEGER
             );
             CREATE TABLE mart_coverage (
                 estate_id TEXT, has_market INTEGER,
@@ -135,12 +135,13 @@ def make_snapshot_db(path: Path) -> None:
         )
         con.execute(
             "INSERT INTO mart_transaction_recent VALUES "
-            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 "T1",
                 "2025-01-16",
                 5000000.0,
                 15000.0,
+                "2",
                 "E1",
                 "Estate One",
                 "D1",
@@ -211,7 +212,7 @@ def snapshot(tmp_path):
 def test_snapshot_manifest_and_files(snapshot):
     snapshot_dir, manifest = snapshot
 
-    assert manifest["schema_version"] == 7
+    assert manifest["schema_version"] == 8
     assert manifest["build_id"] == "test-build"
     assert manifest["data_through"] == {
         "transactions": "2025-01-16",
@@ -255,7 +256,7 @@ def test_snapshot_manifest_and_files(snapshot):
     assert overview["coverage"] == manifest["coverage"]
     catalog = read_json(snapshot_dir / "catalog.json")
     assert catalog["manifest"]["build_id"] == "test-build"
-    assert catalog["manifest"]["schema_version"] == 7
+    assert catalog["manifest"]["schema_version"] == 8
     assert len(read_json(snapshot_dir / "estate_summary.json.gz")) == 2
     assert len(read_json(snapshot_dir / "district_monthly.json.gz")) == 1
     assert len(read_json(snapshot_dir / "district_price_bands.json.gz")) == 1
@@ -283,6 +284,7 @@ def test_snapshot_manifest_and_files(snapshot):
             "tx_date": "2025-01-16",
             "price": 5000000.0,
             "net_ft_price": 15000.0,
+            "mkt_type": "2",
             "estate_id": "E1",
             "estate_name_en": "Estate One",
             "district_id": "D1",
@@ -471,3 +473,23 @@ def test_snapshot_without_rvd_tables_exports_empty_arrays(tmp_path):
     rvd = read_json(snapshot_dir / "rvd_benchmarks.json.gz")
 
     assert rvd == {"rents": [], "prices": [], "indices": [], "yields": []}
+
+
+def test_snapshot_rejects_a_mart_without_sale_type(tmp_path):
+    db_path = tmp_path / "serving-old-mart.db"
+    make_snapshot_db(db_path)
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.execute(
+            "ALTER TABLE mart_transaction_recent DROP COLUMN mkt_type"
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(RuntimeError, match="mkt_type"):
+        build_snapshot(
+            db_path,
+            output_root=tmp_path / "serving-old-mart",
+            build_id="old-mart",
+        )

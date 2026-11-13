@@ -188,8 +188,10 @@ Table transactions {
   last_tx_date datetime
   gain real
   net_ft_price real
+  mkt_type text
+  transaction_type text
   unit_id text [not null]
-  Note: 'No transaction-type column exists; treat rows as sale transactions. The current database has only primary-key autoindexes; Phase 5 adds dashboard indexes.'
+  Note: 'Sale-only table. mkt_type is 1 first hand, 2 second hand, MH HKP/group; old rows are NULL until backfilled.'
 }
 
 Table rental_transactions {

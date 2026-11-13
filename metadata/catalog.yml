@@ -138,7 +138,10 @@ tables:
     dataset: agency_raw
     description: Sale transactions for units.
     grain: One row per sale transaction.
-    caveats: There is no transaction-type column; rows are treated as sales.
+    caveats: >-
+      Sale-only table; mkt_type distinguishes first/second hand for newly
+      ingested or backfilled rows, while older rows are NULL.
+      transaction_type carries the HKP normal/other marker.
   rental_transactions:
     dataset: agency_raw
     description: Lease/rental transactions fetched from the HKP district transaction search.

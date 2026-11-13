@@ -324,13 +324,17 @@ Grain: one row per transaction. Primary key: `tx_id`. Foreign key:
 | `last_tx_date` | datetime | yes | Previous transaction date for the unit |
 | `gain` | real | yes | Gain versus the previous transaction |
 | `net_ft_price` | real | yes | Price per net sq ft |
+| `mkt_type` | text | yes | `1` first hand, `2` second hand, `MH` HKP/group |
+| `transaction_type` | text | yes | HKP transaction type, e.g. `NORM` |
 | `unit_id` | text | no | Unit |
 
-Rows: 1,071,268 across 719,895 units; 351,373 units have more than one
-transaction. Range: 1996-01 to 2025-10-21. There is **no transaction-type
-column**; treat the table as sale transactions unless the source is re-audited.
-`last_tx_date` and `gain` are transaction outcomes and must not be used as
-predictors for earlier rows.
+Rows: 1,122,622 across 739,680 units; 368,656 units have more than one
+transaction. Range: 1996-01 to 2026-11-08. There is **no sale/rent type
+column**; the table is sale-only. `mkt_type` distinguishes first-hand,
+second-hand, and MH sales for rows ingested after schema support; existing rows
+are `NULL` until the targeted backfill runs. `transaction_type` is the HKP
+normal/other marker. `last_tx_date` and `gain` are transaction outcomes and
+must not be used as predictors for earlier rows.
 
 ### `rental_transactions`
 
@@ -377,8 +381,9 @@ the agency orchestrator (Phase 2); it did not exist in the Phase 0 baseline.
 
 The marts are derived, denormalized tables built from the raw model by
 `python scripts/build_marts.py`. They are dropped and recreated on every build;
-raw data and columns are never modified. The builder does add dashboard indexes
-to raw tables. Row counts below are from the 2026-11-09 reference snapshot
+existing raw rows and values are preserved. The builder does add dashboard
+indexes, missing raw tables, and nullable additive columns (currently
+transaction sale type). Row counts below are from the 2026-11-09 reference snapshot
 unless marked "refreshed DB"; see `docs/baseline-stats.md` for that baseline.
 
 ### `mart_estate_summary`
@@ -466,7 +471,7 @@ it as a compact month-indexed JSON file (~1.3 MB gzipped) for estate views.
 ### `mart_transaction_recent`
 
 Grain: one row per transaction in the last 24 months. Unique key: `tx_id`.
-Rows: 72,900.
+Rows: 87,393 in the refreshed DB.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -474,6 +479,7 @@ Rows: 72,900.
 | `tx_date` | date | Normalized transaction date |
 | `price` | real | Transaction price |
 | `net_ft_price` | real | Price per net sq ft |
+| `mkt_type` | text | `1` first hand, `2` second hand, `MH` HKP/group; NULL until backfilled |
 | `estate_id` / `estate_name_en` | text | Estate |
 | `district_id` / `district_name_en` | text | District |
 | `building_id` / `unit_id` | text | Building and unit |
@@ -482,8 +488,8 @@ Rows: 72,900.
 
 Caveats: the 24-month window is relative to the latest transaction date in the
 snapshot, not the current date. The serving export keeps the display columns
-(`tx_date`, `price`, `net_ft_price`, estate and district names/IDs, `area`,
-`net_area`, `bedroom`) and drops `tx_id`, `building_id`, and `unit_id`.
+(`tx_date`, `price`, `net_ft_price`, `mkt_type`, estate and district names/IDs,
+`area`, `net_area`, `bedroom`) and drops `tx_id`, `building_id`, and `unit_id`.
 
 ### `mart_coverage`
 
@@ -572,8 +578,9 @@ unique lookup indexes (`idx_mart_*`) on their grain keys.
 ## Caveats that affect analysis
 
 - Scraped data, not an official statistical product.
-- Sales are in `transactions`, which has no transaction-type column; rentals
-  are in `rental_transactions` (`tx_type=L`).
+- Sales are in `transactions`; rentals are in `rental_transactions`
+  (`tx_type=L`). `mkt_type` distinguishes first/second hand once backfilled;
+  older rows remain `NULL`.
 - `net_area`, `bedroom`, coordinates, and operation dates have meaningful
   missingness.
 - `estate_mtr_lines` is not exhaustive.

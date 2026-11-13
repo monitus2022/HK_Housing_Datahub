@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 from logger import housing_logger
+from models.agency.migrations import ensure_additive_columns
 from models.agency.sql_db import Base
 from sqlalchemy import create_engine
 
@@ -93,6 +94,7 @@ def build_marts(
     # the mart SQL references them.
     engine = create_engine(f"sqlite:///{database}")
     Base.metadata.create_all(engine)
+    ensure_additive_columns(engine)
     engine.dispose()
 
     connection = sqlite3.connect(database)

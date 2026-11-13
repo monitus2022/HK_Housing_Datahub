@@ -33,6 +33,7 @@ lint:
 		src/processors/rag \
 		src/processors/rvd \
 		src/models/agency/sql_db.py \
+		src/models/agency/migrations.py \
 		src/models/agency/outputs.py \
 		src/models/rvd \
 		src/orchestrators \
