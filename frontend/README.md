@@ -3,7 +3,9 @@
 Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 
 - visualization-first market overview with median price/rent/yield KPIs, a
-  sale-versus-rent pulse starting at their common coverage, a district league table, and a price-versus-yield
+  sale-versus-rent pulse filterable by All Hong Kong or a district and starting
+  at their common coverage, a top-10 estates chart by trailing-12-month
+  transacted value, a district league table, and a full-width price-versus-yield
   scatter
 - estate search with text, district, price, net-ft price, area, bedroom, MTR,
   and school-net filters, sorting, and pagination; filter state lives in the URL
@@ -14,6 +16,9 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - shareable `?estate=<id>` deep links that open the estate view
 - district trends for sale price, rent, and transaction volume with level,
   indexed, and 12-month-change views, plus a multi-district comparison chart
+- price-distribution bands (p25/median/p75) for sale or rent, and a
+  trailing-12-month all-Hong-Kong segment comparison by bedroom, area, age,
+  MTR line, or school net; groups under 20 transactions are marked low sample
 - estate map with district filtering, price-bucketed markers, zoom-aware
   clustering, district-to-list linking, and “Show on map” from the estate
   drawer
@@ -44,13 +49,18 @@ The app fetches, in order:
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.estate_summary}
 ```
 
-The estate, trends, and transactions views then load their own files on demand,
-and each file is cached per build ID for the life of the page:
+The default Overview loads `district_monthly` on mount and requests
+`transaction_recent` when the top-estates panel approaches the viewport. Estate
+history, the transactions table, and the catalogue load their files on demand;
+district monthly is shared with the Overview. Each file is cached per build ID
+for the life of the page:
 
 ```text
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_monthly}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.transaction_recent}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.estate_monthly}
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.district_bands}
+{VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.segment_summary}
 {VITE_DASHBOARD_BASE_URL}/dashboard/{build_id}/{manifest.files.catalog}
 ```
 

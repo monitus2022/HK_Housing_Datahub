@@ -18,13 +18,15 @@ from typing import Any, Optional, Sequence
 
 from catalog import DEFAULT_METADATA, DEFAULT_QUALITY, build_catalog
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 FILE_NAMES = {
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
     "estate_summary": "estate_summary.json.gz",
     "transaction_recent": "transaction_recent.json.gz",
     "estate_monthly": "estate_monthly.json.gz",
+    "district_bands": "district_price_bands.json.gz",
+    "segment_summary": "segment_summary.json",
     "catalog": "catalog.json",
     "coverage": "coverage.json.gz",
 }
@@ -34,6 +36,8 @@ MART_TABLES = [
     "mart_estate_monthly",
     "mart_transaction_recent",
     "mart_coverage",
+    "mart_district_price_bands",
+    "mart_segment_summary",
 ]
 REQUIRED_MARTS = [
     "mart_estate_summary",
@@ -41,6 +45,8 @@ REQUIRED_MARTS = [
     "mart_estate_monthly",
     "mart_transaction_recent",
     "mart_coverage",
+    "mart_district_price_bands",
+    "mart_segment_summary",
 ]
 # Only display columns are exported. Internal join keys (tx_id, building_id,
 # unit_id) stay in SQLite: the frontend identifies rows by index and links to an
@@ -206,6 +212,11 @@ def build_snapshot(
             TRANSACTION_RECENT_COLUMNS,
         )
         coverage_rows = fetch_rows(connection, "mart_coverage")
+        district_bands = fetch_rows(
+            connection,
+            "mart_district_price_bands",
+        )
+        segment_summary = fetch_rows(connection, "mart_segment_summary")
 
         data_through = {
             "transactions": scalar(
@@ -274,6 +285,14 @@ def build_snapshot(
     write_gzip_json(
         snapshot_dir / FILE_NAMES["coverage"],
         clean_value(coverage_rows),
+    )
+    write_gzip_json(
+        snapshot_dir / FILE_NAMES["district_bands"],
+        clean_value(district_bands),
+    )
+    write_json(
+        snapshot_dir / FILE_NAMES["segment_summary"],
+        clean_value(segment_summary),
     )
     write_json(
         snapshot_dir / FILE_NAMES["catalog"],

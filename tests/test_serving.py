@@ -28,6 +28,8 @@ REQUIRED_FILES = {
     "estate_summary.json.gz",
     "transaction_recent.json.gz",
     "estate_monthly.json.gz",
+    "district_price_bands.json.gz",
+    "segment_summary.json",
     "coverage.json.gz",
     "catalog.json",
     "manifest.json",
@@ -69,6 +71,20 @@ def make_snapshot_db(path: Path) -> None:
             CREATE TABLE mart_coverage (
                 estate_id TEXT, has_market INTEGER,
                 has_transactions INTEGER, has_wiki INTEGER
+            );
+            CREATE TABLE mart_district_price_bands (
+                district_id TEXT, district_name_en TEXT, district_name_zh TEXT,
+                month TEXT, sale_count INTEGER, sale_p25 REAL,
+                sale_median REAL, sale_p75 REAL, rent_count INTEGER,
+                rent_p25 REAL, rent_median REAL, rent_p75 REAL,
+                gross_yield_pct REAL
+            );
+            CREATE TABLE mart_segment_summary (
+                segment_type TEXT, segment_value TEXT, sale_count INTEGER,
+                sale_estates INTEGER, sale_p25 REAL, sale_median REAL,
+                sale_p75 REAL, rent_count INTEGER, rent_estates INTEGER,
+                rent_p25 REAL, rent_median REAL, rent_p75 REAL,
+                window_start TEXT, window_end TEXT, gross_yield_pct REAL
             );
             """
         )
@@ -123,6 +139,23 @@ def make_snapshot_db(path: Path) -> None:
             "INSERT INTO mart_coverage VALUES (?, ?, ?, ?)",
             [("E1", 1, 1, 1), ("E2", 1, 0, 0)],
         )
+        con.execute(
+            "INSERT INTO mart_district_price_bands VALUES "
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                "D1", "District One", "", "2025-01", 2, 14000.0,
+                15000.0, 16000.0, 1, 9000.0, 9000.0, 9000.0, 7.2,
+            ),
+        )
+        con.execute(
+            "INSERT INTO mart_segment_summary VALUES "
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                "bedroom", "2", 2, 1, 14000.0, 15000.0, 16000.0,
+                1, 1, 9000.0, 9000.0, 9000.0,
+                "2024-01-16", "2025-01-16", 7.2,
+            ),
+        )
         con.commit()
     finally:
         con.close()
@@ -145,7 +178,7 @@ def snapshot(tmp_path):
 def test_snapshot_manifest_and_files(snapshot):
     snapshot_dir, manifest = snapshot
 
-    assert manifest["schema_version"] == 5
+    assert manifest["schema_version"] == 6
     assert manifest["build_id"] == "test-build"
     assert manifest["data_through"] == {
         "transactions": "2025-01-16",
@@ -163,6 +196,8 @@ def test_snapshot_manifest_and_files(snapshot):
         "mart_estate_monthly": 4,
         "mart_transaction_recent": 1,
         "mart_coverage": 2,
+        "mart_district_price_bands": 1,
+        "mart_segment_summary": 1,
     }
     assert manifest["files"] == {
         "overview": "overview.json",
@@ -170,6 +205,8 @@ def test_snapshot_manifest_and_files(snapshot):
         "estate_summary": "estate_summary.json.gz",
         "transaction_recent": "transaction_recent.json.gz",
         "estate_monthly": "estate_monthly.json.gz",
+        "district_bands": "district_price_bands.json.gz",
+        "segment_summary": "segment_summary.json",
         "catalog": "catalog.json",
         "coverage": "coverage.json.gz",
     }
@@ -184,9 +221,11 @@ def test_snapshot_manifest_and_files(snapshot):
     assert overview["coverage"] == manifest["coverage"]
     catalog = read_json(snapshot_dir / "catalog.json")
     assert catalog["manifest"]["build_id"] == "test-build"
-    assert catalog["manifest"]["schema_version"] == 5
+    assert catalog["manifest"]["schema_version"] == 6
     assert len(read_json(snapshot_dir / "estate_summary.json.gz")) == 2
     assert len(read_json(snapshot_dir / "district_monthly.json.gz")) == 1
+    assert len(read_json(snapshot_dir / "district_price_bands.json.gz")) == 1
+    assert len(read_json(snapshot_dir / "segment_summary.json")) == 1
     estate_monthly = read_json(snapshot_dir / "estate_monthly.json.gz")
     assert estate_monthly == {
         "months": ["2024-11", "2024-12", "2025-01"],
@@ -244,12 +283,14 @@ def test_publish_dry_run_plans_versioned_files_and_manifest_last(snapshot):
         dry_run=True,
     )
     keys = [upload["key"] for upload in uploads]
-    assert keys[:7] == [
+    assert keys[:9] == [
         f"dashboard/{manifest['build_id']}/overview.json",
         f"dashboard/{manifest['build_id']}/district_monthly.json.gz",
         f"dashboard/{manifest['build_id']}/estate_summary.json.gz",
         f"dashboard/{manifest['build_id']}/transaction_recent.json.gz",
         f"dashboard/{manifest['build_id']}/estate_monthly.json.gz",
+        f"dashboard/{manifest['build_id']}/district_price_bands.json.gz",
+        f"dashboard/{manifest['build_id']}/segment_summary.json",
         f"dashboard/{manifest['build_id']}/catalog.json",
         f"dashboard/{manifest['build_id']}/coverage.json.gz",
     ]

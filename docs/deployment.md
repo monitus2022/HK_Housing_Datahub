@@ -93,9 +93,11 @@ https://hk-housing-datahub.monitus.org/dashboard/manifest.json
 https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file from manifest.files}
 ```
 
-`estate_summary` loads on startup. The estate, trends, and transactions views
-request `estate_monthly`, `district_monthly`, and `transaction_recent` on demand,
-and the map fetches OpenStreetMap tiles from `tile.openstreetmap.org`. All snapshot files come from
+`estate_summary` and `district_monthly` load on startup for the Overview.
+`transaction_recent` loads when the top-estates panel approaches the viewport,
+`estate_monthly` loads when an estate view opens, and `catalog` loads when the
+Catalogue tab opens. The map fetches OpenStreetMap tiles from
+`tile.openstreetmap.org`. All snapshot files come from
 the same R2 host, so the existing CORS rule covers them.
 
 ## Verify the snapshot host

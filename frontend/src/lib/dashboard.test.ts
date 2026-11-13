@@ -5,6 +5,8 @@ import {
   loadCatalog,
   loadDashboard,
   loadDistrictMonthly,
+  loadDistrictPriceBands,
+  loadSegmentSummary,
   loadEstateMonthly,
   loadRecentTransactions,
 } from "./dashboard";
@@ -27,6 +29,8 @@ const manifest: Manifest = {
     estate_monthly: "estate_monthly.json.gz",
     catalog: "catalog.json",
     transaction_recent: "transaction_recent.json.gz",
+    district_bands: "district_price_bands.json.gz",
+    segment_summary: "segment_summary.json",
   },
   source: ["HKP"],
 };
@@ -160,6 +164,38 @@ describe("on-demand dataset loaders", () => {
     expect(rows).toEqual(history);
     expect(fetchMock.mock.calls[0][0]).toContain(
       "/dashboard/build-history/estate_monthly.json.gz",
+    );
+  });
+
+  it("loads district price bands from the manifest file", async () => {
+    const bands = [{ district_id: "D1", month: "2025-01" }];
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(bands));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const rows = await loadDistrictPriceBands({
+      ...manifest,
+      build_id: "build-bands",
+    });
+
+    expect(rows).toEqual(bands);
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/dashboard/build-bands/district_price_bands.json.gz",
+    );
+  });
+
+  it("loads segment summary data from the manifest file", async () => {
+    const segments = [{ segment_type: "bedroom", segment_value: "2" }];
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(segments));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const rows = await loadSegmentSummary({
+      ...manifest,
+      build_id: "build-segments",
+    });
+
+    expect(rows).toEqual(segments);
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/dashboard/build-segments/segment_summary.json",
     );
   });
 

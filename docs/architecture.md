@@ -195,10 +195,13 @@ The manifest and cache contract is in [`serving.md`](serving.md).
 `frontend/` is a Vite + React + TypeScript static app deployed at
 <https://hk-housing.monitus.org>. It fetches `dashboard/manifest.json`, then uses
 `manifest.files.estate_summary`; it never hardcodes a build ID. The default view
-is a market overview built from estate summary and district monthly rows:
-median price/rent/yield KPIs, a sale-versus-rent index, a district league table,
-and a price-versus-yield scatter. Estate history, district trends, and recent
-transactions load their data files on demand, and the map plots estate
+is a market overview built from estate summary and district monthly rows, plus
+recent transactions when the top-estates panel approaches the viewport: median
+price/rent/yield KPIs, a sale-versus-rent index filterable by Hong Kong or
+district, a top-10 estates bar chart by trailing-12-month transacted value, a
+district league table, and a full-width price-versus-yield scatter. Estate
+history, district trends, and recent transactions load their data files on
+demand, and the map plots estate
 coordinates over OpenStreetMap tiles. The map groups nearby estates into
 screen-space clusters at lower zooms, splits them as you zoom in, can open the
 matching estate list for a district, and accepts a focused estate from the

@@ -159,3 +159,19 @@ tables:
     dataset: analytics_marts
     description: Estate coverage counts for buildings, units, transactions, market data, and wiki.
     grain: One row per estate.
+  mart_district_price_bands:
+    dataset: analytics_marts
+    description: Monthly district sale and rent price distribution with p25, median, p75, and a gross-yield proxy.
+    grain: One row per district × month.
+    caveats: >-
+      Percentiles use positive net-ft prices only and nearest-rank positions.
+      Rent history covers roughly three years; sale history is longer. Gross
+      yield is a proxy from medians, not a transaction-level return.
+  mart_segment_summary:
+    dataset: analytics_marts
+    description: Trailing-12-month sale and rent medians by bedroom, area band, estate age band, MTR line, and school net.
+    grain: One row per segment type × segment value.
+    caveats: >-
+      MTR and school-net segments overlap because an estate can map to multiple
+      lines or nets. Unknown rows cover missing bedroom, area, or age values.
+      Medians use positive net-ft prices only.
