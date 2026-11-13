@@ -277,6 +277,7 @@ export default function App() {
                   manifest={data.manifest}
                   estates={data.estates}
                   onOpenTrends={openTrends}
+                  onSelectEstate={setSelected}
                 />
               ) : null}
               {view === "search" ? (

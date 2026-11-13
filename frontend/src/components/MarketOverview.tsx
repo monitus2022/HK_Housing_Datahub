@@ -1,13 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import type { DistrictMonthly, EstateSummary, Manifest } from "../types";
-import { loadDistrictMonthly } from "../lib/dashboard";
+import type {
+  DistrictMonthly,
+  EstateSummary,
+  Manifest,
+  RecentTransaction,
+} from "../types";
+import {
+  loadDistrictMonthly,
+  loadRecentTransactions,
+} from "../lib/dashboard";
 import {
   buildDistrictLeague,
   buildMarketPulse,
   buildOverviewKpis,
   buildScatterGeometry,
+  buildTopEstatesByValue,
   buildYieldPoints,
   DEFAULT_SCATTER_OPTIONS,
+  filterDistrictRows,
 } from "../lib/overview";
 import {
   buildMultiLineGeometry,
@@ -15,6 +25,7 @@ import {
 } from "../lib/trends";
 import {
   formatCompactHkd,
+  formatDate,
   formatMonth,
   formatNumber,
   formatPercent,
@@ -27,6 +38,7 @@ interface Props {
   manifest: Manifest;
   estates: EstateSummary[];
   onOpenTrends: (districtId: string) => void;
+  onSelectEstate?: (estate: EstateSummary) => void;
 }
 
 function formatYield(value: number | null): string {
@@ -39,11 +51,18 @@ export function MarketOverview({
   manifest,
   estates,
   onOpenTrends,
+  onSelectEstate,
 }: Props) {
   const [rows, setRows] = useState<DistrictMonthly[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
+  const [transactions, setTransactions] = useState<
+    RecentTransaction[] | null
+  >(null);
+  const [txError, setTxError] = useState<string | null>(null);
+  const [txLoading, setTxLoading] = useState(true);
+  const [txReloadToken, setTxReloadToken] = useState(0);
   const [pulseDistrictId, setPulseDistrictId] = useState("");
 
   useEffect(() => {
@@ -72,11 +91,47 @@ export function MarketOverview({
     };
   }, [manifest, reloadToken]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setTxLoading(true);
+    setTxError(null);
+
+    loadRecentTransactions(manifest)
+      .then((data) => {
+        if (!cancelled) setTransactions(data);
+      })
+      .catch((loadError: unknown) => {
+        if (cancelled) return;
+        setTxError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Could not load recent transactions.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setTxLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [manifest, txReloadToken]);
+
   const kpis = useMemo(() => buildOverviewKpis(estates), [estates]);
   const districts = useMemo(
     () => (rows ? listTrendDistricts(rows) : []),
     [rows],
   );
+
+  useEffect(() => {
+    if (
+      pulseDistrictId &&
+      districts.length > 0 &&
+      !districts.some((district) => district.id === pulseDistrictId)
+    ) {
+      setPulseDistrictId("");
+    }
+  }, [districts, pulseDistrictId]);
   const pulseDistrictName = useMemo(
     () =>
       districts.find((district) => district.id === pulseDistrictId)?.nameEn ??
@@ -85,11 +140,28 @@ export function MarketOverview({
   );
   const pulse = useMemo(() => {
     if (!rows) return null;
-    const filtered = pulseDistrictId
-      ? rows.filter((row) => row.district_id === pulseDistrictId)
-      : rows;
-    return buildMarketPulse(filtered);
+    return buildMarketPulse(filterDistrictRows(rows, pulseDistrictId));
   }, [rows, pulseDistrictId]);
+  const topEstates = useMemo(
+    () =>
+      transactions
+        ? buildTopEstatesByValue(
+            transactions,
+            10,
+            12,
+            manifest.data_through.transactions,
+          )
+        : null,
+    [transactions, manifest.data_through.transactions],
+  );
+  const maxTopValue = useMemo(
+    () =>
+      Math.max(
+        1,
+        ...(topEstates?.entries.map((entry) => entry.totalValue) ?? []),
+      ),
+    [topEstates],
+  );
   const pulseGeometry = useMemo(
     () =>
       pulse
@@ -304,6 +376,87 @@ export function MarketOverview({
           </p>
         </section>
       </div>
+
+      <section className="panel overview-top-estates">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Value</p>
+            <h3>Top estates by transacted value</h3>
+          </div>
+          <p className="result-count">
+            {formatNumber(topEstates?.entries.length ?? 0)} estates
+          </p>
+        </div>
+        {txLoading ? (
+          <InlineLoading label="Loading top estates…" />
+        ) : txError ? (
+          <InlineError
+            title="Top estates are unavailable"
+            message={txError}
+            onRetry={() => setTxReloadToken((value) => value + 1)}
+          />
+        ) : !topEstates || topEstates.entries.length === 0 ? (
+          <EmptyNotice title="No positive transaction values">
+            <p>
+              The recent-transaction file has no positive prices in the
+              trailing 12 months.
+            </p>
+          </EmptyNotice>
+        ) : (
+          <>
+            <p className="muted top-estates-window">
+              Trailing 12 months: {formatDate(topEstates.start)} –{" "}
+              {formatDate(topEstates.end)}. Sum of positive transaction
+              prices per estate.
+            </p>
+            <ol className="top-estate-list">
+              {topEstates.entries.map((entry, index) => {
+                const estate = estates.find(
+                  (item) => item.estate_id === entry.id,
+                );
+                return (
+                  <li key={entry.id} className="top-estate-row">
+                    <span className="top-estate-rank">{index + 1}</span>
+                    <div className="top-estate-main">
+                      <div className="top-estate-label">
+                        {estate && onSelectEstate ? (
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => onSelectEstate(estate)}
+                          >
+                            {entry.name}
+                          </button>
+                        ) : (
+                          <strong>{entry.name}</strong>
+                        )}
+                        <span className="muted">{entry.district}</span>
+                      </div>
+                      <div className="top-estate-track">
+                        <span
+                          className="top-estate-bar"
+                          style={{
+                            width: `${Math.max(
+                              2,
+                              (entry.totalValue / maxTopValue) * 100,
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="top-estate-value">
+                      <strong>{formatCompactHkd(entry.totalValue)}</strong>
+                      <span>
+                        {formatNumber(entry.txCount)} tx
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        )}
+      </section>
 
       <div className="overview-stack">
         <section className="panel overview-league">
