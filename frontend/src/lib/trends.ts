@@ -356,6 +356,7 @@ export interface MultiLineSeries {
   id: string;
   label: string;
   points: TrendPoint[];
+  color?: string;
 }
 
 export interface MultiLineGeometrySeries {
@@ -363,6 +364,7 @@ export interface MultiLineGeometrySeries {
   label: string;
   points: ChartPoint[];
   linePath: string;
+  color?: string;
 }
 
 export interface MultiLineGeometry {

@@ -53,9 +53,10 @@ Grain: one row per region × property class × month. Primary key:
 
 Caveats: official RVD aggregates, not HKP transactions. Suppressed `-` values
 are stored as `NULL` rather than dropped, so the monthly series stays aligned.
-Provisional months are flagged. Class A is the
-smallest unit class; the class boundaries are based on saleable area and differ
-from the estate-level bedroom/area segments.
+Provisional months are flagged. RVD class boundaries use **saleable area**:
+A = under 40 m²; B = 40–69.9 m²; C = 70–99.9 m²; D = 100–159.9 m²;
+E = 160 m² or more. These differ from HKP net-area bands and estate-level
+bedroom segments.
 
 ### `rvd_indices`
 

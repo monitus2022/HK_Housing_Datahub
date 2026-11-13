@@ -21,6 +21,11 @@ export interface RvdSeriesResult {
   title: string;
 }
 
+export interface RvdClassSeries extends RvdSeriesResult {
+  propertyClass: string;
+  label: string;
+}
+
 export const RVD_MEASURES: { id: RvdMeasure; label: string }[] = [
   { id: "price_index", label: "Price index (1999 = 100)" },
   { id: "rent_index", label: "Rental index (1999 = 100)" },
@@ -35,24 +40,29 @@ export const RVD_REGIONS = [
   { id: "nt", label: "New Territories" },
 ];
 
-export const RVD_INDEX_CLASSES = [
-  "ALL",
-  "ABC",
-  "DE",
-  "A",
-  "B",
-  "C",
-  "D",
-  "E",
-];
+export const RVD_CLASSES = ["A", "B", "C", "D", "E"];
 
-export const RVD_RENT_PRICE_CLASSES = ["A", "B", "C", "D", "E"];
-
-export function rvdClassesForMeasure(measure: RvdMeasure): string[] {
-  return measure === "price_index" || measure === "rent_index"
-    ? RVD_INDEX_CLASSES
-    : RVD_RENT_PRICE_CLASSES;
+export function toggleRvdClass(
+  current: string[],
+  propertyClass: string,
+): string[] {
+  if (current.includes(propertyClass)) {
+    return current.length === 1
+      ? current
+      : current.filter((item) => item !== propertyClass);
+  }
+  return RVD_CLASSES.filter(
+    (item) => current.includes(item) || item === propertyClass,
+  );
 }
+
+export const RVD_CLASS_DEFINITIONS: { id: string; label: string }[] = [
+  { id: "A", label: "under 40 m² saleable area" },
+  { id: "B", label: "40 to 69.9 m² saleable area" },
+  { id: "C", label: "70 to 99.9 m² saleable area" },
+  { id: "D", label: "100 to 159.9 m² saleable area" },
+  { id: "E", label: "160 m² or more saleable area" },
+];
 
 export function rvdHkdM2ToFt2(value: number): number {
   return value / 10.7639;
@@ -151,4 +161,26 @@ export function buildRvdSeries(
       selection.regionCode,
     )} · Class ${selection.propertyClass}`,
   };
+}
+
+export function buildRvdClassSeries(
+  data: RvdBenchmarks | null,
+  measure: RvdMeasure,
+  regionCode: string,
+  classes: string[] = RVD_CLASSES,
+): RvdClassSeries[] {
+  return classes
+    .map((propertyClass) => {
+      const result = buildRvdSeries(data, {
+        measure,
+        propertyClass,
+        regionCode,
+      });
+      return {
+        ...result,
+        propertyClass,
+        label: `Class ${propertyClass}`,
+      };
+    })
+    .filter((result) => result.points.length > 0);
 }

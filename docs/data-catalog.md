@@ -497,7 +497,7 @@ Official Rating and Valuation Department private domestic rents, prices, indices
 - **Refresh:** Manual (scripts/fetch_rvd.py)
 - **Licence:** Government of the Hong Kong SAR; cite the RVD
 - **Owner:** HK Housing Datahub
-- **Caveats:** Official aggregate statistics, not transaction records. RVD property classes and regions differ from HKP estate/district definitions, so use them as long-history benchmarks rather than direct estate comparisons.
+- **Caveats:** Official aggregate statistics, not transaction records. Classes A-E use saleable area: A <40 m2, B 40-69.9, C 70-99.9, D 100-159.9, E >=160 m2. RVD regions/classes differ from HKP estate/district definitions, so use them as long-history benchmarks rather than direct estate comparisons.
 - **Tables:** 4 (18,135 rows)
 - **Artifacts:** data/rvd/his_data_*.xls
 
