@@ -283,6 +283,18 @@ describe("on-demand dataset loaders", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("explains when a snapshot predates RVD benchmarks", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+
+    await expect(
+      loadRvdBenchmarks({
+        ...manifest,
+        build_id: "build-old-rvd",
+        files: { estate_summary: "estate_summary.json.gz" },
+      }),
+    ).rejects.toThrow("does not include rvd_benchmarks");
+  });
+
   it("explains when a snapshot predates the catalogue", async () => {
     vi.stubGlobal("fetch", vi.fn());
 

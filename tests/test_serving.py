@@ -449,3 +449,25 @@ def test_publish_parser_defaults():
     assert args.dry_run is False
     assert args.db == "data/agency/agency_data.db"
     assert args.output_dir == "data/serving"
+
+
+def test_snapshot_without_rvd_tables_exports_empty_arrays(tmp_path):
+    db_path = tmp_path / "serving-no-rvd.db"
+    make_snapshot_db(db_path)
+    connection = sqlite3.connect(db_path)
+    try:
+        for table in ("rvd_rents", "rvd_prices", "rvd_indices", "rvd_yields"):
+            connection.execute(f'DROP TABLE "{table}"')
+        connection.commit()
+    finally:
+        connection.close()
+
+    manifest = build_snapshot(
+        db_path,
+        output_root=tmp_path / "serving-no-rvd",
+        build_id="no-rvd",
+    )
+    snapshot_dir = tmp_path / "serving-no-rvd" / manifest["build_id"]
+    rvd = read_json(snapshot_dir / "rvd_benchmarks.json.gz")
+
+    assert rvd == {"rents": [], "prices": [], "indices": [], "yields": []}

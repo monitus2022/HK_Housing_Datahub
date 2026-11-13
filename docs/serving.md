@@ -197,9 +197,9 @@ transactions as low sample.
 ## RVD benchmark export
 
 `rvd_benchmarks.json.gz` is a gzipped object with four arrays: `rents`,
-`prices`, `indices`, and `yields`. It carries the official Rating and Valuation
-Department aggregates by region, property class, and month, including
-provisional flags and `NULL` suppressed values. The frontend presents it as a
+`prices`, `indices`, and `yields`. Rents and prices carry region × property
+class × month rows; indices are territory-wide by class; yields are class-only.
+All include provisional flags and `NULL` suppressed values. The frontend presents it as a
 separate benchmark — never as an estate-level match. If the RVD tables are
 absent, the snapshot writes empty arrays and the panel shows an empty state.
 

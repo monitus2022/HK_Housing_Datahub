@@ -31,10 +31,13 @@ function formatRvdValue(
   return `${formatCompactHkd(value)}/m²`;
 }
 
-function unitLabel(unit: "index" | "hkd_m2" | "percent"): string {
+function unitLabel(
+  unit: "index" | "hkd_m2" | "percent",
+  measure: RvdMeasure,
+): string {
   if (unit === "index") return "index · 1999 = 100";
   if (unit === "percent") return "% return";
-  return "HKD/m²";
+  return measure === "rent" ? "HKD/m² per month" : "HKD/m²";
 }
 
 export function RvdBenchmarks({ manifest }: Props) {
@@ -124,8 +127,8 @@ export function RvdBenchmarks({ manifest }: Props) {
         </p>
         <p>
           Rents and prices are in HKD/m². Divide by 10.7639 for HKD/ft².
-          Provisional months are marked. Suppressed values appear as gaps, not
-          zero.
+          Provisional months are marked. Suppressed values are omitted, not
+          zero; the line connects the available months.
         </p>
         <p>
           Source:{" "}
@@ -146,9 +149,14 @@ export function RvdBenchmarks({ manifest }: Props) {
           <span>Measure</span>
           <select
             value={measure}
-            onChange={(event) =>
-              setMeasure(event.target.value as RvdMeasure)
-            }
+            onChange={(event) => {
+              const next = event.target.value as RvdMeasure;
+              const nextClasses = rvdClassesForMeasure(next);
+              setMeasure(next);
+              if (!nextClasses.includes(propertyClass)) {
+                setPropertyClass(nextClasses[0]);
+              }
+            }}
           >
             {RVD_MEASURES.map((item) => (
               <option key={item.id} value={item.id}>
@@ -214,7 +222,8 @@ export function RvdBenchmarks({ manifest }: Props) {
                 {formatRvdValue(result.unit, latest.value)}
               </p>
               <p className="stat-note">
-                {formatMonth(latest.month)} · {unitLabel(result.unit)}
+                {formatMonth(latest.month)} ·{" "}
+                {unitLabel(result.unit, measure)}
               </p>
             </div>
             {result.unit === "hkd_m2" ? (
@@ -223,7 +232,9 @@ export function RvdBenchmarks({ manifest }: Props) {
                 <p className="stat-value stat-value-small">
                   {formatCompactHkd(rvdHkdM2ToFt2(latest.value))}
                 </p>
-                <p className="stat-note">HKD/ft² conversion</p>
+                <p className="stat-note">
+                  HKD/ft²{measure === "rent" ? " per month" : ""} conversion
+                </p>
               </div>
             ) : null}
             <div className="stat-tile">
@@ -254,7 +265,7 @@ export function RvdBenchmarks({ manifest }: Props) {
             showDots={false}
             caption={`${result.title}. RVD aggregate benchmark; ${
               result.unit === "hkd_m2"
-                ? "values in HKD/m² (divide by 10.7639 for HKD/ft²)"
+                ? `values in HKD/m²${measure === "rent" ? " per month" : ""} (divide by 10.7639 for HKD/ft²${measure === "rent" ? " per month" : ""})`
                 : result.unit === "percent"
                   ? "percentage returns"
                   : "index, 1999 = 100"
