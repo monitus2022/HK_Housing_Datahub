@@ -21,6 +21,19 @@ datasets:
     caveats: >-
       Sale windows are relative to the latest sale date, not today. Rent covers
       roughly the last three years of HKP lease transactions.
+  - id: rvd_benchmarks
+    name: RVD benchmarks
+    layer: benchmark
+    description: Official Rating and Valuation Department private domestic rents, prices, indices, and yields by region and property class.
+    source: Rating and Valuation Department historical XLS publications
+    refresh: Manual (scripts/fetch_rvd.py)
+    licence: Government of the Hong Kong SAR; cite the RVD
+    caveats: >-
+      Official aggregate statistics, not transaction records. RVD property
+      classes and regions differ from HKP estate/district definitions, so use
+      them as long-history benchmarks rather than direct estate comparisons.
+    artifacts:
+      - data/rvd/his_data_*.xls
   - id: wikipedia
     name: Wikipedia estate text
     layer: wiki
@@ -131,6 +144,26 @@ tables:
     description: Lease/rental transactions fetched from the HKP district transaction search.
     grain: One row per rental transaction.
     caveats: HKP only exposes a 1-year or 3-year lookback; district queries can overlap combined districts.
+  rvd_rents:
+    dataset: rvd_benchmarks
+    description: Official private domestic average rents by region and property class.
+    grain: One row per region x property class x month.
+    caveats: HKD per square metre per month; 1999 onward; official RVD aggregates.
+  rvd_prices:
+    dataset: rvd_benchmarks
+    description: Official private domestic average prices by region and property class.
+    grain: One row per region x property class x month.
+    caveats: HKD per square metre; 1999 onward; official RVD aggregates.
+  rvd_indices:
+    dataset: rvd_benchmarks
+    description: Territory-wide private domestic rental and price indices by class.
+    grain: One row per index type x property class x month.
+    caveats: 1999 = 100; class A-E plus A-C, D-E, and all-class aggregates.
+  rvd_yields:
+    dataset: rvd_benchmarks
+    description: Official private domestic property market yields by class.
+    grain: One row per property class x month.
+    caveats: Percentage returns; 1999 onward; use as a benchmark, not a transaction-level yield.
   pipeline_runs:
     dataset: operations
     description: Agency pipeline run records.

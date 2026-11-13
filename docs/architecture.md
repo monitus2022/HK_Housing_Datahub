@@ -11,7 +11,7 @@ flowchart TD
     subgraph Sources
         HKP[HKP API]
         WIKI[Wikipedia API]
-        RVD[RVD publications<br/>planned]
+        RVD[RVD publications]
     end
 
     subgraph Crawl
@@ -24,6 +24,7 @@ flowchart TD
         EP[EstatesProcessor]
         BP[BuildingsCrawler/Processor]
         WP[WikiProcessor]
+        RP[RVD parser]
         RG[RAG embedding pipeline]
     end
 
@@ -44,7 +45,7 @@ flowchart TD
     WIKI --> WC --> WP --> WJSON
     WJSON --> RG --> CHROMA
     SQL --> MART --> SNAP --> WEB
-    RVD -. planned .-> SQL
+    RVD --> RP --> SQL
 ```
 
 ## Entry point and orchestration
@@ -271,7 +272,8 @@ credentials.
 - The frontend in `frontend/` opens on a visual market overview, then estate
   search, trend views with comparisons, the estate map, recent transactions, and
   the data catalogue. Further work is tracked in [`roadmap.md`](roadmap.md).
-- The ML workplan is deferred.
+- The ML workplan is deferred. Official RVD benchmark tables are ingested by
+`scripts/fetch_rvd.py`; dashboard exposure is planned.
 
 ## Failure modes
 

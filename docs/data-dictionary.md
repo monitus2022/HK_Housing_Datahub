@@ -29,6 +29,60 @@ regions
                  │              └─ transactions
 ```
 
+## RVD benchmarks
+
+The Rating and Valuation Department series are official aggregate benchmarks,
+separate from the HKP transaction data. They cover 1999 onward for rents,
+prices, and yields, and 1993 onward for territory-wide indices.
+The source files are downloaded by `scripts/fetch_rvd.py` into `data/rvd/` and
+refreshed with a full replace.
+
+### `rvd_rents` / `rvd_prices`
+
+Grain: one row per region × property class × month. Primary key:
+(`region_code`, `property_class`, `month`).
+
+| Column | Type | Notes |
+|---|---|---|
+| `region_code` | text | `hk`, `kln`, or `nt` |
+| `property_class` | text | RVD class `A`–`E` |
+| `month` | text | `YYYY-MM` |
+| `value_hkd_m2` | real | HKD per square metre, rent per month or sale price |
+
+Caveats: official RVD aggregates, not HKP transactions. Class A is the
+smallest unit class; the class boundaries are based on saleable area and differ
+from the estate-level bedroom/area segments.
+
+### `rvd_indices`
+
+Grain: one row per index type × property class × month. Primary key:
+(`index_type`, `property_class`, `month`).
+
+| Column | Type | Notes |
+|---|---|---|
+| `index_type` | text | `rental` or `price` |
+| `property_class` | text | `A`–`E`, `ABC`, `DE`, or `ALL` |
+| `month` | text | `YYYY-MM` |
+| `value` | real | Index, 1999 = 100 |
+
+Caveats: territory-wide only; indices are not directly comparable with HKP
+district averages.
+
+### `rvd_yields`
+
+Grain: one row per property class × month. Primary key:
+(`property_class`, `month`).
+
+| Column | Type | Notes |
+|---|---|---|
+| `property_class` | text | RVD class `A`–`E` |
+| `month` | text | `YYYY-MM` |
+| `yield_pct` | real | Percentage return |
+
+Caveats: official market yield benchmark, not a transaction-level yield. The
+dashboard's HKP gross-yield proxy uses average or median rents and prices; the
+two are related but not identical.
+
 ## Location hierarchy
 
 ### `regions`

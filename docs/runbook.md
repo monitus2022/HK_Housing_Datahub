@@ -310,6 +310,22 @@ data simply sets it to 0. Windows end at the later of the latest sale and rental
 snapshot. Grains and columns are in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts).
 
+## Refresh RVD benchmarks
+
+The Rating and Valuation Department publishes five historical XLS workbooks.
+Download and replace the benchmark tables:
+
+```bash
+python scripts/fetch_rvd.py --db data/agency/agency_data.db --source-dir data/rvd
+# parse files already in data/rvd without downloading
+python scripts/fetch_rvd.py --db data/agency/agency_data.db --source-dir data/rvd --skip-download
+```
+
+This writes `rvd_rents`, `rvd_prices`, `rvd_indices`, and `rvd_yields` with a
+full refresh. The files are official aggregate benchmarks, not HKP transaction
+records; grains and caveats are in
+[`data-dictionary.md`](data-dictionary.md#rvd-benchmarks).
+
 ## Build and publish serving data
 
 Build the local snapshot without credentials:
