@@ -279,6 +279,8 @@ def test_marts_row_counts_and_known_values(tmp_path):
         "mart_estate_monthly": 5,
         "mart_transaction_recent": 3,
         "mart_coverage": 2,
+        "mart_district_price_bands": 5,
+        "mart_segment_summary": 8,
     }
 
     summary = read_rows(
@@ -323,6 +325,34 @@ def test_marts_row_counts_and_known_values(tmp_path):
     assert e2["latest_rent_net_ft_price"] == 20
     assert e2["has_wiki"] == 0
     assert e2["wiki_title"] is None
+
+    bands = read_rows(
+        db_path,
+        "SELECT * FROM mart_district_price_bands "
+        "WHERE district_id='D1' AND month='2024-12'",
+    )
+    assert len(bands) == 1
+    assert bands[0]["rent_count"] == 2
+    assert bands[0]["rent_p25"] == 30
+    assert bands[0]["rent_median"] == 31
+    assert bands[0]["rent_p75"] == 32
+
+    bands_sale = read_rows(
+        db_path,
+        "SELECT * FROM mart_district_price_bands "
+        "WHERE district_id='D1' AND month='2025-01'",
+    )
+    assert bands_sale[0]["sale_count"] == 1
+    assert bands_sale[0]["sale_median"] == 13000
+
+    bedroom = read_rows(
+        db_path,
+        "SELECT * FROM mart_segment_summary "
+        "WHERE segment_type='bedroom' AND segment_value='2'",
+    )
+    assert bedroom[0]["sale_count"] == 3
+    assert bedroom[0]["sale_median"] == 12000
+    assert bedroom[0]["gross_yield_pct"] is None
 
     district = read_rows(
         db_path,
