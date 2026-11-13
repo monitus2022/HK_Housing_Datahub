@@ -87,7 +87,7 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 ```json
 {
-  "schema_version": 7,
+  "schema_version": 8,
   "build_id": "20261201T000000Z-example",
   "generated_at": "2026-12-01T00:00:00+00:00",
   "data_through": {
@@ -204,11 +204,13 @@ All include provisional flags and `NULL` suppressed values. The frontend present
 separate benchmark — never as an estate-level match. If the RVD tables are
 absent, the snapshot writes empty arrays and the panel shows an empty state.
 
-Schema 7 adds the RVD benchmark export used by the Trends benchmark panel.
-Schema 6 added the monthly district price bands and segment summary. Schema 5
-added `catalog.json` and `wiki_title`. The current published build is schema 7;
-a schema-6 pointer has no RVD benchmarks, so that panel shows a missing-file
-message. A schema-5 pointer has no bands/segments either. A schema-4
+Schema 8 adds `mkt_type` to the recent-transactions export. It is optional in
+the frontend, so schema-7 snapshots still work without it. Schema 7 added the
+RVD benchmark export, schema 6 added the monthly district price bands and
+segment summary, and schema 5 added `catalog.json` and `wiki_title`. The current
+published build is schema 7; a schema-6 pointer has no RVD benchmarks, so that
+panel shows a missing-file message. A schema-5 pointer has no bands/segments
+either. A schema-4
 pointer also serves no catalogue, so the Catalogue view shows a missing-file
 message and its wiki badges stay non-links; older schema-3/2 snapshots without
 `estate_monthly` still work, with a section-level message for missing history.

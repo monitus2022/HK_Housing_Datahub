@@ -10,45 +10,10 @@ from ..base import BaseProcessor
 from config import housing_datahub_config
 from logger import housing_logger
 from models.agency.sql_db import Base, PipelineRun
+from models.agency.migrations import ensure_additive_columns
 import os
 import json
 from abc import abstractmethod
-
-
-TRANSACTION_ADDITIVE_COLUMNS = {
-    "mkt_type": "TEXT",
-    "transaction_type": "TEXT",
-}
-
-
-def ensure_additive_columns(engine) -> list[str]:
-    """Add newer nullable transaction columns to an existing database.
-
-    SQLAlchemy's ``create_all`` does not alter existing tables. This keeps
-    older local databases usable until the sale-type backfill runs.
-    """
-    with engine.begin() as connection:
-        exists = connection.execute(
-            text(
-                "SELECT 1 FROM sqlite_master "
-                "WHERE type='table' AND name='transactions'"
-            )
-        ).fetchone()
-        if not exists:
-            return []
-        columns = {
-            row[1]
-            for row in connection.execute(text("PRAGMA table_info(transactions)"))
-        }
-        added: list[str] = []
-        for name, column_type in TRANSACTION_ADDITIVE_COLUMNS.items():
-            if name in columns:
-                continue
-            connection.execute(
-                text(f"ALTER TABLE transactions ADD COLUMN {name} {column_type}")
-            )
-            added.append(name)
-        return added
 
 
 class AgencyProcessor(BaseProcessor):

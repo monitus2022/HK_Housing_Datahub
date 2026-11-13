@@ -212,7 +212,7 @@ def snapshot(tmp_path):
 def test_snapshot_manifest_and_files(snapshot):
     snapshot_dir, manifest = snapshot
 
-    assert manifest["schema_version"] == 7
+    assert manifest["schema_version"] == 8
     assert manifest["build_id"] == "test-build"
     assert manifest["data_through"] == {
         "transactions": "2025-01-16",
@@ -256,7 +256,7 @@ def test_snapshot_manifest_and_files(snapshot):
     assert overview["coverage"] == manifest["coverage"]
     catalog = read_json(snapshot_dir / "catalog.json")
     assert catalog["manifest"]["build_id"] == "test-build"
-    assert catalog["manifest"]["schema_version"] == 7
+    assert catalog["manifest"]["schema_version"] == 8
     assert len(read_json(snapshot_dir / "estate_summary.json.gz")) == 2
     assert len(read_json(snapshot_dir / "district_monthly.json.gz")) == 1
     assert len(read_json(snapshot_dir / "district_price_bands.json.gz")) == 1
