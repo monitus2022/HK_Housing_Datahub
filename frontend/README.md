@@ -3,8 +3,9 @@
 Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 
 - visualization-first market overview with median price/rent/yield KPIs, a
-  sale-versus-rent pulse starting at their common coverage, a district league table, and a price-versus-yield
-  scatter
+  sale-versus-rent pulse filterable by All Hong Kong or a district and starting
+  at their common coverage, a district league table, and a full-width
+  price-versus-yield scatter
 - estate search with text, district, price, net-ft price, area, bedroom, MTR,
   and school-net filters, sorting, and pagination; filter state lives in the URL
 - estate detail panel with latest transaction, 12-month stats, market date,

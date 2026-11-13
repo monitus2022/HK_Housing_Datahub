@@ -25,7 +25,7 @@ layer for a public dashboard.
 - Provides read-only baseline and quality audits, five materialized analytics
   marts, and a versioned serving snapshot published to R2.
 - Includes a static React frontend with a visual market overview (KPIs,
-  sale/rent pulse, district league, yield scatter), estate search, estate price
+  a district-filterable sale/rent pulse, district league, yield scatter), estate search, estate price
   history, district trend views and comparisons, an estate map, recent
   transactions, and a data catalogue.
 
