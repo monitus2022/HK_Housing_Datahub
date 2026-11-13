@@ -214,8 +214,8 @@ The data model has the following groups:
 - Data catalogue and dataset cards: [`docs/data-catalog.md`](docs/data-catalog.md)
 
 Key caveats: the `transactions` table is sale-only; `mkt_type` distinguishes
-first/second hand for newly ingested or backfilled rows, while older rows are
-`NULL`; `net_area` is null or non-positive for about 24.0% of units; `bedroom` is missing for about 47%; and `estate_mtr_lines` keeps
+first/second hand for 98.5% of rows after the 2026-11-13 backfill, with 16,411
+older or failed-building rows still `NULL`; `net_area` is null or non-positive for about 24.0% of units; `bedroom` is missing for about 47%; and `estate_mtr_lines` keeps
 only the first MTR line per estate.
 
 ## Serving layer
@@ -383,8 +383,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - RVD benchmarks are official aggregate series; they are charted separately and
   are not matched to individual estates or districts.
 - The transaction table has no sale/rent type; it is sale-only. `mkt_type`
-  distinguishes first/second hand once `scripts/backfill_sale_types.py` has
-  backfilled existing rows.
+  covers 98.5% of all transactions after the 2026-11-13 backfill; 16,411 older
+  or failed-building rows remain `NULL`.
 - Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
   (583,266 null), missing coordinates (633 estates), missing `first_op_date`
   (887 estates). Estates with a null or non-positive latest price/area are excluded when
@@ -418,7 +418,7 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
-- The published schema-7 snapshot ends 2026-11-08 for sales (market data
+- The published schema-8 snapshot ends 2026-11-08 for sales (market data
   2026-09-30) and includes rentals through 2026-11-10. The project does not run
   on a schedule yet.
 - CI installs core dependencies plus `chromadb` for the offline RAG storage

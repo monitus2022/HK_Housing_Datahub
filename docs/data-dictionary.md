@@ -332,7 +332,8 @@ Rows: 1,122,622 across 739,680 units; 368,656 units have more than one
 transaction. Range: 1996-01 to 2026-11-08. There is **no sale/rent type
 column**; the table is sale-only. `mkt_type` distinguishes first-hand,
 second-hand, and MH sales for rows ingested after schema support; existing rows
-are `NULL` until `scripts/backfill_sale_types.py` runs. `transaction_type` is the HKP
+were backfilled on 2026-11-13; 16,411 older or failed-building rows remain
+`NULL`. `transaction_type` is the HKP
 normal/other marker. `last_tx_date` and `gain` are transaction outcomes and
 must not be used as predictors for earlier rows.
 
@@ -479,7 +480,7 @@ Rows: 87,393 in the refreshed DB.
 | `tx_date` | date | Normalized transaction date |
 | `price` | real | Transaction price |
 | `net_ft_price` | real | Price per net sq ft |
-| `mkt_type` | text | `1` first hand, `2` second hand, `MH` HKP/group; NULL until backfilled |
+| `mkt_type` | text | `1` first hand, `2` second hand, `MH` HKP/group; 97.6% typed in the recent export, ~2,056 rows `NULL` |
 | `estate_id` / `estate_name_en` | text | Estate |
 | `district_id` / `district_name_en` | text | District |
 | `building_id` / `unit_id` | text | Building and unit |
@@ -579,8 +580,8 @@ unique lookup indexes (`idx_mart_*`) on their grain keys.
 
 - Scraped data, not an official statistical product.
 - Sales are in `transactions`; rentals are in `rental_transactions`
-  (`tx_type=L`). `mkt_type` distinguishes first/second hand once backfilled;
-  older rows remain `NULL`.
+  (`tx_type=L`). `mkt_type` distinguishes first/second hand; the 2026-11-13 backfill
+  covers 98.5% of rows, with 16,411 remaining `NULL`.
 - `net_area`, `bedroom`, coordinates, and operation dates have meaningful
   missingness.
 - `estate_mtr_lines` is not exhaustive.
