@@ -24,7 +24,8 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
   MTR line, or school net; groups under 20 transactions are marked low sample
 - official RVD benchmark chart with price/rent indices, average rents/prices,
   and yields by region and property class where available, explicitly labeled
-  as aggregate rather than estate-level data
+  as aggregate rather than estate-level data; A–E are plotted together as
+  saleable-area classes, with the boundaries shown in the panel
 - estate map with district filtering, price-bucketed markers, zoom-aware
   clustering, district-to-list linking, and “Show on map” from the estate
   drawer

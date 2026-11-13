@@ -29,8 +29,9 @@ datasets:
     refresh: Manual (scripts/fetch_rvd.py)
     licence: Government of the Hong Kong SAR; cite the RVD
     caveats: >-
-      Official aggregate statistics, not transaction records. RVD property
-      classes and regions differ from HKP estate/district definitions, so use
+      Official aggregate statistics, not transaction records. Classes A-E use
+      saleable area: A <40 m2, B 40-69.9, C 70-99.9, D 100-159.9, E >=160 m2.
+      RVD regions/classes differ from HKP estate/district definitions, so use
       them as long-history benchmarks rather than direct estate comparisons.
     artifacts:
       - data/rvd/his_data_*.xls
