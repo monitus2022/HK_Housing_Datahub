@@ -983,8 +983,18 @@ select:focus {
   align-items: start;
 }
 
-.overview-layout-even {
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+.overview-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pulse-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: -6px 0 14px;
 }
 
 .overview-coverage {
@@ -1345,8 +1355,7 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .overview-layout,
-  .overview-layout-even {
+  .overview-layout {
     grid-template-columns: 1fr;
   }
 

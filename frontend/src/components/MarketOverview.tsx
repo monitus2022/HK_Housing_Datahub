@@ -9,7 +9,10 @@ import {
   buildYieldPoints,
   DEFAULT_SCATTER_OPTIONS,
 } from "../lib/overview";
-import { buildMultiLineGeometry } from "../lib/trends";
+import {
+  buildMultiLineGeometry,
+  listTrendDistricts,
+} from "../lib/trends";
 import {
   formatCompactHkd,
   formatMonth,
@@ -41,6 +44,7 @@ export function MarketOverview({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
+  const [pulseDistrictId, setPulseDistrictId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -69,10 +73,23 @@ export function MarketOverview({
   }, [manifest, reloadToken]);
 
   const kpis = useMemo(() => buildOverviewKpis(estates), [estates]);
-  const pulse = useMemo(
-    () => (rows ? buildMarketPulse(rows) : null),
+  const districts = useMemo(
+    () => (rows ? listTrendDistricts(rows) : []),
     [rows],
   );
+  const pulseDistrictName = useMemo(
+    () =>
+      districts.find((district) => district.id === pulseDistrictId)?.nameEn ??
+      "",
+    [districts, pulseDistrictId],
+  );
+  const pulse = useMemo(() => {
+    if (!rows) return null;
+    const filtered = pulseDistrictId
+      ? rows.filter((row) => row.district_id === pulseDistrictId)
+      : rows;
+    return buildMarketPulse(filtered);
+  }, [rows, pulseDistrictId]);
   const pulseGeometry = useMemo(
     () =>
       pulse
@@ -179,17 +196,46 @@ export function MarketOverview({
               </p>
             ) : null}
           </div>
+          <div className="pulse-toolbar">
+            <label className="field">
+              <span>Area</span>
+              <select
+                value={pulseDistrictId}
+                onChange={(event) =>
+                  setPulseDistrictId(event.target.value)
+                }
+              >
+                <option value="">All Hong Kong</option>
+                {districts.map((district) => (
+                  <option key={district.id} value={district.id}>
+                    {district.nameEn}
+                    {district.nameZh ? ` · ${district.nameZh}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           {loading ? (
             <InlineLoading label="Loading the market pulse…" />
           ) : error ? null : pulseGeometry ? (
             <LineChart
               geometry={pulseGeometry}
               formatValue={(value) => value.toFixed(0)}
-              ariaLabel="Hong Kong sale price and rent indexed to 100"
-              caption="District averages weighted by transaction count and indexed to 100. Both lines start at the first month where sale and rent overlap; rent history covers roughly the last three years."
+              ariaLabel={`${pulseDistrictName || "Hong Kong"} sale price and rent indexed to 100`}
+              caption={
+                pulseDistrictId
+                  ? `Monthly averages for ${pulseDistrictName}, indexed to 100. Both lines start at the first month where sale and rent overlap; rent history covers roughly the last three years.`
+                  : "District averages weighted by transaction count and indexed to 100. Both lines start at the first month where sale and rent overlap; rent history covers roughly the last three years."
+              }
             />
           ) : (
-            <EmptyNotice title="No overlapping sale and rent history">
+            <EmptyNotice
+              title={
+                pulseDistrictId
+                  ? `No overlapping sale and rent history for ${pulseDistrictName}`
+                  : "No overlapping sale and rent history"
+              }
+            >
               <p>
                 The snapshot needs at least one month with both sale and rent
                 values to build this chart.
@@ -259,7 +305,7 @@ export function MarketOverview({
         </section>
       </div>
 
-      <div className="overview-layout overview-layout-even">
+      <div className="overview-stack">
         <section className="panel overview-league">
           <div className="panel-heading">
             <div>
