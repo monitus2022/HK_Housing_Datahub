@@ -328,6 +328,25 @@ empty the benchmarks. The files are official aggregate benchmarks, not HKP
 transaction records; grains and caveats are in
 [`data-dictionary.md`](data-dictionary.md#rvd-benchmarks).
 
+## Backfill transaction sale types
+
+HKP sale types (`mkt_type`: 1 first hand, 2 second hand, MH group) are stored
+on new ingests. Existing rows need a targeted building-level refetch:
+
+```bash
+# Trial: fetch two buildings, report matches, do not update
+python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
+  --limit-buildings 2 --dry-run --delay 0
+
+# Full backfill (about 30k buildings; rate-limited by --delay)
+python scripts/backfill_sale_types.py --db data/agency/agency_data.db --delay 0.1
+```
+
+The script updates existing transactions by `tx_id`, never inserts rows, and
+reports `source_updates`, `matched`, `updated`, `unmatched`, and
+`remaining_null`. Re-running is idempotent. This is not a full estate or wiki
+crawl.
+
 ## Build and publish serving data
 
 Build the local snapshot without credentials:
@@ -398,7 +417,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 110 tests: Phase 2–6, catalogue, wiki, and RVD coverage (upserts, run
+`tests/` contains 113 tests: Phase 2–6, catalogue, wiki, RVD, and backfill coverage (upserts, run
 metadata, quality checks, response models, table mapping, duplicate-input dedupe, synthetic mart
 builds, serving manifest/publish planning), phase-id mapping and repair, plus
 offline RAG storage tests for upsert/prune idempotency. The boto3-only

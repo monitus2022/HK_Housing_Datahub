@@ -383,7 +383,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - RVD benchmarks are official aggregate series; they are charted separately and
   are not matched to individual estates or districts.
 - The transaction table has no sale/rent type; it is sale-only. `mkt_type`
-  distinguishes first/second hand once backfilled.
+  distinguishes first/second hand once `scripts/backfill_sale_types.py` has
+  backfilled existing rows.
 - Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
   (583,266 null), missing coordinates (633 estates), missing `first_op_date`
   (887 estates). Estates with a null or non-positive latest price/area are excluded when
