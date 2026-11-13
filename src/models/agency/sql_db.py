@@ -155,6 +155,8 @@ class Transactions(Base):
     last_tx_date = Column(DateTime)
     gain = Column(Float)
     net_ft_price = Column(Float)
+    mkt_type = Column(String)
+    transaction_type = Column(String)
     unit_id = Column(String, ForeignKey("units.unit_id"), nullable=False)
 
 

@@ -12,6 +12,7 @@ SELECT
     date(t.tx_date) AS tx_date,
     t.price,
     t.net_ft_price,
+    t.mkt_type,
     e.estate_id,
     e.estate_name_en,
     e.district_id,

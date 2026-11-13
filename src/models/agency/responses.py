@@ -122,6 +122,8 @@ EstateMonthlyMarketInfoResponses = list[EstateMonthlyMarketInfoResponse]
 class TransactionsDetailField(IgnoreExtraModel):
     id: str
     tx_date: str
+    mkt_type: Optional[str] = None
+    transaction_type: Optional[str] = None
     feature: Optional[list[IdNameOnlyField]] = None
     price: float
     last_tx_date: Optional[str] = None

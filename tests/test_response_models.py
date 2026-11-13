@@ -61,3 +61,5 @@ def test_transactions_response(transactions_payload):
     assert transaction.price == 6800000.0
     assert transaction.bedroom == 3
     assert transaction.net_ft_price == 9985.0
+    assert transaction.mkt_type == "2"
+    assert transaction.transaction_type == "NORM"

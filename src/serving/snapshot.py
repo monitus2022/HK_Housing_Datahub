@@ -56,6 +56,7 @@ TRANSACTION_RECENT_COLUMNS = (
     "tx_date",
     "price",
     "net_ft_price",
+    "mkt_type",
     "estate_id",
     "estate_name_en",
     "district_id",

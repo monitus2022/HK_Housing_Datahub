@@ -65,9 +65,9 @@ def make_snapshot_db(path: Path) -> None:
             );
             CREATE TABLE mart_transaction_recent (
                 tx_id TEXT, tx_date TEXT, price REAL, net_ft_price REAL,
-                estate_id TEXT, estate_name_en TEXT, district_id TEXT,
-                district_name_en TEXT, building_id TEXT, unit_id TEXT,
-                area REAL, net_area REAL, bedroom INTEGER
+                mkt_type TEXT, estate_id TEXT, estate_name_en TEXT,
+                district_id TEXT, district_name_en TEXT, building_id TEXT,
+                unit_id TEXT, area REAL, net_area REAL, bedroom INTEGER
             );
             CREATE TABLE mart_coverage (
                 estate_id TEXT, has_market INTEGER,
@@ -135,12 +135,13 @@ def make_snapshot_db(path: Path) -> None:
         )
         con.execute(
             "INSERT INTO mart_transaction_recent VALUES "
-            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 "T1",
                 "2025-01-16",
                 5000000.0,
                 15000.0,
+                "2",
                 "E1",
                 "Estate One",
                 "D1",
@@ -283,6 +284,7 @@ def test_snapshot_manifest_and_files(snapshot):
             "tx_date": "2025-01-16",
             "price": 5000000.0,
             "net_ft_price": 15000.0,
+            "mkt_type": "2",
             "estate_id": "E1",
             "estate_name_en": "Estate One",
             "district_id": "D1",

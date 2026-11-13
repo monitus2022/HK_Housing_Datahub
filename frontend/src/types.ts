@@ -91,6 +91,7 @@ export interface RecentTransaction {
   tx_date: string;
   price: number | null;
   net_ft_price: number | null;
+  mkt_type?: string | null;
   estate_id: string;
   estate_name_en: string;
   district_id: string;

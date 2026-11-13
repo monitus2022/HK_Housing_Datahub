@@ -198,6 +198,8 @@ def test_transaction_unit_and_feature_mapping(building_info_response):
     assert transaction_row.last_tx_date.year == 2017
     assert transaction_row.gain == pytest.approx(-2.86)
     assert transaction_row.net_ft_price == 9985.0
+    assert transaction_row.mkt_type == "2"
+    assert transaction_row.transaction_type == "NORM"
     assert transaction_row.unit_id == "U001660920"
 
     unit_row = UnitInfoModel.from_response(
