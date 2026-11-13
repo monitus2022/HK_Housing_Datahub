@@ -27,6 +27,7 @@ import { EmptyNotice, InlineError, InlineLoading } from "./Status";
 import { LineChart } from "./LineChart";
 import { PriceBandsChart } from "./PriceBandsChart";
 import { SegmentComparison } from "./SegmentComparison";
+import { RvdBenchmarks } from "./RvdBenchmarks";
 
 interface Props {
   manifest: Manifest;
@@ -564,6 +565,7 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
         </>
       ) : null}
       <SegmentComparison manifest={manifest} />
+      <RvdBenchmarks manifest={manifest} />
     </section>
   );
 }

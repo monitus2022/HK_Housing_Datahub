@@ -18,7 +18,7 @@ from typing import Any, Optional, Sequence
 
 from catalog import DEFAULT_METADATA, DEFAULT_QUALITY, build_catalog
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 FILE_NAMES = {
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
@@ -27,6 +27,7 @@ FILE_NAMES = {
     "estate_monthly": "estate_monthly.json.gz",
     "district_bands": "district_price_bands.json.gz",
     "segment_summary": "segment_summary.json",
+    "rvd_benchmarks": "rvd_benchmarks.json.gz",
     "catalog": "catalog.json",
     "coverage": "coverage.json.gz",
 }
@@ -217,6 +218,28 @@ def build_snapshot(
             "mart_district_price_bands",
         )
         segment_summary = fetch_rows(connection, "mart_segment_summary")
+        rvd_benchmarks = {
+            "rents": (
+                fetch_rows(connection, "rvd_rents")
+                if table_exists(connection, "rvd_rents")
+                else []
+            ),
+            "prices": (
+                fetch_rows(connection, "rvd_prices")
+                if table_exists(connection, "rvd_prices")
+                else []
+            ),
+            "indices": (
+                fetch_rows(connection, "rvd_indices")
+                if table_exists(connection, "rvd_indices")
+                else []
+            ),
+            "yields": (
+                fetch_rows(connection, "rvd_yields")
+                if table_exists(connection, "rvd_yields")
+                else []
+            ),
+        }
 
         data_through = {
             "transactions": scalar(
@@ -293,6 +316,10 @@ def build_snapshot(
     write_json(
         snapshot_dir / FILE_NAMES["segment_summary"],
         clean_value(segment_summary),
+    )
+    write_gzip_json(
+        snapshot_dir / FILE_NAMES["rvd_benchmarks"],
+        clean_value(rvd_benchmarks),
     )
     write_json(
         snapshot_dir / FILE_NAMES["catalog"],

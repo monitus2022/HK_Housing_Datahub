@@ -272,10 +272,10 @@ credentials.
 - Phase 8 added the handoff documentation; see [`decisions.md`](decisions.md)
   and [`roadmap.md`](roadmap.md).
 - The frontend in `frontend/` opens on a visual market overview, then estate
-  search, trend views with comparisons, the estate map, recent transactions, and
-  the data catalogue. Further work is tracked in [`roadmap.md`](roadmap.md).
+  search, trend views with comparisons and RVD benchmarks, the estate map,
+  recent transactions, and the data catalogue. Further work is tracked in [`roadmap.md`](roadmap.md).
 - The ML workplan is deferred. Official RVD benchmark tables are ingested by
-`scripts/fetch_rvd.py`; dashboard exposure is planned.
+`scripts/fetch_rvd.py` and charted separately in Trends.
 
 ## Failure modes
 

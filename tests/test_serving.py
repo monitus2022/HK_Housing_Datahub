@@ -30,6 +30,7 @@ REQUIRED_FILES = {
     "estate_monthly.json.gz",
     "district_price_bands.json.gz",
     "segment_summary.json",
+    "rvd_benchmarks.json.gz",
     "coverage.json.gz",
     "catalog.json",
     "manifest.json",
@@ -85,6 +86,22 @@ def make_snapshot_db(path: Path) -> None:
                 sale_p75 REAL, rent_count INTEGER, rent_estates INTEGER,
                 rent_p25 REAL, rent_median REAL, rent_p75 REAL,
                 window_start TEXT, window_end TEXT, gross_yield_pct REAL
+            );
+            CREATE TABLE rvd_rents (
+                region_code TEXT, property_class TEXT, month TEXT,
+                value_hkd_m2 REAL, is_provisional INTEGER
+            );
+            CREATE TABLE rvd_prices (
+                region_code TEXT, property_class TEXT, month TEXT,
+                value_hkd_m2 REAL, is_provisional INTEGER
+            );
+            CREATE TABLE rvd_indices (
+                index_type TEXT, property_class TEXT, month TEXT,
+                value REAL, is_provisional INTEGER
+            );
+            CREATE TABLE rvd_yields (
+                property_class TEXT, month TEXT, yield_pct REAL,
+                is_provisional INTEGER
             );
             """
         )
@@ -156,6 +173,22 @@ def make_snapshot_db(path: Path) -> None:
                 "2024-01-16", "2025-01-16", 7.2,
             ),
         )
+        con.execute(
+            "INSERT INTO rvd_rents VALUES (?, ?, ?, ?, ?)",
+            ("hk", "A", "2025-01", 500.0, 0),
+        )
+        con.execute(
+            "INSERT INTO rvd_prices VALUES (?, ?, ?, ?, ?)",
+            ("hk", "A", "2025-01", 150000.0, 0),
+        )
+        con.execute(
+            "INSERT INTO rvd_indices VALUES (?, ?, ?, ?, ?)",
+            ("price", "ALL", "2025-01", 300.0, 0),
+        )
+        con.execute(
+            "INSERT INTO rvd_yields VALUES (?, ?, ?, ?)",
+            ("A", "2025-01", 3.0, 0),
+        )
         con.commit()
     finally:
         con.close()
@@ -178,7 +211,7 @@ def snapshot(tmp_path):
 def test_snapshot_manifest_and_files(snapshot):
     snapshot_dir, manifest = snapshot
 
-    assert manifest["schema_version"] == 6
+    assert manifest["schema_version"] == 7
     assert manifest["build_id"] == "test-build"
     assert manifest["data_through"] == {
         "transactions": "2025-01-16",
@@ -207,6 +240,7 @@ def test_snapshot_manifest_and_files(snapshot):
         "estate_monthly": "estate_monthly.json.gz",
         "district_bands": "district_price_bands.json.gz",
         "segment_summary": "segment_summary.json",
+        "rvd_benchmarks": "rvd_benchmarks.json.gz",
         "catalog": "catalog.json",
         "coverage": "coverage.json.gz",
     }
@@ -221,11 +255,16 @@ def test_snapshot_manifest_and_files(snapshot):
     assert overview["coverage"] == manifest["coverage"]
     catalog = read_json(snapshot_dir / "catalog.json")
     assert catalog["manifest"]["build_id"] == "test-build"
-    assert catalog["manifest"]["schema_version"] == 6
+    assert catalog["manifest"]["schema_version"] == 7
     assert len(read_json(snapshot_dir / "estate_summary.json.gz")) == 2
     assert len(read_json(snapshot_dir / "district_monthly.json.gz")) == 1
     assert len(read_json(snapshot_dir / "district_price_bands.json.gz")) == 1
     assert len(read_json(snapshot_dir / "segment_summary.json")) == 1
+    rvd = read_json(snapshot_dir / "rvd_benchmarks.json.gz")
+    assert rvd["rents"][0]["value_hkd_m2"] == 500.0
+    assert rvd["prices"][0]["region_code"] == "hk"
+    assert rvd["indices"][0]["index_type"] == "price"
+    assert rvd["yields"][0]["yield_pct"] == 3.0
     estate_monthly = read_json(snapshot_dir / "estate_monthly.json.gz")
     assert estate_monthly == {
         "months": ["2024-11", "2024-12", "2025-01"],
@@ -283,7 +322,7 @@ def test_publish_dry_run_plans_versioned_files_and_manifest_last(snapshot):
         dry_run=True,
     )
     keys = [upload["key"] for upload in uploads]
-    assert keys[:9] == [
+    assert keys[:10] == [
         f"dashboard/{manifest['build_id']}/overview.json",
         f"dashboard/{manifest['build_id']}/district_monthly.json.gz",
         f"dashboard/{manifest['build_id']}/estate_summary.json.gz",
@@ -291,6 +330,7 @@ def test_publish_dry_run_plans_versioned_files_and_manifest_last(snapshot):
         f"dashboard/{manifest['build_id']}/estate_monthly.json.gz",
         f"dashboard/{manifest['build_id']}/district_price_bands.json.gz",
         f"dashboard/{manifest['build_id']}/segment_summary.json",
+        f"dashboard/{manifest['build_id']}/rvd_benchmarks.json.gz",
         f"dashboard/{manifest['build_id']}/catalog.json",
         f"dashboard/{manifest['build_id']}/coverage.json.gz",
     ]
@@ -409,3 +449,25 @@ def test_publish_parser_defaults():
     assert args.dry_run is False
     assert args.db == "data/agency/agency_data.db"
     assert args.output_dir == "data/serving"
+
+
+def test_snapshot_without_rvd_tables_exports_empty_arrays(tmp_path):
+    db_path = tmp_path / "serving-no-rvd.db"
+    make_snapshot_db(db_path)
+    connection = sqlite3.connect(db_path)
+    try:
+        for table in ("rvd_rents", "rvd_prices", "rvd_indices", "rvd_yields"):
+            connection.execute(f'DROP TABLE "{table}"')
+        connection.commit()
+    finally:
+        connection.close()
+
+    manifest = build_snapshot(
+        db_path,
+        output_root=tmp_path / "serving-no-rvd",
+        build_id="no-rvd",
+    )
+    snapshot_dir = tmp_path / "serving-no-rvd" / manifest["build_id"]
+    rvd = read_json(snapshot_dir / "rvd_benchmarks.json.gz")
+
+    assert rvd == {"rents": [], "prices": [], "indices": [], "yields": []}
