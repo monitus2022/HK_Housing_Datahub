@@ -353,10 +353,11 @@ buildings that failed during an earlier run instead of refetching all ~30k
 buildings. The mode is reported in the completion line.
 
 A retry cannot always reach 100% coverage. Rows stay `NULL` when the HKP payload
-for a stored `tx_id` no longer exists (counted as `unmatched`), when the payload
-omits `mkt_type`/`transaction_type`, or when the building request keeps failing.
-Re-run with `--only-null` after a while, but treat the remaining `NULL` count as
-a documented coverage gap rather than an error.
+omits `mkt_type`/`transaction_type`, when a stored `tx_id` is no longer present
+in the refreshed payload, or when the building request keeps failing. Note that
+`unmatched` counts payload `tx_id`s that have no stored row, which is the
+opposite direction. Re-run with `--only-null` after a while, but treat the
+remaining `NULL` count as a documented coverage gap rather than an error.
 
 The script updates existing transactions by `tx_id`, never inserts rows, and
 reports `source_updates`, `matched`, `updated`, `unmatched`, and

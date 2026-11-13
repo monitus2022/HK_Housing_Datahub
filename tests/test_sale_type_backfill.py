@@ -166,7 +166,14 @@ def test_loading_buildings_missing_sale_type_targets_null_rows(tmp_path: Path):
         )
         connection.executemany(
             "INSERT INTO units VALUES (?, ?)",
-            [("U1", "B1"), ("U2", "B1"), ("U3", "B2"), ("U4", "B3"), ("U5", "B3")],
+            [
+                ("U1", "B1"),
+                ("U2", "B1"),
+                ("U3", "B2"),
+                ("U4", "B3"),
+                ("U5", "B3"),
+                ("U6", "B1"),
+            ],
         )
         connection.executemany(
             "INSERT INTO transactions VALUES (?, ?, ?)",
@@ -176,6 +183,7 @@ def test_loading_buildings_missing_sale_type_targets_null_rows(tmp_path: Path):
                 ("T3", "U3", "1"),
                 ("T4", "U4", None),
                 ("T5", "U5", "2"),
+                ("T6", "U6", None),
             ],
         )
         connection.commit()
