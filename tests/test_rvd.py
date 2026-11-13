@@ -226,3 +226,26 @@ def test_load_rvd_refuses_suspiciously_small_parses(tmp_path):
     ):
         with pytest.raises(ValueError, match="refusing to replace"):
             load_rvd(tmp_path / "rvd.db", tmp_path)
+
+
+@patch("processors.rvd.ingest.read_monthly_sheet")
+def test_region_class_column_layout_is_pinned(read_sheet):
+    # Literal source columns: the parser must not silently drift from the RVD layout.
+    values = {
+        8: 1, 11: 2, 14: 3,
+        17: 4, 20: 5, 23: 6,
+        26: 7, 29: 8, 32: 9,
+        35: 10, 38: 11, 41: 12,
+        44: 13, 47: 14, 50: 15,
+    }
+    read_sheet.return_value = make_frame([{1: 2024, 5: 1, **values}])
+
+    rows = parse_rents("unused.xls")
+    by_series = {
+        (row["region_code"], row["property_class"]): row["value_hkd_m2"]
+        for row in rows
+    }
+
+    assert by_series[("hk", "A")] == 1
+    assert by_series[("kln", "A")] == 2
+    assert by_series[("nt", "E")] == 15

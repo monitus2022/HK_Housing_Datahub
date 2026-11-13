@@ -430,7 +430,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   phase-2 files small (~340 KB gzipped bands and ~14 KB segments). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent trends come from HKP rental (`tx_type=L`) transactions and cover the
-  last three years; RVD is not integrated.
+  last three years; RVD benchmarks are stored separately and are not yet
+  charted.
 - The data is not inflation-adjusted and the ML work is deferred.
 
 ## Roadmap

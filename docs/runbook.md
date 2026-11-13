@@ -322,8 +322,10 @@ python scripts/fetch_rvd.py --db data/agency/agency_data.db --source-dir data/rv
 ```
 
 This writes `rvd_rents`, `rvd_prices`, `rvd_indices`, and `rvd_yields` with a
-full refresh. The files are official aggregate benchmarks, not HKP transaction
-records; grains and caveats are in
+full refresh. The importer refuses to replace the tables when the parsed row
+counts are suspiciously low, so a broken or changed workbook cannot silently
+empty the benchmarks. The files are official aggregate benchmarks, not HKP
+transaction records; grains and caveats are in
 [`data-dictionary.md`](data-dictionary.md#rvd-benchmarks).
 
 ## Build and publish serving data
