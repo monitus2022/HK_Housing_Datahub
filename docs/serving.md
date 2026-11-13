@@ -120,9 +120,10 @@ The frontend should:
 1. Fetch `https://hk-housing-datahub.monitus.org/dashboard/manifest.json`.
 2. Read `files` and fetch
    `https://hk-housing-datahub.monitus.org/dashboard/{build_id}/{file}`.
-3. Load `estate_summary` eagerly; load `district_monthly`,
-   `transaction_recent`, `estate_monthly`, and `catalog` only when their views
-   are opened.
+3. Load `estate_summary` and `district_monthly` eagerly for the default
+   Overview. Load `transaction_recent` when the top-estates panel approaches
+   the viewport; load `estate_monthly` and `catalog` when their views are
+   opened.
 4. Use `data_through`, `coverage`, and `row_counts` for display labels and
    freshness warnings. `data_through` covers sale and market dates; rental
    freshness is not a separate field, but rental months are included in the
