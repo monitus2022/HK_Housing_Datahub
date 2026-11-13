@@ -21,6 +21,9 @@ export function formatHkd(value: number | null): string {
 
 export function formatCompactHkd(value: number | null): string {
   if (value === null || Number.isNaN(value)) return "—";
+  if (Math.abs(value) >= 1_000_000_000) {
+    return `HK$${(value / 1_000_000_000).toFixed(1)}b`;
+  }
   if (Math.abs(value) >= 1_000_000) {
     return `HK$${(value / 1_000_000).toFixed(1)}m`;
   }

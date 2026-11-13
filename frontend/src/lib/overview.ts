@@ -384,8 +384,15 @@ export interface TopEstatesResult {
 function shiftMonths(date: string, months: number): string | null {
   const parsed = new Date(`${date}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return null;
-  parsed.setUTCMonth(parsed.getUTCMonth() - months);
-  return parsed.toISOString().slice(0, 10);
+  const year = parsed.getUTCFullYear();
+  const month = parsed.getUTCMonth();
+  const day = parsed.getUTCDate();
+  const target = new Date(Date.UTC(year, month - months, 1));
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  target.setUTCDate(Math.min(day, lastDay));
+  return target.toISOString().slice(0, 10);
 }
 
 /**
@@ -416,7 +423,7 @@ export function buildTopEstatesByValue(
     { name: string; district: string; totalValue: number; txCount: number }
   >();
   for (const transaction of transactions) {
-    if (start && transaction.tx_date <= start) continue;
+    if (start && transaction.tx_date < start) continue;
     if (end && transaction.tx_date > end) continue;
     if (transaction.price === null || transaction.price <= 0) continue;
     const existing = grouped.get(transaction.estate_id);

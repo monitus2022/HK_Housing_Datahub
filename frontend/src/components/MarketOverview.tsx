@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   DistrictMonthly,
   EstateSummary,
@@ -63,7 +63,9 @@ export function MarketOverview({
   const [txError, setTxError] = useState<string | null>(null);
   const [txLoading, setTxLoading] = useState(true);
   const [txReloadToken, setTxReloadToken] = useState(0);
+  const [txRequested, setTxRequested] = useState(false);
   const [pulseDistrictId, setPulseDistrictId] = useState("");
+  const topEstatesRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +94,25 @@ export function MarketOverview({
   }, [manifest, reloadToken]);
 
   useEffect(() => {
+    const check = () => {
+      const node = topEstatesRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.top <= window.innerHeight + 120 && rect.bottom >= -120) {
+        setTxRequested(true);
+      }
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!txRequested) return;
     let cancelled = false;
     setTxLoading(true);
     setTxError(null);
@@ -115,7 +136,7 @@ export function MarketOverview({
     return () => {
       cancelled = true;
     };
-  }, [manifest, txReloadToken]);
+  }, [manifest, txReloadToken, txRequested]);
 
   const kpis = useMemo(() => buildOverviewKpis(estates), [estates]);
   const districts = useMemo(
@@ -197,9 +218,9 @@ export function MarketOverview({
           <p className="eyebrow">Overview</p>
           <h2>Hong Kong housing at a glance</h2>
           <p className="muted">
-            Estate-level medians, the sale-versus-rent pulse, and the latest
-            district picture from the current snapshot. No new statistics are
-            computed on the server.
+            Estate-level medians, the sale-versus-rent pulse, top transacted
+            estates, and the latest district picture from the current snapshot.
+            No new statistics are computed on the server.
           </p>
         </div>
         <p className="result-count">
@@ -377,7 +398,7 @@ export function MarketOverview({
         </section>
       </div>
 
-      <section className="panel overview-top-estates">
+      <section ref={topEstatesRef} className="panel overview-top-estates">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Value</p>
@@ -387,7 +408,7 @@ export function MarketOverview({
             {formatNumber(topEstates?.entries.length ?? 0)} estates
           </p>
         </div>
-        {txLoading ? (
+        {!txRequested || txLoading ? (
           <InlineLoading label="Loading top estates…" />
         ) : txError ? (
           <InlineError
@@ -409,14 +430,16 @@ export function MarketOverview({
               {formatDate(topEstates.end)}. Sum of positive transaction
               prices per estate.
             </p>
-            <ol className="top-estate-list">
+            <ol className="top-estate-list" role="list">
               {topEstates.entries.map((entry, index) => {
                 const estate = estates.find(
                   (item) => item.estate_id === entry.id,
                 );
                 return (
                   <li key={entry.id} className="top-estate-row">
-                    <span className="top-estate-rank">{index + 1}</span>
+                    <span className="top-estate-rank" aria-hidden="true">
+                      {index + 1}
+                    </span>
                     <div className="top-estate-main">
                       <div className="top-estate-label">
                         {estate && onSelectEstate ? (
@@ -430,9 +453,11 @@ export function MarketOverview({
                         ) : (
                           <strong>{entry.name}</strong>
                         )}
-                        <span className="muted">{entry.district}</span>
+                        <span className="muted" title={entry.district}>
+                          {entry.district}
+                        </span>
                       </div>
-                      <div className="top-estate-track">
+                      <div className="top-estate-track" aria-hidden="true">
                         <span
                           className="top-estate-bar"
                           style={{

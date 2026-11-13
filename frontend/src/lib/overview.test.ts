@@ -293,7 +293,8 @@ describe("buildTopEstatesByValue", () => {
   const transactions = [
     transaction("E1", "2026-10-01", 100),
     transaction("E1", "2026-01-01", 50),
-    transaction("E1", "2025-10-01", 999),
+    transaction("E1", "2025-11-08", 10),
+    transaction("E1", "2025-09-30", 999),
     transaction("E2", "2026-05-01", 300),
     transaction("E3", "2026-06-01", null),
     transaction("E4", "2026-07-01", 0),
@@ -315,8 +316,8 @@ describe("buildTopEstatesByValue", () => {
       txCount: 1,
     });
     expect(result.entries[1]).toMatchObject({
-      totalValue: 150,
-      txCount: 2,
+      totalValue: 160,
+      txCount: 3,
     });
   });
 
@@ -326,5 +327,10 @@ describe("buildTopEstatesByValue", () => {
     expect(result.entries).toHaveLength(1);
     expect(result.entries[0].id).toBe("E2");
     expect(result.end).toBe("2026-10-01");
+  });
+
+  it("clamps month-end starts across shorter months", () => {
+    const result = buildTopEstatesByValue([], 10, 12, "2024-02-29");
+    expect(result.start).toBe("2023-02-28");
   });
 });
