@@ -11,7 +11,7 @@ flowchart TD
     subgraph Sources
         HKP[HKP API]
         WIKI[Wikipedia API]
-        RVD[RVD publications<br/>planned]
+        RVD[RVD publications]
     end
 
     subgraph Crawl
@@ -24,6 +24,7 @@ flowchart TD
         EP[EstatesProcessor]
         BP[BuildingsCrawler/Processor]
         WP[WikiProcessor]
+        RP[RVD parser]
         RG[RAG embedding pipeline]
     end
 
@@ -44,7 +45,7 @@ flowchart TD
     WIKI --> WC --> WP --> WJSON
     WJSON --> RG --> CHROMA
     SQL --> MART --> SNAP --> WEB
-    RVD -. planned .-> SQL
+    RVD --> RP --> SQL
 ```
 
 ## Entry point and orchestration
@@ -94,6 +95,7 @@ Notes:
 | `src/processors/agency/rentals.py` | Maps and upserts rental transactions. |
 | `src/processors/wiki/wiki.py` | Parses wiki sections and tables, expands rowspan/colspan, and emits CSV table strings alongside section text. |
 | `src/processors/rag/embedding.py` | Cleans and chunks wiki text, generates normalized Sentence Transformer embeddings, and writes to ChromaDB. |
+| `src/processors/rvd/ingest.py` | Downloads/parses the five RVD XLS workbooks and replaces the benchmark tables. |
 
 ### Models
 
@@ -101,7 +103,8 @@ Notes:
 |---|---|
 | `src/models/agency/responses.py` | Pydantic representations of HKP API responses. |
 | `src/models/agency/outputs.py` | Response-to-table mapping models, including date parsing. |
-| `src/models/agency/sql_db.py` | SQLAlchemy declarative tables and primary keys. This is the source of truth for the relational schema. |
+| `src/models/agency/sql_db.py` | SQLAlchemy declarative tables and primary keys for the agency schema. |
+| `src/models/rvd/sql_db.py` | RVD benchmark tables and composite primary keys. |
 | `src/models/wiki/outputs.py` | Wiki table/section/page models and CSV rendering. |
 | `src/models/rag/documents.py` | Document, metadata, and search-result models. |
 
@@ -269,9 +272,10 @@ credentials.
 - Phase 8 added the handoff documentation; see [`decisions.md`](decisions.md)
   and [`roadmap.md`](roadmap.md).
 - The frontend in `frontend/` opens on a visual market overview, then estate
-  search, trend views with comparisons, the estate map, recent transactions, and
-  the data catalogue. Further work is tracked in [`roadmap.md`](roadmap.md).
-- The ML workplan is deferred.
+  search, trend views with comparisons and RVD benchmarks, the estate map,
+  recent transactions, and the data catalogue. Further work is tracked in [`roadmap.md`](roadmap.md).
+- The ML workplan is deferred. Official RVD benchmark tables are ingested by
+`scripts/fetch_rvd.py` and charted separately in Trends.
 
 ## Failure modes
 

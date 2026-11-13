@@ -8,9 +8,10 @@ baseline. This file tracks work beyond it.
 - **Incremental crawls** — persist a watermark and diff estate/building IDs so
   reruns only fetch changed payloads. Today reruns are idempotent but still
   refetch everything.
-- **RVD benchmarks** — ingest Rating and Valuation Department rents, prices,
-  indices, and yields at region × size-class granularity as long-history and
-  yield benchmarks. District rent already comes from HKP rental transactions.
+- **RVD benchmarks** — ingestion of official rents, prices, indices, and
+  yields at region × property-class granularity is implemented, with a
+  long-history benchmark panel in Trends. District rent already comes from HKP
+  rentals.
 - **Better Wikipedia coverage** — handle more title variants, English pages,
   disambiguation pages, and missing/renamed estates. Improve `has_wiki` beyond
   exact-name matching.

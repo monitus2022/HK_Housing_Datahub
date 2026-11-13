@@ -199,3 +199,41 @@ export interface SegmentSummary {
   window_end: string;
   gross_yield_pct: number | null;
 }
+
+export interface RvdRent {
+  region_code: string;
+  property_class: string;
+  month: string;
+  value_hkd_m2: number | null;
+  is_provisional: number;
+}
+
+export interface RvdPrice {
+  region_code: string;
+  property_class: string;
+  month: string;
+  value_hkd_m2: number | null;
+  is_provisional: number;
+}
+
+export interface RvdIndex {
+  index_type: "rental" | "price";
+  property_class: string;
+  month: string;
+  value: number | null;
+  is_provisional: number;
+}
+
+export interface RvdYield {
+  property_class: string;
+  month: string;
+  yield_pct: number | null;
+  is_provisional: number;
+}
+
+export interface RvdBenchmarks {
+  rents: RvdRent[];
+  prices: RvdPrice[];
+  indices: RvdIndex[];
+  yields: RvdYield[];
+}
