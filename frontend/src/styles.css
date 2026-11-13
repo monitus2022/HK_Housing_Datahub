@@ -1294,6 +1294,12 @@ select:focus {
   font-size: 0.68rem;
 }
 
+.segment-low-sample {
+  color: #b45309;
+  font-style: normal;
+  font-weight: 650;
+}
+
 .segment-bar-track {
   height: 10px;
   border-radius: 999px;

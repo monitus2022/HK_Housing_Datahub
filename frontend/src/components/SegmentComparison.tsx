@@ -3,6 +3,7 @@ import type { Manifest, SegmentSummary } from "../types";
 import { loadSegmentSummary } from "../lib/dashboard";
 import {
   buildSegmentBars,
+  MIN_SEGMENT_SAMPLE,
   type SegmentMetric,
 } from "../lib/segments";
 import { formatCompactHkd, formatDate, formatNumber } from "../lib/format";
@@ -85,12 +86,14 @@ export function SegmentComparison({ manifest }: Props) {
     <section className="trend-segments" aria-label="Segment comparison">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Segments</p>
-          <h3>Compare {segmentLabel.toLowerCase()}</h3>
+          <p className="eyebrow">Segments · All Hong Kong</p>
+          <h3>Compare {segmentLabel.toLowerCase()} across all districts</h3>
           <p className="muted">
             Trailing 12 months: {formatDate(windowStart)} –{" "}
             {formatDate(windowEnd)}. Medians use positive net-ft prices;
-            “Unknown” rows are hidden by default.
+            “Unknown” rows are hidden. Showing the top 12 groups by the
+            selected metric; groups under {MIN_SEGMENT_SAMPLE} transactions are
+            marked low sample.
           </p>
         </div>
       </div>
@@ -146,7 +149,12 @@ export function SegmentComparison({ manifest }: Props) {
             <li key={bar.value} className="segment-bar-row">
               <div className="segment-bar-label">
                 <strong>{bar.value}</strong>
-                <span>{formatNumber(bar.count)} tx</span>
+                <span>
+                  {formatNumber(bar.count)} tx
+                  {bar.lowSample ? (
+                    <em className="segment-low-sample"> · low sample</em>
+                  ) : null}
+                </span>
               </div>
               <div className="segment-bar-track" aria-hidden="true">
                 <span

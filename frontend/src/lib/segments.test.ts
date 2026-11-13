@@ -11,12 +11,12 @@ function segment(
   return {
     segment_type: "bedroom",
     segment_value: value,
-    sale_count: saleMedian === null ? 0 : 10,
+    sale_count: saleMedian === null ? 0 : 25,
     sale_estates: 5,
     sale_p25: null,
     sale_median: saleMedian,
     sale_p75: null,
-    rent_count: rentMedian === null ? 0 : 4,
+    rent_count: rentMedian === null ? 0 : 25,
     rent_estates: 3,
     rent_p25: null,
     rent_median: rentMedian,
@@ -38,6 +38,7 @@ describe("buildSegmentBars", () => {
   it("filters type and excludes Unknown by default", () => {
     const bars = buildSegmentBars(rows, "bedroom", "sale");
     expect(bars.map((bar) => bar.value)).toEqual(["4+", "0-1", "2"]);
+    expect(bars.every((bar) => bar.lowSample === false)).toBe(true);
   });
 
   it("can include Unknown and uses rent medians", () => {
@@ -50,5 +51,13 @@ describe("buildSegmentBars", () => {
     const bars = buildSegmentBars(rows, "bedroom", "yield", 2, true);
     expect(bars.map((bar) => bar.value)).toEqual(["Unknown", "0-1"]);
     expect(bars[0].metricValue).toBe(6);
+  });
+});
+
+describe("low sample marking", () => {
+  it("marks groups below the documented threshold", () => {
+    const low = { ...segment("small", 12000, null, null), sale_count: 3 };
+    const bars = buildSegmentBars([low], "bedroom", "sale");
+    expect(bars[0].lowSample).toBe(true);
   });
 });

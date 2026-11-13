@@ -64,6 +64,21 @@ export function PriceBandsChart({
     [series],
   );
   const latest = series[series.length - 1] ?? null;
+  const latestYield = useMemo(() => {
+    if (!rows) return null;
+    const districtRows = rows
+      .filter(
+        (row) =>
+          row.district_id === districtId &&
+          row.gross_yield_pct !== null &&
+          row.gross_yield_pct > 0,
+      )
+      .sort((left, right) => left.month.localeCompare(right.month));
+    const last = districtRows[districtRows.length - 1];
+    return last
+      ? { value: last.gross_yield_pct as number, month: last.month }
+      : null;
+  }, [rows, districtId]);
 
   return (
     <section className="trend-distribution" aria-label="Price distribution">
@@ -127,6 +142,18 @@ export function PriceBandsChart({
               </p>
               <p className="stat-note">HKD/ft² · {formatMonth(latest.month)}</p>
             </div>
+            {latestYield ? (
+              <div className="stat-tile">
+                <p className="stat-label">Same-month yield</p>
+                <p className="stat-value stat-value-small">
+                  {latestYield.value.toFixed(2)}%
+                </p>
+                <p className="stat-note">
+                  Median rent × 12 ÷ median sale ·{" "}
+                  {formatMonth(latestYield.month)}
+                </p>
+              </div>
+            ) : null}
           </div>
 
           {geometry ? (

@@ -2,11 +2,15 @@ import type { SegmentSummary } from "../types";
 
 export type SegmentMetric = "sale" | "rent" | "yield";
 
+/** Groups below this many transactions are marked as low sample. */
+export const MIN_SEGMENT_SAMPLE = 20;
+
 export interface SegmentBar {
   value: string;
   count: number;
   metricValue: number;
   median: number | null;
+  lowSample: boolean;
 }
 
 export function buildSegmentBars(
@@ -24,11 +28,13 @@ export function buildSegmentBars(
 
     if (metric === "yield") {
       if (row.gross_yield_pct === null || row.gross_yield_pct <= 0) continue;
+      const count = row.sale_count ?? 0;
       bars.push({
         value: row.segment_value,
-        count: row.sale_count ?? 0,
+        count,
         metricValue: row.gross_yield_pct,
         median: row.sale_median,
+        lowSample: count < MIN_SEGMENT_SAMPLE,
       });
       continue;
     }
@@ -41,6 +47,7 @@ export function buildSegmentBars(
       count,
       metricValue: median,
       median,
+      lowSample: count < MIN_SEGMENT_SAMPLE,
     });
   }
 

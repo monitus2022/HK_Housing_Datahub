@@ -559,11 +559,11 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
                 districtName={districtName}
                 window={window}
               />
-              <SegmentComparison manifest={manifest} />
             </>
           )}
         </>
       ) : null}
+      <SegmentComparison manifest={manifest} />
     </section>
   );
 }
