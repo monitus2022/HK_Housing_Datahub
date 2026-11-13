@@ -1237,10 +1237,86 @@ select:focus {
   font-size: 0.78rem;
 }
 
-.trend-comparison {
+.trend-comparison,
+.trend-distribution,
+.trend-segments {
   margin-top: 22px;
   border-top: 1px solid var(--line);
   padding-top: 18px;
+}
+
+.trend-distribution .panel-heading,
+.trend-segments .panel-heading {
+  margin-bottom: 14px;
+}
+
+.chart-legend-band {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 118, 110, 0.35),
+    rgba(15, 118, 110, 0.08)
+  );
+  border: 1px solid rgba(15, 118, 110, 0.25);
+}
+
+.segment-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.segment-bar-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr) 90px;
+  align-items: center;
+  gap: 12px;
+}
+
+.segment-bar-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.segment-bar-label strong {
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segment-bar-label span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.segment-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #eef3f2;
+  overflow: hidden;
+}
+
+.segment-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7cc5b8, #0f766e);
+}
+
+.segment-bar-fill.segment-bar-yield {
+  background: linear-gradient(90deg, #fbbf24, #b45309);
+}
+
+.segment-bar-value {
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .trend-comparison .panel-heading {
@@ -1522,6 +1598,15 @@ select:focus {
     flex-direction: row;
     align-items: baseline;
     justify-content: space-between;
+  }
+
+  .segment-bar-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .segment-bar-value {
+    text-align: left;
   }
 
   .map-canvas {

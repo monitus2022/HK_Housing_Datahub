@@ -25,6 +25,8 @@ import {
 } from "../lib/format";
 import { EmptyNotice, InlineError, InlineLoading } from "./Status";
 import { LineChart } from "./LineChart";
+import { PriceBandsChart } from "./PriceBandsChart";
+import { SegmentComparison } from "./SegmentComparison";
 
 interface Props {
   manifest: Manifest;
@@ -142,6 +144,8 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
   const metricAvailable = levelSeries.length > 0;
   const metricName = METRIC_LABELS[metric].toLowerCase();
   const positiveMonths = series.filter((point) => point.value > 0).length;
+  const districtName =
+    districts.find((district) => district.id === districtId)?.nameEn ?? "";
   const viewCaption =
     viewMode === "index"
       ? "Each series is indexed to 100 at its first positive month in the window."
@@ -548,6 +552,14 @@ export function DistrictTrends({ manifest, focusDistrict }: Props) {
                   />
                 </section>
               ) : null}
+
+              <PriceBandsChart
+                manifest={manifest}
+                districtId={districtId}
+                districtName={districtName}
+                window={window}
+              />
+              <SegmentComparison manifest={manifest} />
             </>
           )}
         </>
