@@ -145,7 +145,7 @@ database read-only, so it cannot modify either one. Pass `--db PATH` to point
 at a different copy of the agency database; the wiki and Chroma paths are
 resolved from the current working directory, so run it from the repo root.
 
-## Final handoff and post-release checks — 2026-11-11 (serving updated 2026-11-13)
+## Final handoff and post-release checks — 2026-11-11 (serving updated 2026-11-14)
 
 - **Tests:** `pytest -q` → 115 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
@@ -167,7 +167,7 @@ resolved from the current working directory, so run it from the repo root.
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261113T204107Z-77431c` (`schema_version` 8), ~4.9 MiB;
+- **Serving:** build `20261113T204107Z-77431c` (`schema_version` 8), ~5.2 MB;
   verifier passed; all twelve files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
   cache, and CORS headers verified. It carries refreshed data (transactions
