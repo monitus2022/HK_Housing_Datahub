@@ -9,6 +9,7 @@ import {
   loadSegmentSummary,
   loadEstateMonthly,
   loadRecentTransactions,
+  loadRvdBenchmarks,
 } from "./dashboard";
 
 const manifest: Manifest = {
@@ -31,6 +32,7 @@ const manifest: Manifest = {
     transaction_recent: "transaction_recent.json.gz",
     district_bands: "district_price_bands.json.gz",
     segment_summary: "segment_summary.json",
+    rvd_benchmarks: "rvd_benchmarks.json.gz",
   },
   source: ["HKP"],
 };
@@ -180,6 +182,27 @@ describe("on-demand dataset loaders", () => {
     expect(rows).toEqual(bands);
     expect(fetchMock.mock.calls[0][0]).toContain(
       "/dashboard/build-bands/district_price_bands.json.gz",
+    );
+  });
+
+  it("loads RVD benchmarks from the manifest file", async () => {
+    const benchmarks = {
+      rents: [{ region_code: "hk", property_class: "A", month: "2026-09" }],
+      prices: [],
+      indices: [],
+      yields: [],
+    };
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(benchmarks));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const rows = await loadRvdBenchmarks({
+      ...manifest,
+      build_id: "build-rvd",
+    });
+
+    expect(rows).toEqual(benchmarks);
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/dashboard/build-rvd/rvd_benchmarks.json.gz",
     );
   });
 

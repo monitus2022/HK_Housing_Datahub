@@ -7,6 +7,7 @@ import type {
   EstateSummary,
   Manifest,
   RecentTransaction,
+  RvdBenchmarks,
   SegmentSummary,
 } from "../types";
 
@@ -121,6 +122,13 @@ export async function loadSegmentSummary(
   manifest: Manifest,
 ): Promise<SegmentSummary[]> {
   return fetchVersionedJson<SegmentSummary[]>(manifest, "segment_summary");
+}
+
+/** Official RVD benchmark series. Loaded by the trends view. */
+export async function loadRvdBenchmarks(
+  manifest: Manifest,
+): Promise<RvdBenchmarks> {
+  return fetchVersionedJson<RvdBenchmarks>(manifest, "rvd_benchmarks");
 }
 
 /** Catalogue and data cards. Loaded on demand by the catalogue view. */
