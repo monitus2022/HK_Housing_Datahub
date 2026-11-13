@@ -34,7 +34,7 @@ baseline. This file tracks work beyond it.
 
 - **Frontend visualization phases** — phase 1 is the visualization-first
   overview and trend workbench built from current marts: market KPIs,
-  a district-filterable sale/rent pulse, top estates by transacted value,
+  a district-filterable sale/rent pulse, top estates by sale type,
   district league, yield scatter, and level/index/change trend
   views with district comparison. Map clustering adds zoom-aware groups and
   map/list linking. Phase 2 adds medians, percentiles, segment marts, and
