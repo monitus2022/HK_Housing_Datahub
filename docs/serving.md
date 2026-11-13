@@ -38,18 +38,19 @@ bootstrap and load the catalogue without extra decoding.
 
 ## Published snapshot
 
-Build `20261113T091522Z-4686d6` (`schema_version` 7) is the current published
+Build `20261113T130704Z-2ac947` (`schema_version` 8) is the current published
 snapshot in the `hk-housing-datahub` bucket. It superseded
-`20261113T070357Z-8fc5d3` as the pointer on 2026-11-13. It carries the refreshed
+`20261113T091522Z-4686d6` as the pointer on 2026-11-13. It carries the refreshed
 dataset (transactions through 2026-11-08, rentals through 2026-11-10, market
 data through 2026-09-30, 9,750 estates), `catalog.json` (~37 KB across 7
-datasets and 27 tables) with `wiki_title` for 824 estates, and adds
-`rvd_benchmarks.json.gz` (~98 KB). It includes `district_price_bands.json.gz`
-(~340 KB), `segment_summary.json` (~14 KB), `transaction_recent.json.gz`
-(~2.1 MB gzipped for 87,393 display rows), and `estate_monthly.json.gz`
-(~1.3 MB), taking the snapshot to ~5.1 MB. The remote `dashboard/manifest.json`
-and every referenced file were read back successfully; the gzip, cache, and
-CORS headers were verified.
+datasets and 27 tables) with `wiki_title` for 824 estates, and adds `mkt_type`
+to the recent-transaction export (97.6% typed). It includes
+`rvd_benchmarks.json.gz` (~98 KB), `district_price_bands.json.gz` (~340 KB),
+`segment_summary.json` (~14 KB), `transaction_recent.json.gz` (~2.1 MB gzipped
+for 87,393 display rows), and `estate_monthly.json.gz` (~1.3 MB), taking the
+snapshot to ~5.1 MB. The remote `dashboard/manifest.json` and every referenced
+file were read back successfully; the gzip, cache, and CORS headers were
+verified.
 
 The snapshot is public at <https://hk-housing-datahub.monitus.org>. The frontend
 is deployed at <https://hk-housing.monitus.org> and reads the snapshot through
@@ -87,7 +88,7 @@ Content types: JSON data is `application/json`; gzip files also carry
 
 ```json
 {
-  "schema_version": 7,
+  "schema_version": 8,
   "build_id": "20261201T000000Z-example",
   "generated_at": "2026-12-01T00:00:00+00:00",
   "data_through": {
@@ -148,7 +149,7 @@ credentials must never be shipped to the frontend.
 
 `mart_transaction_recent` is exported as `transaction_recent.json.gz` (~2.1 MB
 gzipped for 87,393 rows). Only display columns are exported: `tx_date`, `price`,
-`net_ft_price`, `estate_id`, `estate_name_en`, `district_id`,
+`net_ft_price`, `mkt_type`, `estate_id`, `estate_name_en`, `district_id`,
 `district_name_en`, `area`, `net_area`, and `bedroom`. Internal join keys
 (`tx_id`, `building_id`, `unit_id`) stay in SQLite. The manifest can add further
 files without changing the existing contract.
@@ -204,11 +205,15 @@ All include provisional flags and `NULL` suppressed values. The frontend present
 separate benchmark — never as an estate-level match. If the RVD tables are
 absent, the snapshot writes empty arrays and the panel shows an empty state.
 
-Schema 7 adds the RVD benchmark export used by the Trends benchmark panel.
-Schema 6 added the monthly district price bands and segment summary. Schema 5
-added `catalog.json` and `wiki_title`. The current published build is schema 7;
-a schema-6 pointer has no RVD benchmarks, so that panel shows a missing-file
-message. A schema-5 pointer has no bands/segments either. A schema-4
+Schema 8 adds `mkt_type` to the recent-transactions export. It is optional in
+the frontend, so schema-7 snapshots still work without it. Schema 7 added the
+RVD benchmark export, schema 6 added the monthly district price bands and
+segment summary, and schema 5 added `catalog.json` and `wiki_title`. The current
+published build is schema 8; a schema-7 pointer has no sale types, so the
+top-estates chart falls back to all sales. Once trailing-12-month sale-type
+coverage is at least 95%, the chart defaults to 2nd-hand/resale values. A schema-6 pointer has no RVD
+benchmarks, so that panel shows a missing-file message. A schema-5 pointer has
+no bands/segments either. A schema-4
 pointer also serves no catalogue, so the Catalogue view shows a missing-file
 message and its wiki badges stay non-links; older schema-3/2 snapshots without
 `estate_monthly` still work, with a section-level message for missing history.

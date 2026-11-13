@@ -10,6 +10,7 @@ from ..base import BaseProcessor
 from config import housing_datahub_config
 from logger import housing_logger
 from models.agency.sql_db import Base, PipelineRun
+from models.agency.migrations import ensure_additive_columns
 import os
 import json
 from abc import abstractmethod
@@ -75,6 +76,11 @@ class AgencyProcessor(BaseProcessor):
             conn.execute(text("PRAGMA journal_mode=WAL;"))
             housing_logger.info("Enabled WAL journal mode for SQLite database.")
             conn.commit()
+        added = ensure_additive_columns(self.engine)
+        if added:
+            housing_logger.info(
+                "Added additive transaction columns: " + ", ".join(added)
+            )
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 

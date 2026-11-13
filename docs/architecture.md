@@ -172,8 +172,9 @@ Notes:
    and the Wikipedia page title.
 4. It runs ordered SQL files: raw indexes, five mart definitions, then mart
    lookup indexes.
-5. It drops/recreates the marts on every run; existing raw data and columns
-   are unchanged, though indexes are added and missing raw tables are created.
+5. It drops/recreates the marts on every run; existing rows and values are
+   preserved, while indexes, missing raw tables, and nullable additive columns
+   may be added.
 
 The resulting marts are documented in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts) and are the source for
@@ -201,8 +202,9 @@ The manifest and cache contract is in [`serving.md`](serving.md).
 is a market overview built from estate summary and district monthly rows, plus
 recent transactions when the top-estates panel approaches the viewport: median
 price/rent/yield KPIs, a sale-versus-rent index filterable by Hong Kong or
-district, a top-10 estates bar chart by trailing-12-month transacted value, a
-district league table, and a full-width price-versus-yield scatter. Estate
+district, a top-10 estates bar chart by trailing-12-month value with All/1st/2nd sale
+type filtering (2nd hand default once coverage is sufficient), a district
+league table, and a full-width price-versus-yield scatter. Estate
 history, district trends, and recent transactions load their data files on
 demand, and the map plots estate
 coordinates over OpenStreetMap tiles. The map groups nearby estates into

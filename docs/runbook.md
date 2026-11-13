@@ -304,8 +304,8 @@ mart_segment_summary      trailing-12-month medians by segment
 ```
 
 The builder drops and recreates the `mart_*` tables and creates idempotent raw
-and mart indexes. Existing raw data and columns are not modified; indexes are added to raw
-tables and any missing raw tables are created. `has_wiki` comes from the wiki JSON estate names; missing wiki
+and mart indexes. Existing rows and values are preserved; missing raw tables and
+nullable additive columns (currently transaction sale type) may be added. `has_wiki` comes from the wiki JSON estate names; missing wiki
 data simply sets it to 0. Windows end at the later of the latest sale and rental dates in the
 snapshot. Grains and columns are in
 [`data-dictionary.md`](data-dictionary.md#analytics-marts).
@@ -327,6 +327,28 @@ counts are suspiciously low, so a broken or changed workbook cannot silently
 empty the benchmarks. The files are official aggregate benchmarks, not HKP
 transaction records; grains and caveats are in
 [`data-dictionary.md`](data-dictionary.md#rvd-benchmarks).
+
+## Backfill transaction sale types
+
+HKP sale types (`mkt_type`: 1 first hand, 2 second hand, MH group) are stored
+on new ingests. Existing rows need a targeted building-level refetch:
+
+```bash
+# Trial: fetch two buildings, report matches, do not update
+python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
+  --limit-buildings 2 --dry-run --delay 0
+
+# Full backfill (about 30k buildings; rate-limited by --delay)
+cp data/agency/agency_data.db data/agency/agency_data.db.pre-sale-types.bak
+python scripts/backfill_sale_types.py --db data/agency/agency_data.db --delay 0.1
+```
+
+The script updates existing transactions by `tx_id`, never inserts rows, and
+reports `source_updates`, `matched`, `updated`, `unmatched`, and
+`remaining_null`. `updated` counts matched rows touched (SQLite rowcount), so a
+rerun still reports updates even though the values are unchanged; data is
+idempotent. Dry runs do not alter the schema. This is not a full estate or wiki
+crawl.
 
 ## Build and publish serving data
 
@@ -384,9 +406,10 @@ python scripts/fetch_rentals.py --db data/agency/agency_data.db
 python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
-ruff check src/main.py src/logger.py src/analytics src/quality src/serving \
-  src/processors/agency src/processors/rag src/models/agency/sql_db.py \
-  src/models/agency/outputs.py src/orchestrators scripts tests
+ruff check src/main.py src/logger.py src/analytics src/catalog src/quality \
+  src/serving src/processors/agency src/processors/rag src/processors/rvd \
+  src/models/agency/sql_db.py src/models/agency/migrations.py \
+  src/models/agency/outputs.py src/models/rvd src/orchestrators scripts tests
 
 # Shortcuts
 make test
@@ -397,7 +420,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 97 tests: Phase 2–6, catalogue, and wiki coverage (upserts, run
+`tests/` contains 115 tests: Phase 2–6, catalogue, wiki, RVD, and backfill coverage (upserts, run
 metadata, quality checks, response models, table mapping, duplicate-input dedupe, synthetic mart
 builds, serving manifest/publish planning), phase-id mapping and repair, plus
 offline RAG storage tests for upsert/prune idempotency. The boto3-only

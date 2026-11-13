@@ -29,8 +29,9 @@ datasets:
     refresh: Manual (scripts/fetch_rvd.py)
     licence: Government of the Hong Kong SAR; cite the RVD
     caveats: >-
-      Official aggregate statistics, not transaction records. RVD property
-      classes and regions differ from HKP estate/district definitions, so use
+      Official aggregate statistics, not transaction records. Classes A-E use
+      saleable area: A <40 m2, B 40-69.9, C 70-99.9, D 100-159.9, E >=160 m2.
+      RVD regions/classes differ from HKP estate/district definitions, so use
       them as long-history benchmarks rather than direct estate comparisons.
     artifacts:
       - data/rvd/his_data_*.xls
@@ -138,7 +139,10 @@ tables:
     dataset: agency_raw
     description: Sale transactions for units.
     grain: One row per sale transaction.
-    caveats: There is no transaction-type column; rows are treated as sales.
+    caveats: >-
+      Sale-only table. mkt_type distinguishes first/second hand where
+      available; the 2026-11-13 backfill covers 98.5% of rows.
+      transaction_type carries the HKP normal/other marker.
   rental_transactions:
     dataset: agency_raw
     description: Lease/rental transactions fetched from the HKP district transaction search.

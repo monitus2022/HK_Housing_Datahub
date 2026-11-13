@@ -374,6 +374,48 @@ export interface TopEstateEntry {
   txCount: number;
 }
 
+export type SaleTypeFilter = "all" | "first" | "second";
+
+export const SALE_TYPE_COVERAGE_THRESHOLD = 0.95;
+
+export function saleTypeCoverage(
+  transactions: RecentTransaction[],
+  asOf: string | null = null,
+  months = 12,
+): number {
+  if (transactions.length === 0) return 0;
+  let end = asOf;
+  if (!end) {
+    for (const transaction of transactions) {
+      if (transaction.tx_date && (!end || transaction.tx_date > end)) {
+        end = transaction.tx_date;
+      }
+    }
+  }
+  const start = end ? shiftMonths(end, months) : null;
+  const scoped = transactions.filter((transaction) => {
+    if (start && transaction.tx_date < start) return false;
+    if (end && transaction.tx_date > end) return false;
+    return true;
+  });
+  if (scoped.length === 0) return 0;
+  const typed = scoped.filter((transaction) =>
+    Boolean(transaction.mkt_type),
+  ).length;
+  return typed / scoped.length;
+}
+
+export function hasSaleTypeData(
+  transactions: RecentTransaction[],
+  asOf: string | null = null,
+): boolean {
+  return saleTypeCoverage(transactions, asOf) > 0;
+}
+
+export function defaultSaleType(coverage: number): SaleTypeFilter {
+  return coverage >= SALE_TYPE_COVERAGE_THRESHOLD ? "second" : "all";
+}
+
 export interface TopEstatesResult {
   entries: TopEstateEntry[];
   start: string | null;
@@ -400,13 +442,15 @@ function shiftMonths(date: string, months: number): string | null {
  *
  * The window is relative to `asOf` (the snapshot's sale data-through date), or
  * the latest transaction date when `asOf` is omitted. Only positive prices are
- * summed; estates without one are omitted.
+ * summed. `saleType` keeps all, first-hand, or second-hand rows; estates
+ * without a matching positive price are omitted.
  */
 export function buildTopEstatesByValue(
   transactions: RecentTransaction[],
   limit = 10,
   months = 12,
   asOf: string | null = null,
+  saleType: SaleTypeFilter = "all",
 ): TopEstatesResult {
   let end = asOf;
   if (!end) {
@@ -426,6 +470,8 @@ export function buildTopEstatesByValue(
     if (start && transaction.tx_date < start) continue;
     if (end && transaction.tx_date > end) continue;
     if (transaction.price === null || transaction.price <= 0) continue;
+    if (saleType === "first" && transaction.mkt_type !== "1") continue;
+    if (saleType === "second" && transaction.mkt_type !== "2") continue;
     const existing = grouped.get(transaction.estate_id);
     if (existing) {
       existing.totalValue += transaction.price;

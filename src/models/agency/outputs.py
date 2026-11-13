@@ -442,6 +442,8 @@ class TransactionsDetailModel(BaseModel):
     last_tx_date: Optional[datetime] = None
     gain: Optional[float] = None
     net_ft_price: Optional[float] = None
+    mkt_type: Optional[str] = None
+    transaction_type: Optional[str] = None
     unit_id: str
 
     @field_validator("tx_date", mode="before")
@@ -465,6 +467,8 @@ class TransactionsDetailModel(BaseModel):
             last_tx_date=response.last_tx_date,
             gain=response.gain,
             net_ft_price=response.net_ft_price,
+            mkt_type=response.mkt_type,
+            transaction_type=response.transaction_type,
             unit_id=unit_id,
         )
 

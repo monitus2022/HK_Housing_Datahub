@@ -18,7 +18,7 @@ from typing import Any, Optional, Sequence
 
 from catalog import DEFAULT_METADATA, DEFAULT_QUALITY, build_catalog
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 FILE_NAMES = {
     "overview": "overview.json",
     "district_monthly": "district_monthly.json.gz",
@@ -56,6 +56,7 @@ TRANSACTION_RECENT_COLUMNS = (
     "tx_date",
     "price",
     "net_ft_price",
+    "mkt_type",
     "estate_id",
     "estate_name_en",
     "district_id",
@@ -88,6 +89,10 @@ def table_exists(con: sqlite3.Connection, table: str) -> bool:
         ).fetchone()
         is not None
     )
+
+
+def table_columns(con: sqlite3.Connection, table: str) -> set[str]:
+    return {row[1] for row in con.execute(f'PRAGMA table_info("{table}")')}
 
 
 def scalar(con: sqlite3.Connection, sql: str) -> Any:
@@ -207,6 +212,21 @@ def build_snapshot(
                 "avg_net_ft_rent",
             ),
         )
+        transaction_columns = table_columns(
+            connection,
+            "mart_transaction_recent",
+        )
+        missing_transaction_columns = [
+            column
+            for column in TRANSACTION_RECENT_COLUMNS
+            if column not in transaction_columns
+        ]
+        if missing_transaction_columns:
+            raise RuntimeError(
+                "mart_transaction_recent is missing columns: "
+                + ", ".join(missing_transaction_columns)
+                + ". Run scripts/build_marts.py first."
+            )
         transaction_recent = fetch_rows(
             connection,
             "mart_transaction_recent",

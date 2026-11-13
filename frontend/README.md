@@ -5,7 +5,10 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - visualization-first market overview with median price/rent/yield KPIs, a
   sale-versus-rent pulse filterable by All Hong Kong or a district and starting
   at their common coverage, a top-10 estates chart by trailing-12-month
-  transacted value, a district league table, and a full-width price-versus-yield
+  transaction value with All / 1st hand / 2nd hand filtering (2nd hand default
+  once sale-type coverage is at least 95%; old or partially backfilled snapshots
+  fall back to All),
+  a district league table, and a full-width price-versus-yield
   scatter
 - estate search with text, district, price, net-ft price, area, bedroom, MTR,
   and school-net filters, sorting, and pagination; filter state lives in the URL
@@ -21,12 +24,14 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
   MTR line, or school net; groups under 20 transactions are marked low sample
 - official RVD benchmark chart with price/rent indices, average rents/prices,
   and yields by region and property class where available, explicitly labeled
-  as aggregate rather than estate-level data
+  as aggregate rather than estate-level data; A–E are plotted together as
+  saleable-area classes, with the boundaries shown in the panel
 - estate map with district filtering, price-bucketed markers, zoom-aware
   clustering, district-to-list linking, and “Show on map” from the estate
   drawer
 - recent-transactions table with search, district/date filters, sorting, and
-  pagination
+  pagination; it still shows all sale types (sale-type filtering is currently
+  limited to the top-estates chart)
 - catalogue view with dataset cards, provenance, freshness, quality, caveats,
   and expandable table/column detail
 
