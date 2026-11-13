@@ -324,13 +324,17 @@ Grain: one row per transaction. Primary key: `tx_id`. Foreign key:
 | `last_tx_date` | datetime | yes | Previous transaction date for the unit |
 | `gain` | real | yes | Gain versus the previous transaction |
 | `net_ft_price` | real | yes | Price per net sq ft |
+| `mkt_type` | text | yes | `1` first hand, `2` second hand, `MH` HKP/group |
+| `transaction_type` | text | yes | HKP transaction type, e.g. `NORM` |
 | `unit_id` | text | no | Unit |
 
 Rows: 1,071,268 across 719,895 units; 351,373 units have more than one
-transaction. Range: 1996-01 to 2025-10-21. There is **no transaction-type
-column**; treat the table as sale transactions unless the source is re-audited.
-`last_tx_date` and `gain` are transaction outcomes and must not be used as
-predictors for earlier rows.
+transaction. Range: 1996-01 to 2025-10-21. There is **no sale/rent type
+column**; the table is sale-only. `mkt_type` distinguishes first-hand,
+second-hand, and MH sales for rows ingested after schema support; existing rows
+are `NULL` until the targeted backfill runs. `transaction_type` is the HKP
+normal/other marker. `last_tx_date` and `gain` are transaction outcomes and
+must not be used as predictors for earlier rows.
 
 ### `rental_transactions`
 
@@ -572,8 +576,9 @@ unique lookup indexes (`idx_mart_*`) on their grain keys.
 ## Caveats that affect analysis
 
 - Scraped data, not an official statistical product.
-- Sales are in `transactions`, which has no transaction-type column; rentals
-  are in `rental_transactions` (`tx_type=L`).
+- Sales are in `transactions`; rentals are in `rental_transactions`
+  (`tx_type=L`). `mkt_type` distinguishes first/second hand once backfilled;
+  older rows remain `NULL`.
 - `net_area`, `bedroom`, coordinates, and operation dates have meaningful
   missingness.
 - `estate_mtr_lines` is not exhaustive.

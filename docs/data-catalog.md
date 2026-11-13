@@ -244,7 +244,7 @@ Sale transactions for units.
 
 - **Grain:** One row per sale transaction.
 - **Rows:** 1,122,622
-- **Caveats:** There is no transaction-type column; rows are treated as sales.
+- **Caveats:** Sale-only table; mkt_type distinguishes first/second hand for newly ingested or backfilled rows, while older rows are NULL. transaction_type carries the HKP normal/other marker.
 
 | Column | Type | Null | PK | Nulls |
 |---|---|---|---|---:|
@@ -255,6 +255,8 @@ Sale transactions for units.
 | `gain` | FLOAT | yes |  | 786,863 |
 | `net_ft_price` | FLOAT | yes |  | 30,330 |
 | `unit_id` | VARCHAR | no |  | 0 |
+| `mkt_type` | TEXT | yes |  | 1,122,622 |
+| `transaction_type` | TEXT | yes |  | 1,122,622 |
 
 Foreign keys: `unit_id → units.unit_id`
 
@@ -476,6 +478,7 @@ Sale transactions from the last 24 months.
 | `tx_date` | — | yes |  | 0 |
 | `price` | REAL | yes |  | 0 |
 | `net_ft_price` | REAL | yes |  | 1,461 |
+| `mkt_type` | TEXT | yes |  | 87,393 |
 | `estate_id` | TEXT | yes |  | 0 |
 | `estate_name_en` | TEXT | yes |  | 0 |
 | `district_id` | TEXT | yes |  | 0 |

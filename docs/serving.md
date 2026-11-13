@@ -148,7 +148,7 @@ credentials must never be shipped to the frontend.
 
 `mart_transaction_recent` is exported as `transaction_recent.json.gz` (~2.1 MB
 gzipped for 87,393 rows). Only display columns are exported: `tx_date`, `price`,
-`net_ft_price`, `estate_id`, `estate_name_en`, `district_id`,
+`net_ft_price`, `mkt_type`, `estate_id`, `estate_name_en`, `district_id`,
 `district_name_en`, `area`, `net_area`, and `bedroom`. Internal join keys
 (`tx_id`, `building_id`, `unit_id`) stay in SQLite. The manifest can add further
 files without changing the existing contract.
