@@ -189,6 +189,6 @@ resolved from the current working directory, so run it from the repo root.
   open.
 - **Not committed:** `data/`, databases, `.env`, logs, venv, and secrets.
 - **Remaining backlog:** optional Phase 7 sample DB; optional Parquet export
-  for external analytics; incremental crawls, RVD, and monitoring (see
+  for external analytics; incremental crawls, RVD dashboard charts, and monitoring (see
   [`roadmap.md`](roadmap.md)). The phase-id repair remains available for older
   databases; the refreshed DB reports 0 orphans.

@@ -148,22 +148,22 @@ tables:
     dataset: rvd_benchmarks
     description: Official private domestic average rents by region and property class.
     grain: One row per region x property class x month.
-    caveats: HKD per square metre per month; 1999 onward; official RVD aggregates.
+    caveats: HKD per square metre per month; 1999 onward; official RVD aggregates. Suppressed values are NULL; provisional months are flagged.
   rvd_prices:
     dataset: rvd_benchmarks
     description: Official private domestic average prices by region and property class.
     grain: One row per region x property class x month.
-    caveats: HKD per square metre; 1999 onward; official RVD aggregates.
+    caveats: HKD per square metre; 1999 onward; official RVD aggregates. Suppressed values are NULL; provisional months are flagged.
   rvd_indices:
     dataset: rvd_benchmarks
     description: Territory-wide private domestic rental and price indices by class.
     grain: One row per index type x property class x month.
-    caveats: 1999 = 100; class A-E plus A-C, D-E, and all-class aggregates.
+    caveats: 1999 = 100; class A-E plus A-C, D-E, and all-class aggregates. Suppressed values are NULL; provisional months are flagged.
   rvd_yields:
     dataset: rvd_benchmarks
     description: Official private domestic property market yields by class.
     grain: One row per property class x month.
-    caveats: Percentage returns; 1999 onward; use as a benchmark, not a transaction-level yield.
+    caveats: Percentage returns; 1999 onward; use as a benchmark, not a transaction-level yield. Suppressed values are NULL; provisional months are flagged.
   pipeline_runs:
     dataset: operations
     description: Agency pipeline run records.

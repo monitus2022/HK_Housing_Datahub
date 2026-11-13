@@ -2,8 +2,9 @@
 
 This document explains the grain, keys, and caveats of the current SQLite
 model. The ER diagram is [`db.dbml`](db.dbml); the SQLAlchemy models in
-`src/models/agency/sql_db.py` are the source of truth. `pipeline_runs` and the
-seven analytics marts are current tables; only the deferred ML mart is planned.
+`src/models/agency/sql_db.py` and `src/models/rvd/sql_db.py` are the source of
+truth. `pipeline_runs`, the seven analytics marts, and the four RVD benchmark
+tables are current tables; only the deferred ML mart is planned.
 Dataset purpose, provenance, licences, refresh cadence, per-table row counts,
 and column-level schema detail live in the generated
 [`data-catalog.md`](data-catalog.md), seeded by `metadata/catalog.yml`.
@@ -47,9 +48,12 @@ Grain: one row per region × property class × month. Primary key:
 | `region_code` | text | `hk`, `kln`, or `nt` |
 | `property_class` | text | RVD class `A`–`E` |
 | `month` | text | `YYYY-MM` |
-| `value_hkd_m2` | real | HKD per square metre, rent per month or sale price |
+| `value_hkd_m2` | real | HKD per square metre, rent per month or sale price; `NULL` when RVD suppresses a thin series |
+| `is_provisional` | integer | 1 for RVD provisional months (marked `*` in the source) |
 
-Caveats: official RVD aggregates, not HKP transactions. Class A is the
+Caveats: official RVD aggregates, not HKP transactions. Suppressed `-` values
+are stored as `NULL` rather than dropped, so the monthly series stays aligned.
+Provisional months are flagged. Class A is the
 smallest unit class; the class boundaries are based on saleable area and differ
 from the estate-level bedroom/area segments.
 
@@ -63,10 +67,12 @@ Grain: one row per index type × property class × month. Primary key:
 | `index_type` | text | `rental` or `price` |
 | `property_class` | text | `A`–`E`, `ABC`, `DE`, or `ALL` |
 | `month` | text | `YYYY-MM` |
-| `value` | real | Index, 1999 = 100 |
+| `value` | real | Index, 1999 = 100; `NULL` when suppressed |
+| `is_provisional` | integer | 1 for provisional RVD months |
 
 Caveats: territory-wide only; indices are not directly comparable with HKP
-district averages.
+district averages. Provisional and suppressed months are flagged/stored as
+above.
 
 ### `rvd_yields`
 
@@ -77,9 +83,11 @@ Grain: one row per property class × month. Primary key:
 |---|---|---|
 | `property_class` | text | RVD class `A`–`E` |
 | `month` | text | `YYYY-MM` |
-| `yield_pct` | real | Percentage return |
+| `yield_pct` | real | Percentage return; `NULL` when suppressed |
+| `is_provisional` | integer | 1 for provisional RVD months |
 
-Caveats: official market yield benchmark, not a transaction-level yield. The
+Caveats: official market yield benchmark, not a transaction-level yield.
+Provisional and suppressed months are flagged/stored as above. The
 dashboard's HKP gross-yield proxy uses average or median rents and prices; the
 two are related but not identical.
 

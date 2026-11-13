@@ -95,6 +95,7 @@ Notes:
 | `src/processors/agency/rentals.py` | Maps and upserts rental transactions. |
 | `src/processors/wiki/wiki.py` | Parses wiki sections and tables, expands rowspan/colspan, and emits CSV table strings alongside section text. |
 | `src/processors/rag/embedding.py` | Cleans and chunks wiki text, generates normalized Sentence Transformer embeddings, and writes to ChromaDB. |
+| `src/processors/rvd/ingest.py` | Downloads/parses the five RVD XLS workbooks and replaces the benchmark tables. |
 
 ### Models
 
@@ -102,7 +103,8 @@ Notes:
 |---|---|
 | `src/models/agency/responses.py` | Pydantic representations of HKP API responses. |
 | `src/models/agency/outputs.py` | Response-to-table mapping models, including date parsing. |
-| `src/models/agency/sql_db.py` | SQLAlchemy declarative tables and primary keys. This is the source of truth for the relational schema. |
+| `src/models/agency/sql_db.py` | SQLAlchemy declarative tables and primary keys for the agency schema. |
+| `src/models/rvd/sql_db.py` | RVD benchmark tables and composite primary keys. |
 | `src/models/wiki/outputs.py` | Wiki table/section/page models and CSV rendering. |
 | `src/models/rag/documents.py` | Document, metadata, and search-result models. |
 
