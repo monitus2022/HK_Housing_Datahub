@@ -167,14 +167,15 @@ resolved from the current working directory, so run it from the repo root.
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261112T090805Z-61f72e` (`schema_version` 5), ~4.6 MB;
-  verifier passed; all nine files uploaded to the `hk-housing-datahub` bucket
+- **Serving:** build `20261113T070357Z-8fc5d3` (`schema_version` 6), ~5.0 MB;
+  verifier passed; all eleven files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
   cache, and CORS headers verified. It carries refreshed data (transactions
   through 2026-11-08, rentals through 2026-11-10, market through 2026-09-30,
   9,750 estates),
-  `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 rows), and
-  `estate_monthly.json.gz` (~1.3 MB). Earlier builds remain in the bucket.
+  `transaction_recent.json.gz` (~2.1 MB gzipped for 87,393 rows),
+  `estate_monthly.json.gz` (~1.3 MB), `district_price_bands.json.gz` (~340 KB),
+  and `segment_summary.json` (~14 KB). Earlier builds remain in the bucket.
 - **Frontend:** `frontend/` Vite + React + TypeScript, deployed at
   <https://hk-housing.monitus.org>; snapshot host
   <https://hk-housing-datahub.monitus.org>. R2 public read and CORS for the
