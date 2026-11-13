@@ -114,7 +114,7 @@ curl -I -H "Origin: https://hk-housing.monitus.org" \
 
 # Gzip data file (build ID from the current manifest)
 curl -I -H "Accept-Encoding: gzip" \
-  https://hk-housing-datahub.monitus.org/dashboard/20261113T130704Z-2ac947/estate_summary.json.gz
+  https://hk-housing-datahub.monitus.org/dashboard/20261113T204107Z-77431c/estate_summary.json.gz
 ```
 
 Expected: `200`, `cache-control` matching the snapshot contract,

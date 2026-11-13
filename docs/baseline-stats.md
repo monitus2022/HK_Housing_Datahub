@@ -167,7 +167,7 @@ resolved from the current working directory, so run it from the repo root.
   `scripts/repair_orphan_phase_ids.py --apply` clears the existing rows; on a
   DB copy the repair leaves status `warn` with 0 critical. The local entrypoint
   runs quality in report-only mode.
-- **Serving:** build `20261113T130704Z-2ac947` (`schema_version` 8), ~5.1 MB;
+- **Serving:** build `20261113T204107Z-77431c` (`schema_version` 8), ~4.9 MiB;
   verifier passed; all twelve files uploaded to the `hk-housing-datahub` bucket
   and the remote manifest read back successfully. Gzip `Content-Encoding`,
   cache, and CORS headers verified. It carries refreshed data (transactions
