@@ -44,7 +44,8 @@ snapshot in the `hk-housing-datahub` bucket. It superseded
 unchanged (transactions through 2026-11-08, rentals through 2026-11-10, market
 data through 2026-09-30, 9,750 estates); the rebuild refreshes `catalog.json`
 with the RVD saleable-area class definitions and the final sale-type coverage
-caveat (16,410 `NULL`, 98.54% typed). The 12 uploaded objects total ~5.2 MB:
+caveat (16,410 `NULL`, 98.54% typed). The 12 uploads (11 build files plus the
+short-cache pointer) total ~5.2 MB:
 `catalog.json` (~37 KB, 7 datasets / 27 tables, including `wiki_title` for 824
 estates), `rvd_benchmarks.json.gz` (~98 KB), `district_price_bands.json.gz`
 (~340 KB), `segment_summary.json` (~14 KB), `transaction_recent.json.gz`
