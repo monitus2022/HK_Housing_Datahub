@@ -197,8 +197,8 @@ The manifest and cache contract is in [`serving.md`](serving.md).
 `manifest.files.estate_summary`; it never hardcodes a build ID. The default view
 is a market overview built from estate summary and district monthly rows:
 median price/rent/yield KPIs, a sale-versus-rent index filterable by Hong Kong
-or district, a district league table, and a full-width price-versus-yield
-scatter. Estate history, district trends, and recent
+or district, a top-10 estates bar chart by trailing-12-month transacted value,
+a district league table, and a full-width price-versus-yield scatter. Estate history, district trends, and recent
 transactions load their data files on demand, and the map plots estate
 coordinates over OpenStreetMap tiles. The map groups nearby estates into
 screen-space clusters at lower zooms, splits them as you zoom in, can open the
