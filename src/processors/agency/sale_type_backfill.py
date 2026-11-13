@@ -47,14 +47,20 @@ def apply_sale_type_updates(
     Missing rows are reported as unmatched; existing rows are never created.
     """
     database = Path(db_path)
-    engine = create_engine(f"sqlite:///{database}")
-    ensure_additive_columns(engine)
-    engine.dispose()
+    if not dry_run:
+        engine = create_engine(f"sqlite:///{database}")
+        ensure_additive_columns(engine)
+        engine.dispose()
 
     matched = 0
     updated = 0
     connection = sqlite3.connect(database)
     try:
+        transaction_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(transactions)")
+        }
+        has_sale_type = "mkt_type" in transaction_columns
         for tx_id, (mkt_type, transaction_type) in updates.items():
             if dry_run:
                 exists = connection.execute(
@@ -79,9 +85,13 @@ def apply_sale_type_updates(
         if not dry_run:
             connection.commit()
 
-        remaining_null = connection.execute(
-            "SELECT count(*) FROM transactions WHERE mkt_type IS NULL"
-        ).fetchone()[0]
+        remaining_null = (
+            connection.execute(
+                "SELECT count(*) FROM transactions WHERE mkt_type IS NULL"
+            ).fetchone()[0]
+            if has_sale_type
+            else connection.execute("SELECT count(*) FROM transactions").fetchone()[0]
+        )
         return {
             "source_updates": len(updates),
             "matched": matched,

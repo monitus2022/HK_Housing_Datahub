@@ -339,12 +339,15 @@ python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
   --limit-buildings 2 --dry-run --delay 0
 
 # Full backfill (about 30k buildings; rate-limited by --delay)
+cp data/agency/agency_data.db data/agency/agency_data.db.pre-sale-types.bak
 python scripts/backfill_sale_types.py --db data/agency/agency_data.db --delay 0.1
 ```
 
 The script updates existing transactions by `tx_id`, never inserts rows, and
 reports `source_updates`, `matched`, `updated`, `unmatched`, and
-`remaining_null`. Re-running is idempotent. This is not a full estate or wiki
+`remaining_null`. `updated` counts matched rows touched (SQLite rowcount), so a
+rerun still reports updates even though the values are unchanged; data is
+idempotent. Dry runs do not alter the schema. This is not a full estate or wiki
 crawl.
 
 ## Build and publish serving data
@@ -417,7 +420,7 @@ make marts
 make publish-dry
 ```
 
-`tests/` contains 113 tests: Phase 2–6, catalogue, wiki, RVD, and backfill coverage (upserts, run
+`tests/` contains 115 tests: Phase 2–6, catalogue, wiki, RVD, and backfill coverage (upserts, run
 metadata, quality checks, response models, table mapping, duplicate-input dedupe, synthetic mart
 builds, serving manifest/publish planning), phase-id mapping and repair, plus
 offline RAG storage tests for upsert/prune idempotency. The boto3-only

@@ -90,12 +90,31 @@ def main(argv: list[str] | None = None) -> int:
     if not database.exists():
         print(f"error: database not found: {database}", file=sys.stderr)
         return 2
+    if (
+        args.limit_buildings is not None
+        and args.limit_buildings < 0
+    ):
+        print("error: --limit-buildings must be non-negative", file=sys.stderr)
+        return 2
+    if args.offset < 0:
+        print("error: --offset must be non-negative", file=sys.stderr)
+        return 2
+    if args.flush_every < 1:
+        print("error: --flush-every must be at least 1", file=sys.stderr)
+        return 2
+    if args.delay < 0:
+        print("error: --delay must be non-negative", file=sys.stderr)
+        return 2
 
-    building_ids = loading_building_ids(
-        database,
-        args.limit_buildings,
-        args.offset,
-    )
+    try:
+        building_ids = loading_building_ids(
+            database,
+            args.limit_buildings,
+            args.offset,
+        )
+    except sqlite3.Error as exc:
+        print(f"error: could not read buildings: {exc}", file=sys.stderr)
+        return 2
     if not building_ids:
         print("No buildings selected.", file=sys.stderr)
         return 2
@@ -156,6 +175,8 @@ def main(argv: list[str] | None = None) -> int:
             time.sleep(args.delay)
 
     flush()
+    final = apply_sale_type_updates(database, {}, dry_run=args.dry_run)
+    totals["remaining_null"] = final["remaining_null"]
     print(
         "Backfill complete: "
         f"buildings={len(building_ids):,} fetched={fetched:,} failed={failed:,} "

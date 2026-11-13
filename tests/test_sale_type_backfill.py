@@ -71,8 +71,11 @@ def test_dry_run_does_not_update(tmp_path: Path):
     db = tmp_path / "backfill.db"
     connection = sqlite3.connect(db)
     try:
-        connection.execute("CREATE TABLE transactions (tx_id TEXT PRIMARY KEY)")
-        connection.execute("INSERT INTO transactions VALUES ('T1')")
+        connection.execute(
+            "CREATE TABLE transactions ("
+            "tx_id TEXT PRIMARY KEY, mkt_type TEXT, transaction_type TEXT)"
+        )
+        connection.execute("INSERT INTO transactions VALUES ('T1', NULL, NULL)")
         connection.commit()
     finally:
         connection.close()
@@ -92,3 +95,58 @@ def test_dry_run_does_not_update(tmp_path: Path):
         ).fetchone()[0] is None
     finally:
         connection.close()
+
+
+def test_coalesce_preserves_existing_sale_type(tmp_path: Path):
+    db = tmp_path / "backfill.db"
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute(
+            "CREATE TABLE transactions ("
+            "tx_id TEXT PRIMARY KEY, mkt_type TEXT, transaction_type TEXT)"
+        )
+        connection.execute(
+            "INSERT INTO transactions VALUES ('T1', '2', 'NORM')"
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    apply_sale_type_updates(db, {"T1": (None, "OTHER")})
+
+    connection = sqlite3.connect(db)
+    try:
+        assert connection.execute(
+            "SELECT mkt_type, transaction_type FROM transactions WHERE tx_id='T1'"
+        ).fetchone() == ("2", "OTHER")
+    finally:
+        connection.close()
+
+
+def test_dry_run_does_not_alter_a_legacy_schema(tmp_path: Path):
+    db = tmp_path / "legacy.db"
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute("CREATE TABLE transactions (tx_id TEXT PRIMARY KEY)")
+        connection.execute("INSERT INTO transactions VALUES ('T1')")
+        connection.commit()
+    finally:
+        connection.close()
+
+    result = apply_sale_type_updates(
+        db,
+        {"T1": ("2", "NORM")},
+        dry_run=True,
+    )
+
+    assert result["matched"] == 1
+    assert result["remaining_null"] == 1
+    connection = sqlite3.connect(db)
+    try:
+        columns = [
+            row[1]
+            for row in connection.execute("PRAGMA table_info(transactions)")
+        ]
+    finally:
+        connection.close()
+    assert columns == ["tx_id"]
