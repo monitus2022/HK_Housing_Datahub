@@ -411,7 +411,7 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
-- The published schema-5 snapshot ends 2026-11-08 for sales (market data
+- The published schema-6 snapshot ends 2026-11-08 for sales (market data
   2026-09-30) and includes rentals through 2026-11-10. The project does not run
   on a schedule yet.
 - CI installs core dependencies plus `chromadb` for the offline RAG storage
