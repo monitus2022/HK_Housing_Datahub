@@ -42,6 +42,20 @@ export const RVD_REGIONS = [
 
 export const RVD_CLASSES = ["A", "B", "C", "D", "E"];
 
+export function toggleRvdClass(
+  current: string[],
+  propertyClass: string,
+): string[] {
+  if (current.includes(propertyClass)) {
+    return current.length === 1
+      ? current
+      : current.filter((item) => item !== propertyClass);
+  }
+  return RVD_CLASSES.filter(
+    (item) => current.includes(item) || item === propertyClass,
+  );
+}
+
 export const RVD_CLASS_DEFINITIONS: { id: string; label: string }[] = [
   { id: "A", label: "under 40 m² saleable area" },
   { id: "B", label: "40 to 69.9 m² saleable area" },

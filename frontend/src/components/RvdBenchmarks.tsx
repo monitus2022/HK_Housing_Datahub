@@ -8,6 +8,7 @@ import {
   RVD_MEASURES,
   RVD_REGIONS,
   rvdHkdM2ToFt2,
+  toggleRvdClass,
   type RvdMeasure,
 } from "../lib/rvd";
 import { buildMultiLineGeometry } from "../lib/trends";
@@ -17,7 +18,7 @@ import {
   formatNumber,
 } from "../lib/format";
 import { EmptyNotice, InlineError, InlineLoading } from "./Status";
-import { LineChart } from "./LineChart";
+import { LineChart, SERIES_COLORS } from "./LineChart";
 
 interface Props {
   manifest: Manifest;
@@ -103,6 +104,11 @@ export function RvdBenchmarks({ manifest }: Props) {
           id: series.propertyClass,
           label: series.label,
           points: series.points,
+          color:
+            SERIES_COLORS[
+              RVD_CLASSES.indexOf(series.propertyClass) %
+                SERIES_COLORS.length
+            ],
         })),
       ),
     [classSeries],
@@ -132,18 +138,14 @@ export function RvdBenchmarks({ manifest }: Props) {
       : null;
   const showRegion = measure === "rent" || measure === "price";
 
-  const toggleClass = (propertyClass: string) => {
-    setSelectedClasses((current) => {
-      if (current.includes(propertyClass)) {
-        return current.length === 1
-          ? current
-          : current.filter((item) => item !== propertyClass);
-      }
-      return RVD_CLASSES.filter(
-        (item) => current.includes(item) || item === propertyClass,
-      );
-    });
-  };
+  const measureLabel =
+    RVD_MEASURES.find((item) => item.id === measure)?.label ?? measure;
+  const regionLabel =
+    RVD_REGIONS.find((region) => region.id === regionCode)?.label ?? "";
+  const observations = classSeries.reduce(
+    (total, series) => total + series.points.length,
+    0,
+  );
 
   return (
     <section className="trend-rvd" aria-label="Official RVD benchmarks">
@@ -239,7 +241,11 @@ export function RvdBenchmarks({ manifest }: Props) {
             <input
               type="checkbox"
               checked={selectedClasses.includes(propertyClass)}
-              onChange={() => toggleClass(propertyClass)}
+              onChange={() =>
+                setSelectedClasses((current) =>
+                  toggleRvdClass(current, propertyClass),
+                )
+              }
             />
             Class {propertyClass}
           </label>
@@ -291,6 +297,7 @@ export function RvdBenchmarks({ manifest }: Props) {
               {formatMonth(firstMonth)} – {formatMonth(lastMonth)}
             </span>
             <span>{formatNumber(classSeries.length)} classes</span>
+            <span>{formatNumber(observations)} observations</span>
             {provisionalRange ? (
               <span className="rvd-provisional">
                 Provisional: {provisionalRange}
@@ -301,7 +308,9 @@ export function RvdBenchmarks({ manifest }: Props) {
           <LineChart
             geometry={geometry}
             formatValue={(value) => formatRvdValue(unit, value)}
-            ariaLabel={`RVD ${measure} by property class`}
+            ariaLabel={`RVD ${measureLabel}${
+              showRegion ? ` for ${regionLabel}` : ""
+            } by property class`}
             showDots={false}
             caption={`RVD aggregate benchmark by saleable-area class; ${
               unit === "hkd_m2"

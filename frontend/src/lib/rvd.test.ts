@@ -3,7 +3,10 @@ import type { RvdBenchmarks } from "../types";
 import {
   buildRvdClassSeries,
   buildRvdSeries,
+  RVD_CLASSES,
+  RVD_CLASS_DEFINITIONS,
   rvdHkdM2ToFt2,
+  toggleRvdClass,
 } from "./rvd";
 
 const data: RvdBenchmarks = {
@@ -145,5 +148,18 @@ describe("buildRvdClassSeries", () => {
     expect(rents).toHaveLength(1);
     expect(rents[0].label).toBe("Class A");
     expect(rents[0].unit).toBe("hkd_m2");
+  });
+});
+
+describe("RVD class controls", () => {
+  it("defines the five saleable-area classes and defaults to all of them", () => {
+    expect(RVD_CLASSES).toEqual(["A", "B", "C", "D", "E"]);
+    expect(RVD_CLASS_DEFINITIONS.map((item) => item.id)).toEqual(RVD_CLASSES);
+  });
+
+  it("prevents removing the last selected class", () => {
+    expect(toggleRvdClass(RVD_CLASSES, "B")).toEqual(["A", "C", "D", "E"]);
+    expect(toggleRvdClass(["B"], "B")).toEqual(["B"]);
+    expect(toggleRvdClass(["A"], "C")).toEqual(["A", "C"]);
   });
 });

@@ -1,7 +1,7 @@
 import { DEFAULT_CHART_OPTIONS, type MultiLineGeometry } from "../lib/trends";
 import { formatMonth } from "../lib/format";
 
-const SERIES_COLORS = [
+export const SERIES_COLORS = [
   "var(--accent)",
   "#d97706",
   "#2563eb",
@@ -71,7 +71,10 @@ export function LineChart({
             <path
               d={series.linePath}
               fill="none"
-              stroke={SERIES_COLORS[index % SERIES_COLORS.length]}
+              stroke={
+                series.color ??
+                SERIES_COLORS[index % SERIES_COLORS.length]
+              }
               strokeWidth={2.2}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -83,7 +86,10 @@ export function LineChart({
                 cx={item.x}
                 cy={item.y}
                 r={2.4}
-                fill={SERIES_COLORS[index % SERIES_COLORS.length]}
+                fill={
+                  series.color ??
+                  SERIES_COLORS[index % SERIES_COLORS.length]
+                }
               >
                 <title>
                   {series.label} · {formatMonth(item.point.month)}:{" "}
@@ -120,7 +126,9 @@ export function LineChart({
             <i
               className="chart-legend-swatch"
               style={{
-                background: SERIES_COLORS[index % SERIES_COLORS.length],
+                background:
+                  series.color ??
+                  SERIES_COLORS[index % SERIES_COLORS.length],
               }}
               aria-hidden="true"
             />
