@@ -1239,7 +1239,8 @@ select:focus {
 
 .trend-comparison,
 .trend-distribution,
-.trend-segments {
+.trend-segments,
+.trend-rvd {
   margin-top: 22px;
   border-top: 1px solid var(--line);
   padding-top: 18px;
@@ -1248,6 +1249,35 @@ select:focus {
 .trend-distribution .panel-heading,
 .trend-segments .panel-heading {
   margin-bottom: 14px;
+}
+
+.rvd-about {
+  margin: 0 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfdfc;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.rvd-about summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.rvd-about p {
+  margin: 8px 0 0;
+}
+
+.rvd-controls {
+  margin-top: 0;
+}
+
+.stat-tile-warn {
+  border-color: #f0d9a8;
+  background: #fff8e8;
 }
 
 .chart-legend-band {

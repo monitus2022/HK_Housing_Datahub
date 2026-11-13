@@ -8,6 +8,7 @@ interface Props {
   formatValue: (value: number) => string;
   ariaLabel: string;
   caption?: string;
+  showDots?: boolean;
 }
 
 export function LineChart({
@@ -15,6 +16,7 @@ export function LineChart({
   formatValue,
   ariaLabel,
   caption,
+  showDots = true,
 }: Props) {
   const dots = geometry.series.flatMap((series) => series.points);
   const first = dots.reduce(
@@ -67,7 +69,8 @@ export function LineChart({
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            {series.points.map((item) => (
+            {showDots
+              ? series.points.map((item) => (
               <circle
                 key={`${series.id}-${item.point.month}`}
                 cx={item.x}
@@ -80,7 +83,8 @@ export function LineChart({
                   {formatValue(item.point.value)}
                 </title>
               </circle>
-            ))}
+                ))
+              : null}
           </g>
         ))}
 
