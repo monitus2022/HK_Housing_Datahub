@@ -163,3 +163,39 @@ export interface DataCatalog {
   } | null;
   datasets: CatalogDataset[];
 }
+
+/** Monthly district sale/rent distribution (mart_district_price_bands). */
+export interface DistrictPriceBand {
+  district_id: string;
+  district_name_en: string;
+  district_name_zh: string;
+  month: string;
+  sale_count: number;
+  sale_p25: number | null;
+  sale_median: number | null;
+  sale_p75: number | null;
+  rent_count: number;
+  rent_p25: number | null;
+  rent_median: number | null;
+  rent_p75: number | null;
+  gross_yield_pct: number | null;
+}
+
+/** Trailing-12-month sale/rent stats by segment (mart_segment_summary). */
+export interface SegmentSummary {
+  segment_type: string;
+  segment_value: string;
+  sale_count: number | null;
+  sale_estates: number | null;
+  sale_p25: number | null;
+  sale_median: number | null;
+  sale_p75: number | null;
+  rent_count: number | null;
+  rent_estates: number | null;
+  rent_p25: number | null;
+  rent_median: number | null;
+  rent_p75: number | null;
+  window_start: string;
+  window_end: string;
+  gross_yield_pct: number | null;
+}
