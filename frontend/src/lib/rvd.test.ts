@@ -152,7 +152,7 @@ describe("buildRvdClassSeries", () => {
 });
 
 describe("RVD class controls", () => {
-  it("defines the five saleable-area classes and defaults to all of them", () => {
+  it("exposes the five saleable-area classes and their definitions", () => {
     expect(RVD_CLASSES).toEqual(["A", "B", "C", "D", "E"]);
     expect(RVD_CLASS_DEFINITIONS.map((item) => item.id)).toEqual(RVD_CLASSES);
   });
