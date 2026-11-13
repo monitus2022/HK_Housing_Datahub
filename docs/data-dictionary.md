@@ -332,7 +332,7 @@ Rows: 1,122,622 across 739,680 units; 368,656 units have more than one
 transaction. Range: 1996-01 to 2026-11-08. There is **no sale/rent type
 column**; the table is sale-only. `mkt_type` distinguishes first-hand,
 second-hand, and MH sales for rows ingested after schema support; existing rows
-are `NULL` until the targeted backfill runs. `transaction_type` is the HKP
+are `NULL` until `scripts/backfill_sale_types.py` runs. `transaction_type` is the HKP
 normal/other marker. `last_tx_date` and `gain` are transaction outcomes and
 must not be used as predictors for earlier rows.
 
