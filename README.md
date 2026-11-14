@@ -412,65 +412,35 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 
 ## Known limitations
 
-- Scraped third-party data; not an official or authoritative source.
-- RVD benchmarks are official aggregate series; they are charted separately and
-  are not matched to individual estates or districts.
-- The transaction table has no sale/rent type; it is sale-only. `mkt_type`
-  covers 98.5% of all transactions after the 2026-11-13 backfill; 16,410 older
-  rows remain `NULL`, and a 2026-11-14 retry of every affected building added no
-  meaningful coverage.
-- Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
-  (583,266 null), missing coordinates (633 estates), missing `first_op_date`
-  (887 estates). Estates with a null or non-positive latest price/area are excluded when
-  those filters are active.
-- Agency SQLite writes are idempotent as of Phase 2: they use SQLite upserts and
-  record run metadata in `pipeline_runs`. Rerunning a partition leaves row
-  counts unchanged and refreshes non-key columns.
-- RAG reruns are idempotent: chunks are written with Chroma `upsert()` and
-  every stored ID that is not in the current wiki source is pruned after a
-  complete run. Chunk IDs are a SHA-1 of estate name, section title, and chunk
-  index, so edited text refreshes in place and removed sections are deleted.
-  Pruning is skipped if any wiki file fails to load or if a run produces no
-  chunks at all (issue #17).
-- The reference DB previously had 160 `buildings.phase_id -> phases.phase_id`
-  orphan rows. The mapper now writes only real phase ids, the refresh produced
-  0 orphans, and `scripts/repair_orphan_phase_ids.py --apply` repairs older
-  databases. `scripts/run_quality.py --fail-on critical` passes; `src/main.py`
-  runs the checks in report-only mode by design.
-- The legacy raw uploader is disabled by default; when explicitly enabled it
-  walks all of `data/`, including the SQLite database and Chroma store. Do not
-  point it at a public bucket.
-- No live API. The serving layer is a versioned snapshot, not a query service.
-- The frontend opens on a visual market overview (KPIs, sale/rent pulse,
-  district league, yield scatter), then estate search and detail (an RVD
-  regional benchmark, price history, recent transactions, numeric filters,
-  shareable state), trend views with level/index/change modes and district
-  comparison, the estate map, recent transactions, and the data catalogue. The
-  map clusters nearby estates at low zoom, links district selection to the
-  estate list, and can open an estate from its drawer. It uses OpenStreetMap
-  tiles at runtime; no map data is bundled or redistributed.
-- R2 public read and CORS are configured for
-  `https://hk-housing.monitus.org`. Preview deployments may need additional
-  origins.
-- The published schema-8 snapshot ends 2026-11-08 for sales (market data
-  2026-09-30) and includes rentals through 2026-11-10. The project does not run
-  on a schedule yet.
-- CI installs core dependencies plus `chromadb` for the offline RAG storage
-  tests. The embedding model (sentence-transformers/torch) and cloud upload are
-  not exercised in CI.
-- The 12-month summary windows end at the later of the latest sale and rental
-  dates; the 24-month recent-transactions window is sale-only. `has_wiki` is an
-  exact Chinese-name match.
-- `mart_estate_monthly` (~245k rows) is exported as a compact, lazily loaded
-  `estate_monthly.json.gz` (~1.3 MB); `mart_transaction_recent` (~87k rows) is
-  exported as trimmed JSON.
-- The snapshot gzips its large JSON files (~5.2 MB total) and keeps the phase-2
-  files small (~340 KB bands, ~14 KB segments, ~98 KB RVD benchmarks). The frontend
-  must use the manifest `files` mapping rather than hardcoding names.
-- Rent trends come from HKP rental (`tx_type=L`) transactions and cover the
-  last three years; RVD benchmarks are charted separately as region/class
-  aggregates.
-- The data is not inflation-adjusted and the ML work is deferred.
+**Data**
+
+- Scraped third-party data, not an official or authoritative source.
+- `mkt_type` covers 98.5% of sales. A measured retry of every affected building
+  recovered one row, so 16,410 older rows stay `NULL`; first/second-hand
+  comparisons ignore them rather than guessing.
+- Meaningful missingness: `net_area` (296,938 units null or `<= 0`), `bedroom`
+  (583,266 null), coordinates (633 estates), and `first_op_date` (887 estates).
+  Rows with a null or non-positive latest price/area drop out of those filters.
+- RVD figures are official **region × saleable-area-class** aggregates. The
+  estate drawer maps an estate's net area to a class for context, but there are
+  no estate-level RVD values, and HKP net area is not RVD saleable area.
+- Amounts are nominal, not inflation-adjusted. The `transactions` table is
+  sale-only; rentals live in `rental_transactions`.
+- 12-month windows end at the later of the latest sale and rental dates; the
+  24-month recent-transactions window is sale-only. `has_wiki` is an exact
+  Chinese-name match.
+
+**Platform**
+
+- Static snapshot only: no live API or query service.
+- Refreshes are manual; there is no scheduler. The published snapshot ends
+  2026-11-08 for sales, 2026-09-30 for market data, and 2026-11-10 for rentals.
+- CI runs core dependencies plus Chroma storage tests; the embedding model and
+  cloud upload are not exercised in CI.
+- The legacy raw uploader is disabled by default. If enabled it walks all of
+  `data/`, including the database and Chroma store, so never point it at a
+  public bucket.
+- The ML workplan is deferred.
 
 ## Roadmap
 
