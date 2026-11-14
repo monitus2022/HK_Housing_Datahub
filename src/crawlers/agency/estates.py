@@ -2,7 +2,7 @@ from ..base import BaseCrawler
 from logger import housing_logger
 from config import housing_datahub_config
 from typing import Optional, Union
-from requests import Response, Session
+from requests import Session
 from utils import parse_response
 import time
 from models.agency.request_params import (
