@@ -345,8 +345,8 @@ pip install -r requirements-dev.txt
 # Fixture/DB tests: upserts, run metadata, quality, mapping, marts, serving
 pytest -q
 
-# Lint all backend source and tests
-ruff check src tests
+# Lint all backend source, tests, and scripts
+ruff check src tests scripts
 
 # Frontend checks
 cd frontend
