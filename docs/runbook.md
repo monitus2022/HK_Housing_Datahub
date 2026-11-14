@@ -406,10 +406,7 @@ python scripts/fetch_rentals.py --db data/agency/agency_data.db
 python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
-ruff check src/main.py src/logger.py src/analytics src/catalog src/quality \
-  src/serving src/processors/agency src/processors/rag src/processors/rvd \
-  src/models/agency/sql_db.py src/models/agency/migrations.py \
-  src/models/agency/outputs.py src/models/rvd src/orchestrators scripts tests
+ruff check src tests
 
 # Shortcuts
 make test
