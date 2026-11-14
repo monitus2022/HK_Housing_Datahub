@@ -396,12 +396,13 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the backend test suite (117 collected):
-upserts, run metadata, quality checks, response-model parsing, table mapping,
+`tests/` contains the backend test suite (117 collected): upserts, run
+metadata, quality checks, response-model parsing, table mapping,
 duplicate-input dedupe, synthetic mart builds, serving manifest/publish
 planning, catalogue generation and drift guards, wiki-title fallback, and
 offline RAG idempotency. The boto3-only legacy-upload gate test is skipped in
 the core-only CI environment.
+
 The CI workflow
 in `.github/workflows/ci-cd.yml` installs `requirements-core.txt` +
 `requirements-dev.txt` and runs the same tests and lint. Quality details are in
