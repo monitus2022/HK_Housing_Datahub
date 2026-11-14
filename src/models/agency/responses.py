@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import Optional, Union
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional
 
 
 class IgnoreExtraModel(BaseModel):

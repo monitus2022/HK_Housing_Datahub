@@ -347,8 +347,8 @@ pip install -r requirements-dev.txt
 # Fixture/DB tests: upserts, run metadata, quality, mapping, marts, serving
 pytest -q
 
-# Lint the files touched by the tidy-up so far
-ruff check src/main.py src/logger.py src/analytics src/catalog src/quality src/serving src/processors/agency src/processors/rag src/processors/rvd src/models/agency/sql_db.py src/models/agency/migrations.py src/models/agency/outputs.py src/models/rvd src/orchestrators scripts tests
+# Lint all backend source, tests, and scripts
+ruff check src tests scripts
 
 # Frontend checks
 cd frontend

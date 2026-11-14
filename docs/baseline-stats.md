@@ -118,7 +118,7 @@ file fails to load or when a run produces no chunks (issue #17).
   upserts, composite keys, `pk_map` consistency, and run metadata.
 - ~~`.github/workflows/ci-cd.yml` is empty (CI is Phase 4).~~ Fixed in Phase 4:
   the workflow installs core + dev deps, verifies config import, compiles, runs
-  pytest, and lints the touched modules.
+  pytest, and lints `src`, `tests`, and `scripts`.
 - ~~`bulk_insert_cache_into_db_tables()` uses `bulk_save_objects()` with no
   upsert.~~ Fixed in Phase 2: writes use SQLite upserts keyed on the model
   primary key.
@@ -150,10 +150,7 @@ resolved from the current working directory, so run it from the repo root.
 - **Tests:** `pytest -q` → 115 passed, including 9 offline RAG idempotency tests
   against a temporary Chroma store (issue #17). A core-only venv without
   `chromadb` skips the RAG test module and the boto3 legacy-upload test.
-- **Lint:** `ruff check src/main.py src/logger.py src/analytics src/quality src/serving
-  src/processors/agency src/processors/rag src/models/agency/sql_db.py
-  src/models/agency/outputs.py src/orchestrators scripts tests` → all checks
-  passed.
+- **Lint:** `ruff check src tests scripts` → all checks passed.
 - **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
 - **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
   (Phase 3), #28 (Phase 4), #29 (Phase 5), #30 (Phase 6).

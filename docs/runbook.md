@@ -438,10 +438,7 @@ python scripts/fetch_rentals.py --db data/agency/agency_data.db
 python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
-ruff check src/main.py src/logger.py src/analytics src/catalog src/quality \
-  src/serving src/processors/agency src/processors/rag src/processors/rvd \
-  src/models/agency/sql_db.py src/models/agency/migrations.py \
-  src/models/agency/outputs.py src/models/rvd src/orchestrators scripts tests
+ruff check src tests scripts
 
 # Shortcuts
 make test
@@ -460,7 +457,7 @@ legacy-upload gate test skips because
 CI does not install the cloud extra. The CI workflow
 (`.github/workflows/ci-cd.yml`) installs core + dev (including ChromaDB),
 checks that `config` imports without `.env`, compiles, runs `pytest`, and runs
-ruff on the touched modules.
+ruff over `src`, `tests`, and `scripts`.
 
 ## Release handoff
 
