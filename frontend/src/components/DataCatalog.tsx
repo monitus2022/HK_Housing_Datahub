@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogDataset, DataCatalog, Manifest } from "../types";
 import { loadCatalog } from "../lib/dashboard";
+import { datasetBadge, isExternalDataset } from "../lib/catalog";
 import { formatDate, formatNumber } from "../lib/format";
 import { InlineError, InlineLoading } from "./Status";
 
@@ -115,9 +116,7 @@ export function DataCatalogView({ manifest }: Props) {
                 >
                   <span className="catalog-dataset-name">{dataset.name}</span>
                   <span className="catalog-dataset-meta">
-                    {layerLabel(dataset.layer)} ·{" "}
-                    {formatNumber(dataset.table_count)} tables ·{" "}
-                    {formatNumber(dataset.row_count)} rows
+                    {layerLabel(dataset.layer)} · {datasetBadge(dataset)}
                   </span>
                 </button>
               ))}
@@ -156,11 +155,20 @@ export function DataCatalogView({ manifest }: Props) {
                       <dd>{selected.owner}</dd>
                     </>
                   ) : null}
-                  <dt>Tables</dt>
-                  <dd>
-                    {formatNumber(selected.table_count)} ·{" "}
-                    {formatNumber(selected.row_count)} rows
-                  </dd>
+                  {isExternalDataset(selected) ? (
+                    <>
+                      <dt>Storage</dt>
+                      <dd>External artifacts, not SQLite tables</dd>
+                    </>
+                  ) : (
+                    <>
+                      <dt>Tables</dt>
+                      <dd>
+                        {formatNumber(selected.table_count)} ·{" "}
+                        {formatNumber(selected.row_count)} rows
+                      </dd>
+                    </>
+                  )}
                 </dl>
 
                 {selected.artifacts && selected.artifacts.length > 0 ? (
