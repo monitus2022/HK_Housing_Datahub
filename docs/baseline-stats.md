@@ -149,9 +149,9 @@ resolved from the current working directory, so run it from the repo root.
 
 - **Tests:** `pytest -q` → 115 passed at the 2026-11-13 refresh (88 at the
   2026-11-11 handoff; 117 collected on 2026-11-14), including 9 offline RAG
-  idempotency tests
-  against a temporary Chroma store (issue #17). A core-only venv without
-  `chromadb` skips the RAG test module and the boto3 legacy-upload test.
+  idempotency tests against a temporary Chroma store (issue #17). A core-only
+  venv without `chromadb` skips the RAG test module and the boto3 legacy-upload
+  test.
 - **Lint:** `ruff check src tests scripts` → all checks passed.
 - **CI:** green on the Phase 6 PR (#30); the Phase 8 PR runs the same workflow.
 - **Merged phase PRs:** #24 (Phase 0), #25 (Phase 1), #26 (Phase 2), #27
