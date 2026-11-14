@@ -396,8 +396,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6, catalogue, and wiki-link tests (97 at the
-Phase 8 handoff; 117 in the current suite):
+`tests/` contains the backend test suite (117 collected):
 upserts, run metadata, quality checks, response-model parsing, table mapping,
 duplicate-input dedupe, synthetic mart builds, serving manifest/publish
 planning, catalogue generation and drift guards, wiki-title fallback, and
