@@ -123,6 +123,11 @@ export function EstateRvdBenchmark({ manifest, estate }: Props) {
               <BenchmarkStat
                 label="RVD yield (territory)"
                 primary={`${benchmark.yieldPct.value.toFixed(2)}%`}
+                secondary={
+                  benchmark.yieldPct.month !== benchmark.asOfMonth
+                    ? formatMonth(benchmark.yieldPct.month)
+                    : undefined
+                }
               />
             ) : null}
           </dl>
@@ -130,10 +135,11 @@ export function EstateRvdBenchmark({ manifest, estate }: Props) {
             <p className="rvd-provisional">Provisional RVD month</p>
           ) : null}
           <p className="drawer-note">
-            Official RVD average for private domestic units in this region and
-            saleable-area class. The class is inferred from this estate's HKP
-            net area, which is not the same measure as RVD saleable area. Use it
-            as market context, not as this estate's rent or valuation.
+            Official RVD average for private domestic units. Rent and price are
+            for this region and saleable-area class; yield is territory-wide for
+            the class. The class is inferred from this estate's HKP net area,
+            which is not the same measure as RVD saleable area. Use it as market
+            context, not as this estate's rent or valuation.
           </p>
         </>
       )}

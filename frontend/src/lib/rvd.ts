@@ -100,7 +100,9 @@ export function rvdClassForNetAreaFt2(
 ): string | null {
   if (netAreaFt2 === null || netAreaFt2 === undefined) return null;
   if (!Number.isFinite(netAreaFt2) || netAreaFt2 <= 0) return null;
-  const areaM2 = netAreaFt2 / SQFT_PER_SQM;
+  // Round to 1e-6 m² so exact boundaries (e.g. 100 m²) do not fall a hair
+  // below the threshold through floating-point division.
+  const areaM2 = Math.round((netAreaFt2 / SQFT_PER_SQM) * 1e6) / 1e6;
   if (areaM2 < 40) return "A";
   if (areaM2 < 70) return "B";
   if (areaM2 < 100) return "C";
@@ -115,16 +117,19 @@ export interface EstateRvdBenchmark {
   classDefinition: string;
   asOfMonth: string;
   rent: {
+    month: string;
     hkdM2: number;
     hkdFt2: number;
     isProvisional: boolean;
   } | null;
   price: {
+    month: string;
     hkdM2: number;
     hkdFt2: number;
     isProvisional: boolean;
   } | null;
   yieldPct: {
+    month: string;
     value: number;
     isProvisional: boolean;
   } | null;
@@ -191,6 +196,7 @@ export function buildEstateRvdBenchmark(
     asOfMonth: months[months.length - 1] ?? "",
     rent: rent
       ? {
+          month: rent.month,
           hkdM2: rent.hkdM2,
           hkdFt2: rent.hkdFt2,
           isProvisional: rent.isProvisional,
@@ -198,6 +204,7 @@ export function buildEstateRvdBenchmark(
       : null,
     price: price
       ? {
+          month: price.month,
           hkdM2: price.hkdM2,
           hkdFt2: price.hkdFt2,
           isProvisional: price.isProvisional,
@@ -205,6 +212,7 @@ export function buildEstateRvdBenchmark(
       : null,
     yieldPct: latestYield
       ? {
+          month: latestYield.month,
           value: latestYield.value,
           isProvisional: yieldSeries.provisionalMonths.includes(
             latestYield.month,

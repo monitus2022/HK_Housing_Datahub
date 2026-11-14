@@ -169,7 +169,6 @@ describe("RVD class controls", () => {
 
 describe("estate RVD class mapping", () => {
   it("maps HKP net area in square feet to saleable-area classes", () => {
-    // Values sit just inside each boundary to avoid float edge cases.
     expect(rvdClassForNetAreaFt2(39.9 * 10.7639)).toBe("A");
     expect(rvdClassForNetAreaFt2(40.1 * 10.7639)).toBe("B");
     expect(rvdClassForNetAreaFt2(69.9 * 10.7639)).toBe("B");
@@ -178,6 +177,14 @@ describe("estate RVD class mapping", () => {
     expect(rvdClassForNetAreaFt2(100.1 * 10.7639)).toBe("D");
     expect(rvdClassForNetAreaFt2(159.9 * 10.7639)).toBe("D");
     expect(rvdClassForNetAreaFt2(160.1 * 10.7639)).toBe("E");
+  });
+
+  it("treats exact boundaries as the upper class despite float division", () => {
+    expect(rvdClassForNetAreaFt2(40 * 10.7639)).toBe("B");
+    expect(rvdClassForNetAreaFt2(70 * 10.7639)).toBe("C");
+    expect(rvdClassForNetAreaFt2(100 * 10.7639)).toBe("D");
+    expect(rvdClassForNetAreaFt2(160 * 10.7639)).toBe("E");
+    expect(rvdClassForNetAreaFt2(40 * 10.7639 - 0.5)).toBe("A");
   });
 
   it("classifies a typical Hong Kong flat", () => {
@@ -215,6 +222,7 @@ describe("buildEstateRvdBenchmark", () => {
     expect(benchmark?.rent?.isProvisional).toBe(true);
     expect(benchmark?.price).toBeNull();
     expect(benchmark?.yieldPct?.value).toBe(3.5);
+    expect(benchmark?.yieldPct?.month).toBe("2026-09");
     expect(benchmark?.yieldPct?.isProvisional).toBe(true);
   });
 

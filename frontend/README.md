@@ -28,7 +28,8 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
   saleable-area classes, with the boundaries shown in the panel
 - estate drawer shows an RVD regional benchmark for the estate's region and
   saleable-area class, labeled as an official aggregate with the net-area vs
-  saleable-area caveat; it is omitted when the estate has no net area
+  saleable-area caveat; estates without a recorded net area show a short note
+  instead of benchmark stats
 - estate map with district filtering, price-bucketed markers, zoom-aware
   clustering, district-to-list linking, and “Show on map” from the estate
   drawer
