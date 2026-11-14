@@ -8,15 +8,21 @@ Current public deployment:
 The frontend is a static Vite build. The snapshot is a separate R2 public host.
 The two are connected by the build-time `VITE_DASHBOARD_BASE_URL` value.
 
-> **Current status:** the schema-8 snapshot is live and backward compatible.
-> The production frontend on `main` still serves the previous UI; the sale-type
-> filter ships when `dev` is deployed to `main`. Production currently loads
-> 9,750 estates, search/filtering, the estate drawer, deep links, sale/rent
-> trends, distributions, segments, RVD benchmarks, the map, recent transactions,
-> the catalogue, and Wikipedia links. The sale-type-filtered top-estates view is
-> verified against the schema-8 snapshot on `dev`.
-> R2 public read and CORS for
-> `https://hk-housing.monitus.org` are verified, and the Pages build includes
+> **Current status:** the schema-8 snapshot is live and backward compatible, and
+> the production frontend on `main` is current as of `7c491ba`. Production
+> serves 9,750 estates, search/filtering, the estate drawer, deep links,
+> sale/rent trends, distributions, segments, RVD benchmarks, the map, recent
+> transactions, the catalogue, and Wikipedia links.
+>
+> Verified in the live bundle (`assets/index-BgzBuCmj.js`):
+>
+> - the top-estates chart has the **All / 1st hand / 2nd hand** sale-type
+>   selector and defaults to 2nd hand when coverage supports it;
+> - the RVD panel plots classes **A–E together** as multiple lines and shows the
+>   saleable-area class definitions.
+>
+> R2 public read and CORS for `https://hk-housing.monitus.org` are verified, and
+> the Pages build includes
 > `VITE_DASHBOARD_BASE_URL=https://hk-housing-datahub.monitus.org`.
 
 ## Before redeploying
@@ -114,7 +120,7 @@ curl -I -H "Origin: https://hk-housing.monitus.org" \
 
 # Gzip data file (build ID from the current manifest)
 curl -I -H "Accept-Encoding: gzip" \
-  https://hk-housing-datahub.monitus.org/dashboard/20261113T130704Z-2ac947/estate_summary.json.gz
+  https://hk-housing-datahub.monitus.org/dashboard/20261113T204107Z-77431c/estate_summary.json.gz
 ```
 
 Expected: `200`, `cache-control` matching the snapshot contract,

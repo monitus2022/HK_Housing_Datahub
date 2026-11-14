@@ -214,8 +214,10 @@ The data model has the following groups:
 - Data catalogue and dataset cards: [`docs/data-catalog.md`](docs/data-catalog.md)
 
 Key caveats: the `transactions` table is sale-only; `mkt_type` distinguishes
-first/second hand for 98.5% of rows after the 2026-11-13 backfill, with 16,411
-older or failed-building rows still `NULL`; `net_area` is null or non-positive for about 24.0% of units; `bedroom` is missing for about 47%; and `estate_mtr_lines` keeps
+first/second hand for 98.5% of rows after the 2026-11-13 backfill, with 16,410
+older rows still `NULL`. A 2026-11-14 retry of every building that still had
+untyped rows recovered only one row, so the remainder is not recoverable from
+current HKP payloads; `net_area` is null or non-positive for about 24.0% of units; `bedroom` is missing for about 47%; and `estate_mtr_lines` keeps
 only the first MTR line per estate.
 
 ## Serving layer
@@ -345,8 +347,8 @@ pip install -r requirements-dev.txt
 # Fixture/DB tests: upserts, run metadata, quality, mapping, marts, serving
 pytest -q
 
-# Lint the files touched by the tidy-up so far
-ruff check src/main.py src/logger.py src/analytics src/catalog src/quality src/serving src/processors/agency src/processors/rag src/processors/rvd src/models/agency/sql_db.py src/models/agency/migrations.py src/models/agency/outputs.py src/models/rvd src/orchestrators scripts tests
+# Lint all backend source, tests, and scripts
+ruff check src tests scripts
 
 # Frontend checks
 cd frontend
@@ -383,8 +385,9 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - RVD benchmarks are official aggregate series; they are charted separately and
   are not matched to individual estates or districts.
 - The transaction table has no sale/rent type; it is sale-only. `mkt_type`
-  covers 98.5% of all transactions after the 2026-11-13 backfill; 16,411 older
-  or failed-building rows remain `NULL`.
+  covers 98.5% of all transactions after the 2026-11-13 backfill; 16,410 older
+  rows remain `NULL`, and a 2026-11-14 retry of every affected building added no
+  meaningful coverage.
 - Significant nulls: `net_area` (296,938 units null or `<= 0`), `bedroom`
   (583,266 null), missing coordinates (633 estates), missing `first_op_date`
   (887 estates). Estates with a null or non-positive latest price/area are excluded when
@@ -430,7 +433,7 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - `mart_estate_monthly` (~245k rows) is exported as a compact, lazily loaded
   `estate_monthly.json.gz` (~1.3 MB); `mart_transaction_recent` (~87k rows) is
   exported as trimmed JSON.
-- The snapshot gzips its large JSON files (~5.1 MB total) and keeps the phase-2
+- The snapshot gzips its large JSON files (~5.2 MB total) and keeps the phase-2
   files small (~340 KB bands, ~14 KB segments, ~98 KB RVD benchmarks). The frontend
   must use the manifest `files` mapping rather than hardcoding names.
 - Rent trends come from HKP rental (`tx_type=L`) transactions and cover the

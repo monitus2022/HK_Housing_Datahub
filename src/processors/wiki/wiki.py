@@ -6,7 +6,6 @@ from models.wiki.outputs import WikiTable
 from processors.base import BaseProcessor
 from wikipediaapi import WikipediaPage
 from config import housing_datahub_config
-import time
 
 
 class WikiProcessor(BaseProcessor):

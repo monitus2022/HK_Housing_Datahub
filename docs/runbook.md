@@ -341,7 +341,39 @@ python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
 # Full backfill (about 30k buildings; rate-limited by --delay)
 cp data/agency/agency_data.db data/agency/agency_data.db.pre-sale-types.bak
 python scripts/backfill_sale_types.py --db data/agency/agency_data.db --delay 0.1
+
+# Retry only buildings whose transactions are still untyped (back up first)
+cp data/agency/agency_data.db data/agency/agency_data.db.pre-sale-type-retry.bak
+python scripts/backfill_sale_types.py --db data/agency/agency_data.db \
+  --only-null --delay 0.1
 ```
+
+`--only-null` selects distinct buildings that still have at least one
+transaction with `mkt_type IS NULL` (joined through `units`). Use it to retry
+buildings that failed during an earlier run instead of refetching all ~30k
+buildings. The mode is reported in the completion line.
+
+A retry cannot always reach 100% coverage. Rows stay `NULL` when the HKP payload
+omits `mkt_type`/`transaction_type`, when a stored `tx_id` is no longer present
+in the refreshed payload, or when the building request keeps failing. Note that
+`unmatched` counts payload `tx_id`s that have no stored row, which is the
+opposite direction.
+
+The 2026-11-14 retry of all 4,818 buildings that still had untyped rows
+processed 4,775 successfully (`matched=914,211`) but moved only **one** row from
+`NULL` to typed (`remaining_null` 16,411 → 16,410). The outcome is therefore
+final for this dataset:
+
+- 55 buildings (291 rows) are entirely untyped; the retry's 43 failures were
+  responses rejected by `BuildingInfoResponse` because the `building` field was
+  absent.
+- The rest sit in otherwise-typed buildings whose stored `tx_id`s either are no
+  longer returned by HKP or come back without a sale type.
+
+Treat the remaining `NULL` count as a documented coverage gap, not an error, and
+do not rerun the retry expecting a change. A future full crawl (which would
+re-ingest transactions from scratch) is the practical way to revisit the
+remainder.
 
 The script updates existing transactions by `tx_id`, never inserts rows, and
 reports `source_updates`, `matched`, `updated`, `unmatched`, and
@@ -406,10 +438,7 @@ python scripts/fetch_rentals.py --db data/agency/agency_data.db
 python scripts/build_marts.py --db data/agency/agency_data.db
 python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 pytest -q
-ruff check src/main.py src/logger.py src/analytics src/catalog src/quality \
-  src/serving src/processors/agency src/processors/rag src/processors/rvd \
-  src/models/agency/sql_db.py src/models/agency/migrations.py \
-  src/models/agency/outputs.py src/models/rvd src/orchestrators scripts tests
+ruff check src tests scripts
 
 # Shortcuts
 make test
@@ -428,7 +457,7 @@ legacy-upload gate test skips because
 CI does not install the cloud extra. The CI workflow
 (`.github/workflows/ci-cd.yml`) installs core + dev (including ChromaDB),
 checks that `config` imports without `.env`, compiles, runs `pytest`, and runs
-ruff on the touched modules.
+ruff over `src`, `tests`, and `scripts`.
 
 ## Release handoff
 
