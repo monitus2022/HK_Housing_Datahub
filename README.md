@@ -421,9 +421,10 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - Meaningful missingness: `net_area` (296,938 units null or `<= 0`), `bedroom`
   (583,266 null), coordinates (633 estates), and `first_op_date` (887 estates).
   Rows with a null or non-positive latest price/area drop out of those filters.
-- RVD figures are official **region × saleable-area-class** aggregates. The
-  estate drawer maps an estate's net area to a class for context, but there are
-  no estate-level RVD values, and HKP net area is not RVD saleable area.
+- RVD rents and prices are official **region × saleable-area-class** aggregates;
+  indices and yields are class-level only. The estate drawer maps an estate's
+  net area to a class for context, but there are no estate-level RVD values, and
+  HKP net area is not RVD saleable area.
 - Amounts are nominal, not inflation-adjusted. The `transactions` table is
   sale-only; rentals live in `rental_transactions`.
 - 12-month windows end at the later of the latest sale and rental dates; the
@@ -435,8 +436,8 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
 - Static snapshot only: no live API or query service.
 - Refreshes are manual; there is no scheduler. The published snapshot ends
   2026-11-08 for sales, 2026-09-30 for market data, and 2026-11-10 for rentals.
-- CI runs core dependencies plus Chroma storage tests; the embedding model and
-  cloud upload are not exercised in CI.
+- CI installs core and dev dependencies (including `chromadb`); the embedding
+  model and cloud upload are not exercised in CI.
 - The legacy raw uploader is disabled by default. If enabled it walks all of
   `data/`, including the database and Chroma store, so never point it at a
   public bucket.
