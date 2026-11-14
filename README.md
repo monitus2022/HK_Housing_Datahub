@@ -39,9 +39,9 @@ a property portal, a government department, and Wikipedia:
   30,501 buildings, with sale dates back to 1996 and monthly market data from
   1996-12.
 - **First-hand vs second-hand sales** are classified from `mkt_type`. Coverage
-  is measured at 98.5%; the remaining 16,410 rows were retried and are
-  documented as unrecoverable from current source payloads rather than
-  silently dropped.
+  is measured at 98.5%; a targeted retry of the 4,818 affected buildings
+  recovered a single row, so the remaining 16,410 rows are documented as
+  unrecoverable from current source payloads rather than silently dropped.
 - **Official RVD benchmarks** are integrated as a separate aggregate layer
   (region × saleable-area class), never mixed into estate-level figures, with
   the granularity mismatch stated in the UI.
@@ -396,7 +396,8 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the Phase 2–6, catalogue, and wiki-link tests (97 total):
+`tests/` contains the Phase 2–6, catalogue, and wiki-link tests (97 at the
+Phase 8 handoff; 117 in the current suite):
 upserts, run metadata, quality checks, response-model parsing, table mapping,
 duplicate-input dedupe, synthetic mart builds, serving manifest/publish
 planning, catalogue generation and drift guards, wiki-title fallback, and
@@ -441,13 +442,13 @@ serving contract is in [`docs/serving.md`](docs/serving.md).
   point it at a public bucket.
 - No live API. The serving layer is a versioned snapshot, not a query service.
 - The frontend opens on a visual market overview (KPIs, sale/rent pulse,
-  district league, yield scatter), then estate search and detail (price
-  history, recent transactions, numeric filters, shareable state), trend views
-  with level/index/change modes and district comparison, the estate map, recent
-  transactions, and the data catalogue. The map clusters nearby estates at low
-  zoom, links district selection to the estate list, and can open an estate
-  from its drawer. It uses OpenStreetMap tiles at runtime; no map data is
-  bundled or redistributed.
+  district league, yield scatter), then estate search and detail (an RVD
+  regional benchmark, price history, recent transactions, numeric filters,
+  shareable state), trend views with level/index/change modes and district
+  comparison, the estate map, recent transactions, and the data catalogue. The
+  map clusters nearby estates at low zoom, links district selection to the
+  estate list, and can open an estate from its drawer. It uses OpenStreetMap
+  tiles at runtime; no map data is bundled or redistributed.
 - R2 public read and CORS are configured for
   `https://hk-housing.monitus.org`. Preview deployments may need additional
   origins.
