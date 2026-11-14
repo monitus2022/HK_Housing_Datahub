@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CatalogDataset } from "../types";
-import { datasetBadge, isExternalDataset } from "./catalog";
+import { datasetBadge } from "./catalog";
 
 function dataset(
   overrides: Partial<Pick<CatalogDataset, "table_count" | "row_count" | "artifacts">>,
@@ -32,14 +32,19 @@ describe("datasetBadge", () => {
     );
   });
 
+  it("prefers table counts when a dataset also has artifacts", () => {
+    expect(
+      datasetBadge(
+        dataset({
+          table_count: 4,
+          row_count: 18135,
+          artifacts: ["data/rvd/his_data_*.xls"],
+        }),
+      ),
+    ).toBe("4 tables · 18,135 rows");
+  });
+
   it("falls back when there are neither tables nor artifacts", () => {
     expect(datasetBadge(dataset({}))).toBe("No tables");
-  });
-});
-
-describe("isExternalDataset", () => {
-  it("is true only for datasets without relational tables", () => {
-    expect(isExternalDataset({ table_count: 0 })).toBe(true);
-    expect(isExternalDataset({ table_count: 7 })).toBe(false);
   });
 });

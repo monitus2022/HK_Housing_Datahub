@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogDataset, DataCatalog, Manifest } from "../types";
 import { loadCatalog } from "../lib/dashboard";
-import { datasetBadge, isExternalDataset } from "../lib/catalog";
+import { datasetBadge } from "../lib/catalog";
 import { formatDate, formatNumber } from "../lib/format";
 import { InlineError, InlineLoading } from "./Status";
 
@@ -155,17 +155,21 @@ export function DataCatalogView({ manifest }: Props) {
                       <dd>{selected.owner}</dd>
                     </>
                   ) : null}
-                  {isExternalDataset(selected) ? (
-                    <>
-                      <dt>Storage</dt>
-                      <dd>External artifacts, not SQLite tables</dd>
-                    </>
-                  ) : (
+                  {selected.table_count > 0 ? (
                     <>
                       <dt>Tables</dt>
                       <dd>
                         {formatNumber(selected.table_count)} ·{" "}
                         {formatNumber(selected.row_count)} rows
+                      </dd>
+                    </>
+                  ) : (
+                    <>
+                      <dt>Storage</dt>
+                      <dd>
+                        {selected.artifacts && selected.artifacts.length > 0
+                          ? "External artifacts, not SQLite tables"
+                          : "No relational tables or artifacts"}
                       </dd>
                     </>
                   )}

@@ -24,10 +24,3 @@ export function datasetBadge(
     artifacts === 1 ? "" : "s"
   }`;
 }
-
-/** Whether the dataset is stored outside the SQLite database. */
-export function isExternalDataset(
-  dataset: Pick<CatalogDataset, "table_count">,
-): boolean {
-  return dataset.table_count === 0;
-}
