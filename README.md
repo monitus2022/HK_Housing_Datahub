@@ -1,35 +1,64 @@
 # HK Housing Datahub
 
-An ETL and data-platform project for Hong Kong housing data. It crawls public
-estate, building, unit, transaction, and monthly market data from the Hong Kong
-Property (HKP) APIs and estate pages from Wikipedia, normalizes it into a
-relational SQLite model, and builds text embeddings for retrieval-augmented
-applications. The long-term goal is a small, reproducible analytics and serving
-layer for a public dashboard.
+A live, auditable view of the Hong Kong housing market: **1.12M sale
+transactions**, **53k rentals**, and **9,750 estates** (1996–2026), published as
+an immutable versioned snapshot and explored through a static React dashboard.
 
-> **Status:** backend tidy-up complete through Phase 8. The static frontend is
-> deployed and verified at <https://hk-housing.monitus.org>; see
-> [`docs/deployment.md`](docs/deployment.md) for deployment details.
-> See [`docs/workplan-tidy.md`](docs/workplan-tidy.md),
-> [`docs/decisions.md`](docs/decisions.md), and
-> [`docs/roadmap.md`](docs/roadmap.md). The ML workplan is deferred.
+**[Live demo →](https://hk-housing.monitus.org)**
 
-## What it does
+[![CI](https://github.com/monitus2022/HK_Housing_Datahub/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/monitus2022/HK_Housing_Datahub/actions/workflows/ci-cd.yml)
+[![Snapshot](https://img.shields.io/badge/snapshot-schema%208-0b5b54)](https://hk-housing-datahub.monitus.org/dashboard/manifest.json)
+[![Tests](https://img.shields.io/badge/tests-offline-0b5b54)](#checks)
+[![Docs](https://img.shields.io/badge/docs-4b5563)](docs/architecture.md)
 
-- Crawls HKP estate IDs, bilingual estate details, building/unit/transaction
-  data, and monthly estate market statistics.
-- Crawls Chinese Wikipedia estate pages, extracts section text and tables, and
-  stores partition JSON files.
-- Loads agency data into a normalized SQLite schema.
-- Chunks wiki text and stores Sentence Transformer embeddings in ChromaDB.
-- Provides read-only baseline and quality audits, seven materialized analytics
-  marts, and a versioned serving snapshot published to R2.
-- Includes a static React frontend with a visual market overview (KPIs, a
-  district-filterable sale/rent pulse, top estates by transaction value with sale-type filtering,
-  district league, yield scatter), estate search, estate price history,
-  district trend views and comparisons, price-distribution and segment
-  comparison charts, official RVD benchmark charts, an estate map, recent
-  transactions, and a data catalogue.
+![Market overview: KPI strip, sale-versus-rent pulse, and snapshot coverage](docs/assets/overview.png)
+
+## What it is
+
+An end-to-end data platform for a market where the raw data is scattered across
+a property portal, a government department, and Wikipedia:
+
+- **Ingest** — HKP estate, building, unit, sale, and rental crawlers; Chinese
+  Wikipedia estate pages; and the Rating and Valuation Department's monthly
+  benchmark workbooks.
+- **Model** — one SQLite schema with idempotent upserts, additive migrations,
+  and run metadata. Quality gates and coverage audits run read-only.
+- **Analyze** — seven materialized marts: estate summaries, district monthly
+  series, price bands, segment summaries, estate history, coverage, and recent
+  transactions.
+- **Embed** — Chinese Wikipedia text is chunked and embedded in ChromaDB for
+  retrieval-augmented use.
+- **Serve** — a versioned, immutable snapshot on R2 with a manifest contract,
+  read by a Vite/React dashboard with no live API.
+- **Explain** — a generated data catalogue with grain, lineage, freshness,
+  licence, and caveats, so every chart traces back to a table.
+
+## Highlights
+
+- **1,122,622 sale transactions and 53,038 rentals** across 9,750 estates and
+  30,501 buildings, with sale dates back to 1996 and monthly market data from
+  1996-12.
+- **First-hand vs second-hand sales** are classified from `mkt_type`. Coverage
+  is measured at 98.5%; the remaining 16,410 rows were retried and are
+  documented as unrecoverable from current source payloads rather than
+  silently dropped.
+- **Official RVD benchmarks** are integrated as a separate aggregate layer
+  (region × saleable-area class), never mixed into estate-level figures, with
+  the granularity mismatch stated in the UI.
+- **Charts that answer questions**: sale/rent pulse, district league, yield
+  scatter, price percentiles and segment comparisons, multi-district trends,
+  and RVD classes plotted on one axis instead of behind a dropdown.
+- **Auditable by construction**: every snapshot carries its build ID,
+  data-through dates, row counts, and catalogue, and the frontend degrades
+  cleanly when a file is missing or an older schema is served.
+- **Tested offline**: fixture-based crawler tests, mart and snapshot tests, and
+  frontend helper tests run without network access or cloud credentials.
+
+The estate drawer shows an RVD benchmark for the estate's region and
+saleable-area class — explicitly labelled as an official aggregate, not the
+estate's own rent or valuation:
+
+![Estate drawer with the RVD regional benchmark panel](docs/assets/estate-rvd-benchmark.png)
 
 ## Architecture
 
@@ -99,7 +128,8 @@ Data sources:
 - [Hong Kong Property](https://www.hkp.com.hk/zh-hk/list/estate)
 - [Wikipedia](https://www.wikipedia.org/)
 - [Rating and Valuation Department (RVD)](https://www.rvd.gov.hk/en/publications/property_market_statistics.html)
-  — not implemented yet.
+  — ingested as official aggregate benchmarks (`rvd_rents`, `rvd_prices`,
+  `rvd_indices`, `rvd_yields`) and charted separately from HKP transactions.
 
 API payload notes: [`docs/api_endpoints.md`](docs/api_endpoints.md).
 
@@ -287,11 +317,11 @@ npm run dev
 
 The frontend opens on a visual market overview with KPIs, a sale/rent pulse,
 a district league table, and a yield scatter. It also covers estate search and
-detail (including price history and recent transactions), district trends with
-level/index/change views and comparisons, an estate map, recent transactions,
-and the data catalogue. The map clusters nearby estates at low zoom and links
-selections with the estate list and drawer. See
-[`frontend/README.md`](frontend/README.md) and
+detail (including an RVD regional benchmark, price history, and recent
+transactions), district trends with level/index/change views and comparisons,
+an estate map, recent transactions, and the data catalogue. The map clusters
+nearby estates at low zoom and links selections with the estate list and
+drawer. See [`frontend/README.md`](frontend/README.md) and
 [`docs/deployment.md`](docs/deployment.md) for Cloudflare Pages/R2 setup.
 
 ## Repository layout
