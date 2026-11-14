@@ -141,7 +141,9 @@ tables:
     grain: One row per sale transaction.
     caveats: >-
       Sale-only table. mkt_type distinguishes first/second hand where
-      available; the 2026-11-13 backfill covers 98.5% of rows.
+      available; the 2026-11-13 backfill covers 98.5% of rows. A 2026-11-14
+      retry of every building with untyped rows recovered one row, so the
+      remaining 16,410 NULLs are not recoverable from current HKP payloads.
       transaction_type carries the HKP normal/other marker.
   rental_transactions:
     dataset: agency_raw

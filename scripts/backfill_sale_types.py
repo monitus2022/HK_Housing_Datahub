@@ -20,6 +20,7 @@ from logger import housing_logger  # noqa: E402
 from processors.agency.sale_type_backfill import (  # noqa: E402
     apply_sale_type_updates,
     extract_sale_types,
+    loading_buildings_missing_sale_type,
 )
 
 
@@ -60,6 +61,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Fetch and report coverage without updating the database.",
+    )
+    parser.add_argument(
+        "--only-null",
+        action="store_true",
+        help=(
+            "Only process buildings that still have transactions with a NULL "
+            "sale type. Use this to retry failures from an earlier backfill."
+        ),
     )
     return parser
 
@@ -107,11 +116,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        building_ids = loading_building_ids(
-            database,
-            args.limit_buildings,
-            args.offset,
-        )
+        if args.only_null:
+            building_ids = loading_buildings_missing_sale_type(
+                database,
+                limit=args.limit_buildings,
+                offset=args.offset,
+            )
+        else:
+            building_ids = loading_building_ids(
+                database,
+                args.limit_buildings,
+                args.offset,
+            )
     except sqlite3.Error as exc:
         print(f"error: could not read buildings: {exc}", file=sys.stderr)
         return 2
@@ -179,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
     totals["remaining_null"] = final["remaining_null"]
     print(
         "Backfill complete: "
+        f"mode={'missing-only' if args.only_null else 'all-buildings'} "
         f"buildings={len(building_ids):,} fetched={fetched:,} failed={failed:,} "
         f"source_updates={totals['source_updates']:,} "
         f"matched={totals['matched']:,} updated={totals['updated']:,} "
