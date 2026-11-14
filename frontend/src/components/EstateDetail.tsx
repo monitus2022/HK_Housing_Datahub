@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { EstateSummary, Manifest } from "../types";
 import { formatDate, formatHkd, formatNumber } from "../lib/format";
 import { EstateHistory } from "./EstateHistory";
+import { EstateRvdBenchmark } from "./EstateRvdBenchmark";
 import { wikiUrl } from "../lib/wiki";
 import { hasCoordinates } from "../lib/map";
 
@@ -174,6 +175,8 @@ export function EstateDetail({
           />
           <Stat label="Estate ID" value={estate.estate_id} />
         </dl>
+
+        <EstateRvdBenchmark manifest={manifest} estate={estate} />
 
         <EstateHistory manifest={manifest} estate={estate} />
 

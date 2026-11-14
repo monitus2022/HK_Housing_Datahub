@@ -275,7 +275,8 @@ credentials.
   and [`roadmap.md`](roadmap.md).
 - The frontend in `frontend/` opens on a visual market overview, then estate
   search, trend views with comparisons and RVD benchmarks, the estate map,
-  recent transactions, and the data catalogue. Further work is tracked in [`roadmap.md`](roadmap.md).
+  recent transactions, and the data catalogue. The estate drawer also shows an
+  RVD regional benchmark for the estate's saleable-area class. Further work is tracked in [`roadmap.md`](roadmap.md).
 - The ML workplan is deferred. Official RVD benchmark tables are ingested by
 `scripts/fetch_rvd.py` and charted separately in Trends.
 

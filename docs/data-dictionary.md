@@ -58,6 +58,12 @@ A = under 40 m²; B = 40–69.9 m²; C = 70–99.9 m²; D = 100–159.9 m²;
 E = 160 m² or more. These differ from HKP net-area bands and estate-level
 bedroom segments.
 
+The estate drawer derives a class from `estate_summary.latest_net_area` (HKP
+net area in ft², converted at 10.7639 ft²/m²) and shows the latest RVD rent,
+price, and territory-wide yield for that region and class. This is a **context
+mapping only**: HKP net area is not RVD saleable area, and the two can disagree
+near a class boundary. Estates without a recorded net area show no benchmark.
+
 ### `rvd_indices`
 
 Grain: one row per index type × property class × month. Primary key:

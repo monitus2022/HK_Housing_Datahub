@@ -68,6 +68,160 @@ export function rvdHkdM2ToFt2(value: number): number {
   return value / 10.7639;
 }
 
+const SQFT_PER_SQM = 10.7639;
+
+const RVD_REGION_BY_NAME: Record<string, string> = {
+  "hong kong island": "hk",
+  kowloon: "kln",
+  "new territories": "nt",
+};
+
+/**
+ * Map an HKP region name to an RVD region code.
+ *
+ * Estates carry `region_name_en` (Hong Kong Island / Kowloon / New
+ * Territories), which matches RVD's three private-domestic regions.
+ */
+export function rvdRegionForName(
+  name: string | null | undefined,
+): string | null {
+  if (!name) return null;
+  return RVD_REGION_BY_NAME[name.trim().toLowerCase()] ?? null;
+}
+
+/**
+ * Pick an RVD saleable-area class from an HKP net area in square feet.
+ *
+ * This is a convenience mapping for context only: HKP net area is not RVD
+ * saleable area, and the two are not guaranteed to agree at the boundaries.
+ */
+export function rvdClassForNetAreaFt2(
+  netAreaFt2: number | null | undefined,
+): string | null {
+  if (netAreaFt2 === null || netAreaFt2 === undefined) return null;
+  if (!Number.isFinite(netAreaFt2) || netAreaFt2 <= 0) return null;
+  // Round to 1e-6 m² so exact boundaries (e.g. 100 m²) do not fall a hair
+  // below the threshold through floating-point division.
+  const areaM2 = Math.round((netAreaFt2 / SQFT_PER_SQM) * 1e6) / 1e6;
+  if (areaM2 < 40) return "A";
+  if (areaM2 < 70) return "B";
+  if (areaM2 < 100) return "C";
+  if (areaM2 < 160) return "D";
+  return "E";
+}
+
+export interface EstateRvdBenchmark {
+  regionCode: string;
+  regionLabel: string;
+  propertyClass: string;
+  classDefinition: string;
+  asOfMonth: string;
+  rent: {
+    month: string;
+    hkdM2: number;
+    hkdFt2: number;
+    isProvisional: boolean;
+  } | null;
+  price: {
+    month: string;
+    hkdM2: number;
+    hkdFt2: number;
+    isProvisional: boolean;
+  } | null;
+  yieldPct: {
+    month: string;
+    value: number;
+    isProvisional: boolean;
+  } | null;
+}
+
+function latestUnitPoint(data: RvdBenchmarks | null, selection: RvdSelection) {
+  const series = buildRvdSeries(data, selection);
+  const latest = series.points[series.points.length - 1];
+  if (!latest) return null;
+  return {
+    month: latest.month,
+    hkdM2: latest.value,
+    hkdFt2: rvdHkdM2ToFt2(latest.value),
+    isProvisional: series.provisionalMonths.includes(latest.month),
+  };
+}
+
+/**
+ * Build the RVD context shown in the estate drawer.
+ *
+ * Returns null when the estate has no usable net area, the region is unknown,
+ * or the snapshot has no RVD rent/price series for that region and class.
+ */
+export function buildEstateRvdBenchmark(
+  data: RvdBenchmarks | null,
+  regionName: string | null | undefined,
+  netAreaFt2: number | null | undefined,
+): EstateRvdBenchmark | null {
+  if (!data) return null;
+  const regionCode = rvdRegionForName(regionName);
+  const propertyClass = rvdClassForNetAreaFt2(netAreaFt2);
+  if (!regionCode || !propertyClass) return null;
+
+  const rent = latestUnitPoint(data, {
+    measure: "rent",
+    propertyClass,
+    regionCode,
+  });
+  const price = latestUnitPoint(data, {
+    measure: "price",
+    propertyClass,
+    regionCode,
+  });
+  if (!rent && !price) return null;
+
+  const yieldSeries = buildRvdSeries(data, {
+    measure: "yield",
+    propertyClass,
+    regionCode,
+  });
+  const latestYield = yieldSeries.points[yieldSeries.points.length - 1];
+
+  const months = [rent?.month, price?.month]
+    .filter((month): month is string => Boolean(month))
+    .sort();
+
+  return {
+    regionCode,
+    regionLabel: regionLabel(regionCode),
+    propertyClass,
+    classDefinition:
+      RVD_CLASS_DEFINITIONS.find((item) => item.id === propertyClass)?.label ??
+      "",
+    asOfMonth: months[months.length - 1] ?? "",
+    rent: rent
+      ? {
+          month: rent.month,
+          hkdM2: rent.hkdM2,
+          hkdFt2: rent.hkdFt2,
+          isProvisional: rent.isProvisional,
+        }
+      : null,
+    price: price
+      ? {
+          month: price.month,
+          hkdM2: price.hkdM2,
+          hkdFt2: price.hkdFt2,
+          isProvisional: price.isProvisional,
+        }
+      : null,
+    yieldPct: latestYield
+      ? {
+          month: latestYield.month,
+          value: latestYield.value,
+          isProvisional: yieldSeries.provisionalMonths.includes(
+            latestYield.month,
+          ),
+        }
+      : null,
+  };
+}
+
 function regionLabel(code: string): string {
   return RVD_REGIONS.find((region) => region.id === code)?.label ?? code;
 }
