@@ -246,10 +246,15 @@ def render_markdown(catalog: dict[str, Any]) -> str:
                 lines.append(f"- **{key.title()}:** {dataset[key]}")
         if dataset.get("caveats"):
             lines.append(f"- **Caveats:** {dataset['caveats']}")
-        lines.append(
-            f"- **Tables:** {dataset['table_count']} "
-            f"({dataset['row_count']:,} rows)"
-        )
+        if dataset["table_count"] > 0:
+            lines.append(
+                f"- **Tables:** {dataset['table_count']} "
+                f"({dataset['row_count']:,} rows)"
+            )
+        elif dataset.get("artifacts"):
+            lines.append("- **Storage:** external artifacts, not SQLite tables")
+        else:
+            lines.append("- **Storage:** no relational tables or artifacts")
         if dataset.get("artifacts"):
             lines.append(
                 "- **Artifacts:** " + ", ".join(dataset["artifacts"])

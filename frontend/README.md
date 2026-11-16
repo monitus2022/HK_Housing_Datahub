@@ -52,6 +52,17 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
 - Plain CSS (no UI framework)
 - Vitest for the pure search, trend, map, transaction, wiki, and activation helpers
 
+## Brand assets
+
+`public/favicon.svg` is the source of truth for the housing mark; the header
+renders the same geometry inline via `src/components/HousingMark.tsx` so the tab
+and page stay in sync.
+
+The PNG fallbacks (`favicon-32.png`, `apple-touch-icon.png`) are rasterised from
+the SVG: render the SVG at 180×180 on a transparent background with any
+browser/SVG rasteriser, save that as `apple-touch-icon.png`, then downscale it to
+32×32 for `favicon-32.png`. Regenerate both only when the mark changes.
+
 ## Data contract
 
 The app fetches, in order:

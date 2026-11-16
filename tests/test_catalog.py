@@ -97,3 +97,46 @@ def test_catalog_includes_quality_and_manifest(tmp_path):
     markdown = render_markdown(catalog)
     assert "Quality: `warn`" in markdown
     assert "Snapshot: `build-1`" in markdown
+
+
+def test_markdown_labels_artifact_only_datasets_without_zero_table_counts():
+    catalog = {
+        "generated_at": "2026-11-14T00:00:00+00:00",
+        "database": {"name": "test.db", "table_count": 0, "row_count": 0},
+        "datasets": [
+            {
+                "name": "Wikipedia estate text",
+                "layer": "wiki",
+                "description": "Partition JSON.",
+                "table_count": 0,
+                "row_count": 0,
+                "artifacts": ["data/wiki/wiki_data_partition_*.json"],
+                "tables": [],
+            },
+            {
+                "name": "Empty dataset",
+                "layer": "operations",
+                "description": "",
+                "table_count": 0,
+                "row_count": 0,
+                "artifacts": [],
+                "tables": [],
+            },
+            {
+                "name": "RVD benchmarks",
+                "layer": "benchmark",
+                "description": "",
+                "table_count": 4,
+                "row_count": 18135,
+                "artifacts": ["data/rvd/his_data_*.xls"],
+                "tables": [],
+            },
+        ],
+    }
+
+    markdown = render_markdown(catalog)
+
+    assert "Tables:** 0" not in markdown
+    assert "**Storage:** external artifacts, not SQLite tables" in markdown
+    assert "**Storage:** no relational tables or artifacts" in markdown
+    assert "- **Tables:** 4 (18,135 rows)" in markdown

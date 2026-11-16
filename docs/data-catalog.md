@@ -573,7 +573,7 @@ Chinese Wikipedia sections and tables for matched estates, stored as partition J
 - **Licence:** CC BY-SA; attribute Wikipedia
 - **Owner:** HK Housing Datahub
 - **Caveats:** Exact Chinese-name matching only; 824 of 9,750 estates matched in the current reference data.
-- **Tables:** 0 (0 rows)
+- **Storage:** external artifacts, not SQLite tables
 - **Artifacts:** data/wiki/wiki_data_partition_*.json, Chroma collection for RAG chunks
 
 ## RAG embeddings (`rag`)
@@ -585,7 +585,7 @@ Chunked wiki text embedded with a multilingual sentence-transformer and stored i
 - **Licence:** Derived from CC BY-SA text
 - **Owner:** HK Housing Datahub
 - **Caveats:** Local Chroma store only; not served by the static dashboard and not exposed through an API yet.
-- **Tables:** 0 (0 rows)
+- **Storage:** external artifacts, not SQLite tables
 - **Artifacts:** data/chroma_db/ (local ChromaDB store)
 
 ## Serving snapshot (`serving`)
@@ -597,7 +597,7 @@ Versioned JSON files published to R2 and read by the static dashboard.
 - **Licence:** Derived from source data
 - **Owner:** HK Housing Datahub
 - **Caveats:** The manifest is authoritative; file names and schema versions can change between builds.
-- **Tables:** 0 (0 rows)
+- **Storage:** external artifacts, not SQLite tables
 - **Artifacts:** data/serving/{build_id}/manifest.json, data/serving/{build_id}/catalog.json, data/serving/{build_id}/*.json.gz
 
 ## Pipeline run metadata (`operations`)
