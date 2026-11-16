@@ -9,6 +9,7 @@ import { EstateMap } from "./components/EstateMap";
 import { RecentTransactions } from "./components/RecentTransactions";
 import { DataCatalogView } from "./components/DataCatalog";
 import { MarketOverview } from "./components/MarketOverview";
+import { HousingMark } from "./components/HousingMark";
 import { estateIdFromSearch, withEstateParam } from "./lib/urlState";
 import {
   DEFAULT_SEARCH_STATE,
@@ -180,7 +181,10 @@ export default function App() {
       <header className="hero">
         <div className="hero-copy">
           <p className="eyebrow">Hong Kong housing data</p>
-          <h1>HK Housing Datahub</h1>
+          <div className="hero-brand">
+            <HousingMark className="hero-mark" />
+            <h1>HK Housing Datahub</h1>
+          </div>
           <p className="hero-lede">
             A static view of Hong Kong housing data. Start with the market
             overview, then search estates, compare trends, explore the map, and
