@@ -59,6 +59,19 @@ code {
   max-width: 1180px;
 }
 
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.6vw, 18px);
+}
+
+.hero-mark {
+  width: clamp(38px, 5.2vw, 58px);
+  height: auto;
+  flex: none;
+  filter: drop-shadow(0 6px 14px rgba(2, 26, 24, 0.35));
+}
+
 .eyebrow {
   margin: 0 0 8px;
   font-size: 0.72rem;
