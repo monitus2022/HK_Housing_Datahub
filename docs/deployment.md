@@ -9,17 +9,20 @@ The frontend is a static Vite build. The snapshot is a separate R2 public host.
 The two are connected by the build-time `VITE_DASHBOARD_BASE_URL` value.
 
 > **Current status:** the schema-8 snapshot is live and backward compatible, and
-> the production frontend on `main` is current as of `7c491ba`. Production
+> the production frontend on `main` is current as of `bd1898e`. Production
 > serves 9,750 estates, search/filtering, the estate drawer, deep links,
 > sale/rent trends, distributions, segments, RVD benchmarks, the map, recent
 > transactions, the catalogue, and Wikipedia links.
 >
-> Verified in the live bundle (`assets/index-BgzBuCmj.js`):
+> Verified in the live bundle (`assets/index-BheX8Pkt.js`):
 >
 > - the top-estates chart has the **All / 1st hand / 2nd hand** sale-type
 >   selector and defaults to 2nd hand when coverage supports it;
-> - the RVD panel plots classes **A–E together** as multiple lines and shows the
->   saleable-area class definitions.
+> - the RVD panel plots classes **A–E together** as multiple lines with
+>   saleable-area definitions, and the estate drawer shows the matching
+>   regional benchmark;
+> - the housing mark is used as the favicon, the Apple touch icon, and the
+>   header logo.
 >
 > R2 public read and CORS for `https://hk-housing.monitus.org` are verified, and
 > the Pages build includes
