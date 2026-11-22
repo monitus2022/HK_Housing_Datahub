@@ -9,6 +9,7 @@ import {
 import {
   districtsInScope,
   REGIONS,
+  scopeForDistrict,
   scopeLabel,
   subregionsInRegion,
 } from "../lib/geo";
@@ -290,7 +291,8 @@ export function EstateSearch({ estates, onSelect }: Props) {
             {REGIONS.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.en}
-                {item.zh ? ` · ${item.zh}` : ""}
+                {item.zh ? ` · ${item.zh}` : ""} (
+                {formatNumber(item.estates)})
               </option>
             ))}
           </select>
@@ -310,7 +312,8 @@ export function EstateSearch({ estates, onSelect }: Props) {
             {subregionOptions.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.en}
-                {item.zh ? ` · ${item.zh}` : ""}
+                {item.zh ? ` · ${item.zh}` : ""} (
+                {formatNumber(item.estates)})
               </option>
             ))}
           </select>
@@ -319,15 +322,24 @@ export function EstateSearch({ estates, onSelect }: Props) {
           <span>District</span>
           <select
             value={filters.districtId}
-            onChange={(event) =>
-              updateFilter({ districtId: event.target.value })
-            }
+            onChange={(event) => {
+              const value = event.target.value;
+              // Picking a district fills its parents so the cascade never
+              // shows "All regions" above a chosen district.
+              const scope = scopeForDistrict(value);
+              updateFilter({
+                districtId: value,
+                regionId: scope?.regionId ?? filters.regionId,
+                subregionId: scope?.subregionId ?? filters.subregionId,
+              });
+            }}
           >
             <option value="">All districts</option>
             {districtOptions.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.en}
-                {item.zh ? ` · ${item.zh}` : ""}
+                {item.zh ? ` · ${item.zh}` : ""} (
+                {formatNumber(item.estates)})
               </option>
             ))}
           </select>

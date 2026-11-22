@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DISTRICTS } from "./geo";
 import {
   DEFAULT_SEARCH_STATE,
   searchStateFromParams,
@@ -29,6 +30,26 @@ describe("searchStateFromParams", () => {
     const state = searchStateFromParams("?sort=unknown");
 
     expect(state).toEqual(DEFAULT_SEARCH_STATE);
+  });
+
+  it("reads a region and subregion scope", () => {
+    const state = searchStateFromParams("?region=20&subregion=2010");
+
+    expect(state.filters.regionId).toBe("20");
+    expect(state.filters.subregionId).toBe("2010");
+    expect(state.filters.districtId).toBe("");
+  });
+
+  it("back-fills parents for district-only links", () => {
+    const district = DISTRICTS.find((item) =>
+      item.aliases.includes("Happy Valley"),
+    );
+    expect(district).toBeDefined();
+
+    const state = searchStateFromParams(`?district=${district!.id}`);
+    expect(state.filters.districtId).toBe(district!.id);
+    expect(state.filters.subregionId).toBe(district!.subregionId);
+    expect(state.filters.regionId).not.toBe("");
   });
 });
 
@@ -69,6 +90,23 @@ describe("searchStateToSearch", () => {
     expect(params.get("maxNetArea")).toBe("900");
     expect(params.get("school")).toBe("Net 62");
     expect(params.get("mtr")).toBe("Island Line");
+  });
+
+  it("serializes the location cascade at each level", () => {
+    const search = searchStateToSearch({
+      ...DEFAULT_SEARCH_STATE,
+      filters: {
+        ...DEFAULT_SEARCH_STATE.filters,
+        regionId: "20",
+        subregionId: "2010",
+        districtId: "100205",
+      },
+    });
+
+    const params = new URLSearchParams(search);
+    expect(params.get("region")).toBe("20");
+    expect(params.get("subregion")).toBe("2010");
+    expect(params.get("district")).toBe("100205");
   });
 
   it("removes stale search params and keeps other state", () => {

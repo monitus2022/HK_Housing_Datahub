@@ -108,4 +108,17 @@ describe("place resolution", () => {
   it("does not resolve ambiguous abbreviations before the gazetteer", () => {
     expect(resolvePlace("TKO")).toBeNull();
   });
+
+  it("prefers the broader level when a label exists at two levels", () => {
+    // "Tsuen Wan" names both a subregion and a district. The subregion wins so
+    // the filter returns a superset instead of silently narrowing.
+    const subregion = SUBREGIONS.find((sub) => sub.en === "Tsuen Wan");
+    const district = DISTRICTS.find((item) => item.en === "Tsuen Wan");
+    expect(subregion).toBeDefined();
+    expect(district).toBeDefined();
+
+    const scope = resolvePlace("Tsuen Wan");
+    expect(scope?.subregionId).toBe(subregion!.id);
+    expect(scope?.districtId).toBeUndefined();
+  });
 });

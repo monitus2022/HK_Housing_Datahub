@@ -12,6 +12,12 @@ quality-strict:
 marts:
 	python scripts/build_marts.py --db data/agency/agency_data.db
 
+geo:
+	python scripts/build_geo.py
+
+geo-check:
+	python scripts/build_geo.py --check
+
 publish-dry:
 	python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
 

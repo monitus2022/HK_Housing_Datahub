@@ -3,11 +3,12 @@
 > **Canonical:** [#145](https://github.com/monitus2022/HK_Housing_Datahub/issues/145).
 > This file is the working draft; keep edits in sync or retire it once §15 is decided.
 
-**Status:** Draft for review — **not yet approved as scope**
+**Status:** Approved as scope on 2026-11-22 by the repo owner.
 
 **Scope note:** `AGENTS.md` pins current scope to `docs/workplan-tidy.md`, and
-`docs/workplan-ml.md` is deferred. This epic is therefore **outside the active
-scope** and needs explicit human approval before any phase starts.
+`docs/workplan-ml.md` is deferred. This epic was approved separately from the
+tidy workplan. It does not modify the published snapshot, marts or schema, and
+it targets `dev` through the long-lived branch `feat/nl-lexicon-search`.
 
 ---
 
@@ -77,7 +78,7 @@ snapshot on 2026-11-22:
 | TKO subregion | 5 districts (Hang Hau, Lohas Park, Po Lam, Tiu Keng Leng, TKO Town Centre) | `districtId` is singular; needs a set |
 | `estate_summary.json.gz` | 568 KB | Already loaded client-side; no fetch needed for parsing |
 | Whole serving snapshot | 5.0 MB | Baseline for artifact-size judgement |
-| District labels are compound | e.g. `Happy Valley / Jardine's Lookout`, `Mid-Levels Central  / Admiralty` | Splitting on `/` yields ~30 free aliases |
+| District labels are compound | e.g. `Happy Valley / Jardine's Lookout`, `Mid-Levels Central  / Admiralty` | 23 of 60 labels are compound; splitting yields 55 extra aliases, 175 in total |
 | Cloudflare Pages per-file limit | 25 MiB | Weights must live on R2, never in the bundle |
 | R2 egress | $0 | Artifact size is a UX decision, not a cost decision |
 
@@ -135,11 +136,11 @@ and a **margin test** (ask rather than guess when two candidates are close).
 
 ## 8. Phases (one branch + PR each, per `AGENTS.md`)
 
-### P1 — Extend the filter state
-- `EstateFilters` gains `districtIds`, `mtrLinePresent`, `schoolNetPresent`, `sort`
-- `matchesFilters` handles multi-district and presence predicates
-- Unit tests for every branch; existing behaviour unchanged when new fields are empty
-- **AC:** all existing frontend tests pass; new tests cover each added field
+### P1 — Geography model and cascade filters (**shipped**)
+- `scripts/build_geo.py` derives region → subregion → district from `mart_estate_summary` into `frontend/src/lib/geo.json`, with a `--check` drift guard
+- `EstateFilters` gains `regionId` and `subregionId`; `matchesFilters` ANDs the levels; location counts once
+- Region → Subregion → District selects clear their children; a district choice back-fills its parents
+- **AC:** artifact deterministic and `--check` clean; cascade filters at all three levels; 156 frontend tests pass; no snapshot change
 
 ### P2 — Gazetteer, normaliser, fuzzy matcher
 - Generated from dimension tables (districts, subregions, MTR lines, school nets)
@@ -148,6 +149,7 @@ and a **margin test** (ask rather than guess when two candidates are close).
 - **AC:** `shenzhen` → REFUSE (not an estate match); `tko` → 5 districts; `shaitn` → Sha Tin
 
 ### P3 — Lexicon v1 + matcher + disclosure UI  ← **shippable milestone**
+- Add `mtrLinePresent`, `schoolNetPresent` and `sort` to the filter state (moved out of P1, where the geography cascade was built instead)
 - Hand-curated lexicon: predicates, unsupported, out-of-scope, defaults
 - The single-line box: label, placeholder `e.g. 2 bedroom flat in TKO`, Search button, 120-char cap
 - Chips + `Ignored:` + `Unrecognised:` rows; four result-area states
@@ -248,8 +250,10 @@ phrases (single-stream) or ~40–60 min batched.
 
 ## 15. Open questions (need a decision before P1)
 
-1. **Multi-district:** add `districtIds: string[]`, or add a first-class
-   `subregion` filter to the UI?
+1. ~~**Multi-district:** add `districtIds: string[]`, or add a first-class
+   `subregion` filter to the UI?~~ **Decided:** a first-class
+   region/subregion/district cascade (P1). Subregions such as Tseung Kwan O are
+   represented as a subregion filter rather than an array of district IDs.
 2. **Sort in scope?** (`cheapest first`, `newest first`) — recommended yes; it
    is what makes `cheap flat` answerable without inventing a budget.
 3. **Redirect hint for other tabs?** e.g. "compare Sha Tin and Tai Po" →

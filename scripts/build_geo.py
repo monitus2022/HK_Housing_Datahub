@@ -71,8 +71,10 @@ GROUP BY 1, 2, 3, 4, 5, 6, 7
 def split_aliases(*labels: str | None) -> list[str]:
     """Split compound labels such as "Happy Valley / Jardine's Lookout".
 
-    The mart stores 23 of the 60 district labels this way, which yields 88
-    extra aliases for free once each side is matched separately.
+    The mart stores 23 of the 60 district labels this way. Splitting them on
+    "/" in both English and Chinese adds 55 alias strings beyond the canonical
+    pair, for 175 in total, which is what makes "Happy Valley" match without
+    a hand-written synonym list.
     """
     seen: list[str] = []
     for label in labels:

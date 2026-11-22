@@ -155,6 +155,13 @@ const PLACE_INDEX = buildPlaceIndex();
 
 /**
  * Exact-match a place name, Chinese name or compound-label alias.
+ *
+ * When a label exists at two levels, the **broader** level wins: "Tsuen Wan"
+ * and "Kowloon City" are both a subregion and a district, so they resolve to
+ * the subregion and the filter returns a superset. That is deliberately the
+ * fail-safe direction: too many results are recoverable, silently too few are
+ * not. `geo.test.ts` pins the behaviour.
+ *
  * Abbreviations such as "TKO" are deliberately absent: they arrive with the
  * gazetteer in P2, where the margin test can disambiguate collisions
  * ("KT" = Kwun Tong or Kowloon Tong, "TW" = Tsuen Wan or Tai Wai).
