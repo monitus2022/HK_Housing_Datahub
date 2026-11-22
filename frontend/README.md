@@ -10,8 +10,9 @@ Static React frontend for the HK Housing Datahub serving snapshot. It covers:
   fall back to All),
   a district league table, and a full-width price-versus-yield
   scatter
-- estate search with text, district, price, net-ft price, area, bedroom, MTR,
-  and school-net filters, sorting, and pagination; filter state lives in the URL
+- estate search with text, region, subregion, district, price, net-ft price,
+  area, bedroom, MTR, and school-net filters, sorting, and pagination; filter
+  state lives in the URL
 - estate detail panel with latest transaction, 12-month stats, market date,
   coverage flags, monthly price and rent history, and recent transactions
 - `W`/Wiki badges link to the estate's Chinese Wikipedia page when the
@@ -95,9 +96,11 @@ manual `DecompressionStream` for local servers that return raw `.gz` bytes. If a
 snapshot predates the trends, transactions, estate-history, or catalogue file,
 only that section shows an error; the overview and estate search keep working.
 
-Search state is linkable too: `q`, `sort`, `district`, price/area ranges,
-`bedrooms`, `mtr`, and `school` are serialized in the query string and restored
-on load. Estate views use `?estate=<estate_id>`; opening such a URL loads the
+Search state is linkable too: `q`, `sort`, `region`, `subregion`, `district`,
+price/area ranges, `bedrooms`, `mtr`, and `school` are serialized in the query
+string and restored on load. Links that carry only `district` back-fill their
+region and subregion from the checked-in geography model, so the cascade opens
+at the right level. Estate views use `?estate=<estate_id>`; opening such a URL loads the
 snapshot and opens that estate, and selecting or closing an estate updates the
 query string while keeping the search filters. On a missing file, the history and transactions sections show a
 section-level message while the estate summary still renders.

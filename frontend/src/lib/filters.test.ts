@@ -169,4 +169,53 @@ describe("filter helpers", () => {
       }),
     ).toBe(3);
   });
+
+  it("counts the location cascade once", () => {
+    expect(
+      activeFilterCount({
+        ...EMPTY_ESTATE_FILTERS,
+        regionId: "10",
+        subregionId: "S1",
+        districtId: "D1",
+      }),
+    ).toBe(1);
+  });
+});
+
+describe("location scope", () => {
+  it("matches region, subregion and district independently", () => {
+    const subject = estate({});
+    expect(
+      matchesFilters(subject, { ...EMPTY_ESTATE_FILTERS, regionId: "R1" }),
+    ).toBe(true);
+    expect(
+      matchesFilters(subject, { ...EMPTY_ESTATE_FILTERS, regionId: "R2" }),
+    ).toBe(false);
+    expect(
+      matchesFilters(subject, { ...EMPTY_ESTATE_FILTERS, subregionId: "S1" }),
+    ).toBe(true);
+    expect(
+      matchesFilters(subject, { ...EMPTY_ESTATE_FILTERS, subregionId: "S9" }),
+    ).toBe(false);
+  });
+
+  it("applies the cascade as an AND when several levels are set", () => {
+    const subject = estate({});
+    expect(
+      matchesFilters(subject, {
+        ...EMPTY_ESTATE_FILTERS,
+        regionId: "R1",
+        subregionId: "S1",
+        districtId: "D1",
+      }),
+    ).toBe(true);
+    expect(
+      matchesFilters(subject, {
+        ...EMPTY_ESTATE_FILTERS,
+        regionId: "R1",
+        subregionId: "S1",
+        districtId: "D2",
+      }),
+    ).toBe(false);
+  });
 });

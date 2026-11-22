@@ -1,4 +1,4 @@
-.PHONY: test quality quality-strict lint marts publish-dry frontend-check
+.PHONY: test quality quality-strict lint marts geo geo-check publish-dry frontend-check
 
 test:
 	pytest -q
@@ -11,6 +11,12 @@ quality-strict:
 
 marts:
 	python scripts/build_marts.py --db data/agency/agency_data.db
+
+geo:
+	python scripts/build_geo.py
+
+geo-check:
+	python scripts/build_geo.py --check
 
 publish-dry:
 	python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run
