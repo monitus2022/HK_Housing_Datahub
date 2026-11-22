@@ -51,10 +51,11 @@ export function searchStateFromParams(search: string): SearchState {
   const params = new URLSearchParams(search);
   const districtId = params.get("district") ?? "";
   const subregionParam = params.get("subregion") ?? "";
-  // The most specific segment in the URL wins, so a hand-edited combination
-  // cannot produce an empty result set or a <select> whose value matches no
-  // option: a district overrides its parents, and a subregion overrides a
-  // contradicting region.
+  // The most specific valid segment in the URL wins, so a contradictory but
+  // valid combination resolves to a consistent scope instead of an empty
+  // result set. Unknown ids are passed through unchanged; the UI then shows a
+  // control with no matching option, which is deliberate: it surfaces a bad
+  // link rather than silently rewriting it.
   const derived = districtId ? scopeForDistrict(districtId) : null;
   const subregionRegion = subregionParam
     ? subregionById(subregionParam)?.regionId

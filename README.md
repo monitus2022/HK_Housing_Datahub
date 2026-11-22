@@ -392,6 +392,8 @@ make test
 make lint
 make quality
 make marts
+make geo
+make geo-check
 make publish-dry
 make frontend-check
 ```
