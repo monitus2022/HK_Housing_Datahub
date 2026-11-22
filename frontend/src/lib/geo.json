@@ -1,0 +1,891 @@
+{
+  "_meta": {
+    "schema": 1,
+    "source": "mart_estate_summary",
+    "estates": 9750,
+    "regions": 3,
+    "subregions": 20,
+    "districts": 60,
+    "district_aliases": 175,
+    "missing_zh": []
+  },
+  "regions": [
+    {
+      "id": "10",
+      "en": "Hong Kong Island",
+      "zh": "香港島",
+      "estates": 3571
+    },
+    {
+      "id": "20",
+      "en": "Kowloon",
+      "zh": "九龍",
+      "estates": 4729
+    },
+    {
+      "id": "30",
+      "en": "New Territories",
+      "zh": "新界",
+      "estates": 1450
+    }
+  ],
+  "subregions": [
+    {
+      "id": "1001",
+      "en": "Central And Western",
+      "zh": "中西區",
+      "regionId": "10",
+      "estates": 1400
+    },
+    {
+      "id": "1004",
+      "en": "Eastern",
+      "zh": "東區",
+      "regionId": "10",
+      "estates": 429
+    },
+    {
+      "id": "3018",
+      "en": "Islands",
+      "zh": "離島區",
+      "regionId": "30",
+      "estates": 71
+    },
+    {
+      "id": "2011",
+      "en": "Kai Tak",
+      "zh": "啟德",
+      "regionId": "20",
+      "estates": 23
+    },
+    {
+      "id": "2009",
+      "en": "Kowloon City",
+      "zh": "九龍城",
+      "regionId": "20",
+      "estates": 1683
+    },
+    {
+      "id": "3012",
+      "en": "Kwai Tsing",
+      "zh": "葵青",
+      "regionId": "30",
+      "estates": 54
+    },
+    {
+      "id": "2007",
+      "en": "Kwun Tong",
+      "zh": "觀塘",
+      "regionId": "20",
+      "estates": 122
+    },
+    {
+      "id": "3015",
+      "en": "North",
+      "zh": "北區",
+      "regionId": "30",
+      "estates": 229
+    },
+    {
+      "id": "3010",
+      "en": "Sai Kung",
+      "zh": "西貢",
+      "regionId": "30",
+      "estates": 186
+    },
+    {
+      "id": "3017",
+      "en": "Sha Tin",
+      "zh": "沙田",
+      "regionId": "30",
+      "estates": 122
+    },
+    {
+      "id": "2006",
+      "en": "Sham Shui Po",
+      "zh": "深水埗",
+      "regionId": "20",
+      "estates": 1071
+    },
+    {
+      "id": "1003",
+      "en": "Southern",
+      "zh": "南區",
+      "regionId": "10",
+      "estates": 490
+    },
+    {
+      "id": "3016",
+      "en": "Tai Po",
+      "zh": "大埔",
+      "regionId": "30",
+      "estates": 209
+    },
+    {
+      "id": "2010",
+      "en": "Tseung Kwan O",
+      "zh": "將軍澳",
+      "regionId": "20",
+      "estates": 63
+    },
+    {
+      "id": "3011",
+      "en": "Tsuen Wan",
+      "zh": "荃灣",
+      "regionId": "30",
+      "estates": 168
+    },
+    {
+      "id": "3013",
+      "en": "Tuen Mun",
+      "zh": "屯門",
+      "regionId": "30",
+      "estates": 87
+    },
+    {
+      "id": "1002",
+      "en": "Wan Chai",
+      "zh": "灣仔",
+      "regionId": "10",
+      "estates": 1252
+    },
+    {
+      "id": "2008",
+      "en": "Wong Tai Sin",
+      "zh": "黃大仙",
+      "regionId": "20",
+      "estates": 229
+    },
+    {
+      "id": "2005",
+      "en": "Yau Tsim Mong",
+      "zh": "油尖旺",
+      "regionId": "20",
+      "estates": 1538
+    },
+    {
+      "id": "3014",
+      "en": "Yuen Long",
+      "zh": "元朗",
+      "regionId": "30",
+      "estates": 324
+    }
+  ],
+  "districts": [
+    {
+      "id": "100308",
+      "en": "Aberdeen / Wong Chuk Hang / Ap Lei Chau",
+      "zh": "香港仔 / 黃竹坑 / 鴨脷洲",
+      "subregionId": "1003",
+      "estates": 186,
+      "aliases": [
+        "Aberdeen",
+        "Ap Lei Chau",
+        "Wong Chuk Hang",
+        "香港仔",
+        "鴨脷洲",
+        "黃竹坑"
+      ]
+    },
+    {
+      "id": "200602",
+      "en": "Cheung Sha Wan / Sham Shui Po",
+      "zh": "長沙灣 / 深水埗",
+      "subregionId": "2006",
+      "estates": 990,
+      "aliases": [
+        "Cheung Sha Wan",
+        "Sham Shui Po",
+        "深水埗",
+        "長沙灣"
+      ]
+    },
+    {
+      "id": "200802",
+      "en": "Diamond Hill / San Po Kong / Ngau Chi Wan",
+      "zh": "鑽石山 / 新蒲崗 / 牛池灣",
+      "subregionId": "2008",
+      "estates": 221,
+      "aliases": [
+        "Diamond Hill",
+        "Ngau Chi Wan",
+        "San Po Kong",
+        "新蒲崗",
+        "牛池灣",
+        "鑽石山"
+      ]
+    },
+    {
+      "id": "301802",
+      "en": "Discovery Bay",
+      "zh": "愉景灣",
+      "subregionId": "3018",
+      "estates": 1,
+      "aliases": [
+        "Discovery Bay",
+        "愉景灣"
+      ]
+    },
+    {
+      "id": "301404",
+      "en": "Fairview / Palm Springs / The Vineyard",
+      "zh": "錦綉 / 加州 / 葡萄園",
+      "subregionId": "3014",
+      "estates": 2,
+      "aliases": [
+        "Fairview",
+        "Palm Springs",
+        "The Vineyard",
+        "加州",
+        "葡萄園",
+        "錦綉"
+      ]
+    },
+    {
+      "id": "201001",
+      "en": "Hang Hau",
+      "zh": "坑口",
+      "subregionId": "2010",
+      "estates": 17,
+      "aliases": [
+        "Hang Hau",
+        "坑口"
+      ]
+    },
+    {
+      "id": "100205",
+      "en": "Happy Valley / Jardine's Lookout",
+      "zh": "跑馬地 / 渣甸山",
+      "subregionId": "1002",
+      "estates": 513,
+      "aliases": [
+        "Happy Valley",
+        "Jardine's Lookout",
+        "渣甸山",
+        "跑馬地"
+      ]
+    },
+    {
+      "id": "200902",
+      "en": "Ho Man Tin",
+      "zh": "何文田",
+      "subregionId": "2009",
+      "estates": 377,
+      "aliases": [
+        "Ho Man Tin",
+        "何文田"
+      ]
+    },
+    {
+      "id": "100102",
+      "en": "Hong Kong West",
+      "zh": "港島西",
+      "subregionId": "1001",
+      "estates": 499,
+      "aliases": [
+        "Hong Kong West",
+        "港島西"
+      ]
+    },
+    {
+      "id": "200901",
+      "en": "Hung Hom",
+      "zh": "紅磡",
+      "subregionId": "2009",
+      "estates": 184,
+      "aliases": [
+        "Hung Hom",
+        "紅磡"
+      ]
+    },
+    {
+      "id": "301403",
+      "en": "Hung Shui Kiu",
+      "zh": "洪水橋",
+      "subregionId": "3014",
+      "estates": 32,
+      "aliases": [
+        "Hung Shui Kiu",
+        "洪水橋"
+      ]
+    },
+    {
+      "id": "200906",
+      "en": "Kai Tak",
+      "zh": "啟德",
+      "subregionId": "2011",
+      "estates": 23,
+      "aliases": [
+        "Kai Tak",
+        "啟德"
+      ]
+    },
+    {
+      "id": "301701",
+      "en": "Kau To Shan / Fotan",
+      "zh": "九肚山 / 火炭",
+      "subregionId": "3017",
+      "estates": 29,
+      "aliases": [
+        "Fotan",
+        "Kau To Shan",
+        "九肚山",
+        "火炭"
+      ]
+    },
+    {
+      "id": "200503",
+      "en": "Kingspark",
+      "zh": "京士柏",
+      "subregionId": "2005",
+      "estates": 27,
+      "aliases": [
+        "Kingspark",
+        "京士柏"
+      ]
+    },
+    {
+      "id": "200701",
+      "en": "Kowloon Bay",
+      "zh": "九龍灣",
+      "subregionId": "2007",
+      "estates": 14,
+      "aliases": [
+        "Kowloon Bay",
+        "九龍灣"
+      ]
+    },
+    {
+      "id": "200905",
+      "en": "Kowloon City",
+      "zh": "九龍城",
+      "subregionId": "2009",
+      "estates": 368,
+      "aliases": [
+        "Kowloon City",
+        "九龍城"
+      ]
+    },
+    {
+      "id": "200504",
+      "en": "Kowloon Station",
+      "zh": "九龍站",
+      "subregionId": "2005",
+      "estates": 8,
+      "aliases": [
+        "Kowloon Station",
+        "九龍站"
+      ]
+    },
+    {
+      "id": "200903",
+      "en": "Kowloon Tong / Beacon Hill",
+      "zh": "九龍塘 / 筆架山",
+      "subregionId": "2009",
+      "estates": 305,
+      "aliases": [
+        "Beacon Hill",
+        "Kowloon Tong",
+        "九龍塘",
+        "筆架山"
+      ]
+    },
+    {
+      "id": "301201",
+      "en": "Kwai Chung",
+      "zh": "葵涌",
+      "subregionId": "3012",
+      "estates": 38,
+      "aliases": [
+        "Kwai Chung",
+        "葵涌"
+      ]
+    },
+    {
+      "id": "200704",
+      "en": "Kwun Tong / Lam Tin / Yau Tong",
+      "zh": "觀塘 / 藍田 / 油塘",
+      "subregionId": "2007",
+      "estates": 108,
+      "aliases": [
+        "Kwun Tong",
+        "Lam Tin",
+        "Yau Tong",
+        "油塘",
+        "藍田",
+        "觀塘"
+      ]
+    },
+    {
+      "id": "200601",
+      "en": "Lai Chi Kok",
+      "zh": "荔枝角",
+      "subregionId": "2006",
+      "estates": 9,
+      "aliases": [
+        "Lai Chi Kok",
+        "荔枝角"
+      ]
+    },
+    {
+      "id": "301801",
+      "en": "Lantau / Island",
+      "zh": "大嶼山 / 離島",
+      "subregionId": "3018",
+      "estates": 54,
+      "aliases": [
+        "Island",
+        "Lantau",
+        "大嶼山",
+        "離島"
+      ]
+    },
+    {
+      "id": "201005",
+      "en": "Lohas Park",
+      "zh": "康城",
+      "subregionId": "2010",
+      "estates": 3,
+      "aliases": [
+        "Lohas Park",
+        "康城"
+      ]
+    },
+    {
+      "id": "301703",
+      "en": "Ma On Shan",
+      "zh": "馬鞍山",
+      "subregionId": "3017",
+      "estates": 30,
+      "aliases": [
+        "Ma On Shan",
+        "馬鞍山"
+      ]
+    },
+    {
+      "id": "301103",
+      "en": "Ma Wan",
+      "zh": "馬灣",
+      "subregionId": "3011",
+      "estates": 6,
+      "aliases": [
+        "Ma Wan",
+        "馬灣"
+      ]
+    },
+    {
+      "id": "200604",
+      "en": "Mei Foo",
+      "zh": "美孚",
+      "subregionId": "2006",
+      "estates": 3,
+      "aliases": [
+        "Mei Foo",
+        "美孚"
+      ]
+    },
+    {
+      "id": "100101",
+      "en": "Mid-Levels Central  / Admiralty",
+      "zh": "中半山 / 金鐘",
+      "subregionId": "1001",
+      "estates": 72,
+      "aliases": [
+        "Admiralty",
+        "Mid-Levels Central",
+        "中半山",
+        "金鐘"
+      ]
+    },
+    {
+      "id": "100103",
+      "en": "Mid-Levels West",
+      "zh": "西半山",
+      "subregionId": "1001",
+      "estates": 218,
+      "aliases": [
+        "Mid-Levels West",
+        "西半山"
+      ]
+    },
+    {
+      "id": "200508",
+      "en": "Mongkok / Yau Ma Tei",
+      "zh": "旺角 / 油麻地",
+      "subregionId": "2005",
+      "estates": 820,
+      "aliases": [
+        "Mongkok",
+        "Yau Ma Tei",
+        "旺角",
+        "油麻地"
+      ]
+    },
+    {
+      "id": "301502",
+      "en": "North",
+      "zh": "新界北",
+      "subregionId": "3015",
+      "estates": 44,
+      "aliases": [
+        "North",
+        "新界北"
+      ]
+    },
+    {
+      "id": "100408",
+      "en": "North Point / North Point Mid-Levels",
+      "zh": "北角 / 北角半山",
+      "subregionId": "1004",
+      "estates": 246,
+      "aliases": [
+        "North Point",
+        "North Point Mid-Levels",
+        "北角",
+        "北角半山"
+      ]
+    },
+    {
+      "id": "200505",
+      "en": "Olympic",
+      "zh": "奧運",
+      "subregionId": "2005",
+      "estates": 10,
+      "aliases": [
+        "Olympic",
+        "奧運"
+      ]
+    },
+    {
+      "id": "201007",
+      "en": "Po Lam",
+      "zh": "寶琳",
+      "subregionId": "2010",
+      "estates": 15,
+      "aliases": [
+        "Po Lam",
+        "寶琳"
+      ]
+    },
+    {
+      "id": "100403",
+      "en": "Quarry Bay",
+      "zh": "鰂魚涌",
+      "subregionId": "1004",
+      "estates": 42,
+      "aliases": [
+        "Quarry Bay",
+        "鰂魚涌"
+      ]
+    },
+    {
+      "id": "100303",
+      "en": "Residence Bel-Air / Pokfulam",
+      "zh": "貝沙灣 / 薄扶林",
+      "subregionId": "1003",
+      "estates": 34,
+      "aliases": [
+        "Pokfulam",
+        "Residence Bel-Air",
+        "薄扶林",
+        "貝沙灣"
+      ]
+    },
+    {
+      "id": "301003",
+      "en": "Sai Kung / Clear Water Bay",
+      "zh": "西貢 / 清水灣",
+      "subregionId": "3010",
+      "estates": 186,
+      "aliases": [
+        "Clear Water Bay",
+        "Sai Kung",
+        "清水灣",
+        "西貢"
+      ]
+    },
+    {
+      "id": "301102",
+      "en": "Sham Tseng / Tsing Lung Tau",
+      "zh": "深井 / 青龍頭",
+      "subregionId": "3011",
+      "estates": 11,
+      "aliases": [
+        "Sham Tseng",
+        "Tsing Lung Tau",
+        "深井",
+        "青龍頭"
+      ]
+    },
+    {
+      "id": "301702",
+      "en": "Shatin",
+      "zh": "沙田",
+      "subregionId": "3017",
+      "estates": 63,
+      "aliases": [
+        "Shatin",
+        "沙田"
+      ]
+    },
+    {
+      "id": "100409",
+      "en": "Shau Kei Wan / Chai Wan",
+      "zh": "筲箕灣 / 柴灣",
+      "subregionId": "1004",
+      "estates": 133,
+      "aliases": [
+        "Chai Wan",
+        "Shau Kei Wan",
+        "柴灣",
+        "筲箕灣"
+      ]
+    },
+    {
+      "id": "301501",
+      "en": "Sheung Shui / Fanling",
+      "zh": "上水 / 粉嶺",
+      "subregionId": "3015",
+      "estates": 185,
+      "aliases": [
+        "Fanling",
+        "Sheung Shui",
+        "上水",
+        "粉嶺"
+      ]
+    },
+    {
+      "id": "100104",
+      "en": "Sheung Wan / Central",
+      "zh": "中上環",
+      "subregionId": "1001",
+      "estates": 519,
+      "aliases": [
+        "Central",
+        "Sheung Wan",
+        "中上環"
+      ]
+    },
+    {
+      "id": "100307",
+      "en": "Stanley / Tai Tam / Repulse Bay",
+      "zh": "赤柱 / 大潭 / 淺水灣",
+      "subregionId": "1003",
+      "estates": 270,
+      "aliases": [
+        "Repulse Bay",
+        "Stanley",
+        "Tai Tam",
+        "大潭",
+        "淺水灣",
+        "赤柱"
+      ]
+    },
+    {
+      "id": "200506",
+      "en": "Tai Kok Tsui",
+      "zh": "大角咀",
+      "subregionId": "2005",
+      "estates": 160,
+      "aliases": [
+        "Tai Kok Tsui",
+        "大角咀"
+      ]
+    },
+    {
+      "id": "301601",
+      "en": "Tai Po",
+      "zh": "大埔",
+      "subregionId": "3016",
+      "estates": 209,
+      "aliases": [
+        "Tai Po",
+        "大埔"
+      ]
+    },
+    {
+      "id": "100405",
+      "en": "Taikoo / Sai Wan Ho",
+      "zh": "太古 / 西灣河",
+      "subregionId": "1004",
+      "estates": 8,
+      "aliases": [
+        "Sai Wan Ho",
+        "Taikoo",
+        "太古",
+        "西灣河"
+      ]
+    },
+    {
+      "id": "100105",
+      "en": "The Peak",
+      "zh": "山頂",
+      "subregionId": "1001",
+      "estates": 92,
+      "aliases": [
+        "The Peak",
+        "山頂"
+      ]
+    },
+    {
+      "id": "100204",
+      "en": "Tin Hau",
+      "zh": "天后",
+      "subregionId": "1002",
+      "estates": 184,
+      "aliases": [
+        "Tin Hau",
+        "天后"
+      ]
+    },
+    {
+      "id": "301401",
+      "en": "Tin Shui Wai",
+      "zh": "天水圍",
+      "subregionId": "3014",
+      "estates": 10,
+      "aliases": [
+        "Tin Shui Wai",
+        "天水圍"
+      ]
+    },
+    {
+      "id": "201004",
+      "en": "Tiu Keng Leng",
+      "zh": "調景嶺",
+      "subregionId": "2010",
+      "estates": 8,
+      "aliases": [
+        "Tiu Keng Leng",
+        "調景嶺"
+      ]
+    },
+    {
+      "id": "200904",
+      "en": "To Kwa Wan",
+      "zh": "土瓜灣",
+      "subregionId": "2009",
+      "estates": 449,
+      "aliases": [
+        "To Kwa Wan",
+        "土瓜灣"
+      ]
+    },
+    {
+      "id": "201006",
+      "en": "Tseung Kwan O Town Centre",
+      "zh": "將軍澳市中心",
+      "subregionId": "2010",
+      "estates": 20,
+      "aliases": [
+        "Tseung Kwan O Town Centre",
+        "將軍澳市中心"
+      ]
+    },
+    {
+      "id": "200501",
+      "en": "Tsim Sha Tsui",
+      "zh": "尖沙咀",
+      "subregionId": "2005",
+      "estates": 513,
+      "aliases": [
+        "Tsim Sha Tsui",
+        "尖沙咀"
+      ]
+    },
+    {
+      "id": "301202",
+      "en": "Tsing Yi",
+      "zh": "青衣",
+      "subregionId": "3012",
+      "estates": 16,
+      "aliases": [
+        "Tsing Yi",
+        "青衣"
+      ]
+    },
+    {
+      "id": "301101",
+      "en": "Tsuen Wan",
+      "zh": "荃灣",
+      "subregionId": "3011",
+      "estates": 151,
+      "aliases": [
+        "Tsuen Wan",
+        "荃灣"
+      ]
+    },
+    {
+      "id": "301301",
+      "en": "Tuen Mun",
+      "zh": "屯門",
+      "subregionId": "3013",
+      "estates": 87,
+      "aliases": [
+        "Tuen Mun",
+        "屯門"
+      ]
+    },
+    {
+      "id": "301803",
+      "en": "Tung Chung",
+      "zh": "東涌",
+      "subregionId": "3018",
+      "estates": 16,
+      "aliases": [
+        "Tung Chung",
+        "東涌"
+      ]
+    },
+    {
+      "id": "100203",
+      "en": "Wan Chai / Causeway Bay",
+      "zh": "灣仔 / 銅鑼灣",
+      "subregionId": "1002",
+      "estates": 555,
+      "aliases": [
+        "Causeway Bay",
+        "Wan Chai",
+        "灣仔",
+        "銅鑼灣"
+      ]
+    },
+    {
+      "id": "200801",
+      "en": "Wong Tai Sin / Lok Fu",
+      "zh": "黃大仙 / 樂富",
+      "subregionId": "2008",
+      "estates": 8,
+      "aliases": [
+        "Lok Fu",
+        "Wong Tai Sin",
+        "樂富",
+        "黃大仙"
+      ]
+    },
+    {
+      "id": "200603",
+      "en": "Yau Yat Chuen / Shek Kip Mei",
+      "zh": "又一村 / 石硤尾",
+      "subregionId": "2006",
+      "estates": 69,
+      "aliases": [
+        "Shek Kip Mei",
+        "Yau Yat Chuen",
+        "又一村",
+        "石硤尾"
+      ]
+    },
+    {
+      "id": "301402",
+      "en": "Yuen Long",
+      "zh": "元朗",
+      "subregionId": "3014",
+      "estates": 280,
+      "aliases": [
+        "Yuen Long",
+        "元朗"
+      ]
+    }
+  ]
+}
