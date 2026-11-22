@@ -1,0 +1,474 @@
+{
+  "_meta": {
+    "schema": 1,
+    "source": "mart_estate_summary + estate_mtr_lines + estate_school_nets",
+    "mtr_lines": 8,
+    "school_nets": 39,
+    "abbreviations": 7,
+    "direction_cells": 12,
+    "out_of_scope": 26
+  },
+  "mtrLines": [
+    {
+      "en": "East Rail Line",
+      "zh": "東鐵綫",
+      "estates": 77
+    },
+    {
+      "en": "Island Line",
+      "zh": "港島綫",
+      "estates": 568
+    },
+    {
+      "en": "Kwun Tong Line",
+      "zh": "觀塘綫",
+      "estates": 374
+    },
+    {
+      "en": "South Island Line",
+      "zh": "南港島綫",
+      "estates": 33
+    },
+    {
+      "en": "Tseung Kwan O Line",
+      "zh": "將軍澳綫",
+      "estates": 38
+    },
+    {
+      "en": "Tsuen Wan Line",
+      "zh": "荃灣綫",
+      "estates": 256
+    },
+    {
+      "en": "Tuen Ma Line",
+      "zh": "屯馬綫",
+      "estates": 385
+    },
+    {
+      "en": "Tung Chung Line",
+      "zh": "東涌綫",
+      "estates": 49
+    }
+  ],
+  "schoolNets": [
+    {
+      "id": "11",
+      "en": "Central & Western",
+      "zh": "中西區",
+      "estates": 1367
+    },
+    {
+      "id": "14",
+      "en": "East",
+      "zh": "東區",
+      "estates": 297
+    },
+    {
+      "id": "16",
+      "en": "East",
+      "zh": "東區",
+      "estates": 132
+    },
+    {
+      "id": "96",
+      "en": "Island",
+      "zh": "離島",
+      "estates": 12
+    },
+    {
+      "id": "97",
+      "en": "Island",
+      "zh": "離島",
+      "estates": 10
+    },
+    {
+      "id": "98",
+      "en": "Island",
+      "zh": "離島",
+      "estates": 38
+    },
+    {
+      "id": "99",
+      "en": "Island",
+      "zh": "離島",
+      "estates": 5
+    },
+    {
+      "id": "34",
+      "en": "Kowloon City",
+      "zh": "九龍城",
+      "estates": 848
+    },
+    {
+      "id": "35",
+      "en": "Kowloon City",
+      "zh": "九龍城",
+      "estates": 184
+    },
+    {
+      "id": "41",
+      "en": "Kowloon City",
+      "zh": "九龍城",
+      "estates": 667
+    },
+    {
+      "id": "43",
+      "en": "Kowloon City",
+      "zh": "九龍城",
+      "estates": 2
+    },
+    {
+      "id": "64",
+      "en": "Kwai Tsing",
+      "zh": "葵青",
+      "estates": 4
+    },
+    {
+      "id": "65",
+      "en": "Kwai Tsing",
+      "zh": "葵青",
+      "estates": 28
+    },
+    {
+      "id": "66",
+      "en": "Kwai Tsing",
+      "zh": "葵青",
+      "estates": 15
+    },
+    {
+      "id": "46",
+      "en": "Kwun Tong",
+      "zh": "觀塘",
+      "estates": 15
+    },
+    {
+      "id": "48",
+      "en": "Kwun Tong",
+      "zh": "觀塘",
+      "estates": 107
+    },
+    {
+      "id": "80",
+      "en": "North",
+      "zh": "北區",
+      "estates": 17
+    },
+    {
+      "id": "81",
+      "en": "North",
+      "zh": "北區",
+      "estates": 79
+    },
+    {
+      "id": "95",
+      "en": "Saikung",
+      "zh": "西貢",
+      "estates": 207
+    },
+    {
+      "id": "40",
+      "en": "Sham Shui Po",
+      "zh": "深水埗",
+      "estates": 1071
+    },
+    {
+      "id": "88",
+      "en": "Shatin",
+      "zh": "沙田",
+      "estates": 31
+    },
+    {
+      "id": "89",
+      "en": "Shatin",
+      "zh": "沙田",
+      "estates": 29
+    },
+    {
+      "id": "91",
+      "en": "Shatin",
+      "zh": "沙田",
+      "estates": 56
+    },
+    {
+      "id": "16",
+      "en": "South",
+      "zh": "南區",
+      "estates": 1
+    },
+    {
+      "id": "18",
+      "en": "South",
+      "zh": "南區",
+      "estates": 483
+    },
+    {
+      "id": "84",
+      "en": "Tai Po",
+      "zh": "大埔",
+      "estates": 164
+    },
+    {
+      "id": "62",
+      "en": "Tsuen Wan",
+      "zh": "荃灣",
+      "estates": 147
+    },
+    {
+      "id": "66",
+      "en": "Tsuen Wan",
+      "zh": "荃灣",
+      "estates": 1
+    },
+    {
+      "id": "70",
+      "en": "Tuen Mun",
+      "zh": "屯門",
+      "estates": 29
+    },
+    {
+      "id": "71",
+      "en": "Tuen Mun",
+      "zh": "屯門",
+      "estates": 39
+    },
+    {
+      "id": "12",
+      "en": "Wan Chai",
+      "zh": "灣仔",
+      "estates": 1264
+    },
+    {
+      "id": "43",
+      "en": "Wong Tai Sin",
+      "zh": "黃大仙",
+      "estates": 47
+    },
+    {
+      "id": "45",
+      "en": "Wong Tai Sin",
+      "zh": "黃大仙",
+      "estates": 94
+    },
+    {
+      "id": "31",
+      "en": "Yau Tsim Mong",
+      "zh": "油尖旺",
+      "estates": 703
+    },
+    {
+      "id": "32",
+      "en": "Yau Tsim Mong",
+      "zh": "油尖旺",
+      "estates": 821
+    },
+    {
+      "id": "35",
+      "en": "Yau Tsim Mong",
+      "zh": "油尖旺",
+      "estates": 1
+    },
+    {
+      "id": "72",
+      "en": "Yuen Long",
+      "zh": "元朗",
+      "estates": 72
+    },
+    {
+      "id": "73",
+      "en": "Yuen Long",
+      "zh": "元朗",
+      "estates": 29
+    },
+    {
+      "id": "74",
+      "en": "Yuen Long",
+      "zh": "元朗",
+      "estates": 102
+    }
+  ],
+  "abbreviations": [
+    {
+      "term": "hki",
+      "candidates": [
+        {
+          "level": "region",
+          "id": "10"
+        }
+      ]
+    },
+    {
+      "term": "kl",
+      "candidates": [
+        {
+          "level": "region",
+          "id": "20"
+        }
+      ]
+    },
+    {
+      "term": "kln",
+      "candidates": [
+        {
+          "level": "region",
+          "id": "20"
+        }
+      ]
+    },
+    {
+      "term": "kt",
+      "candidates": [
+        {
+          "level": "subregion",
+          "id": "2007"
+        },
+        {
+          "level": "district",
+          "id": "200903"
+        }
+      ]
+    },
+    {
+      "term": "nt",
+      "candidates": [
+        {
+          "level": "region",
+          "id": "30"
+        }
+      ]
+    },
+    {
+      "term": "tko",
+      "candidates": [
+        {
+          "level": "subregion",
+          "id": "2010"
+        }
+      ]
+    },
+    {
+      "term": "tw",
+      "candidates": [
+        {
+          "level": "subregion",
+          "id": "3011"
+        }
+      ]
+    }
+  ],
+  "directions": [
+    {
+      "direction": "east",
+      "regionId": "10",
+      "subregionIds": [
+        "1004"
+      ]
+    },
+    {
+      "direction": "east",
+      "regionId": "20",
+      "subregionIds": [
+        "2007",
+        "2011"
+      ]
+    },
+    {
+      "direction": "east",
+      "regionId": "30",
+      "subregionIds": [
+        "3017",
+        "3010"
+      ]
+    },
+    {
+      "direction": "north",
+      "regionId": "10",
+      "subregionIds": []
+    },
+    {
+      "direction": "north",
+      "regionId": "20",
+      "subregionIds": [
+        "2008"
+      ]
+    },
+    {
+      "direction": "north",
+      "regionId": "30",
+      "subregionIds": [
+        "3015"
+      ]
+    },
+    {
+      "direction": "south",
+      "regionId": "10",
+      "subregionIds": [
+        "1003"
+      ]
+    },
+    {
+      "direction": "south",
+      "regionId": "20",
+      "subregionIds": [
+        "2005"
+      ]
+    },
+    {
+      "direction": "south",
+      "regionId": "30",
+      "subregionIds": [
+        "3018"
+      ]
+    },
+    {
+      "direction": "west",
+      "regionId": "10",
+      "subregionIds": [
+        "1001"
+      ]
+    },
+    {
+      "direction": "west",
+      "regionId": "20",
+      "subregionIds": [
+        "2005",
+        "2006"
+      ]
+    },
+    {
+      "direction": "west",
+      "regionId": "30",
+      "subregionIds": [
+        "3013",
+        "3014"
+      ]
+    }
+  ],
+  "outOfScope": [
+    "dongguan",
+    "foshan",
+    "guangdong",
+    "guangzhou",
+    "huizhou",
+    "london",
+    "macao",
+    "macau",
+    "singapore",
+    "shenzhen",
+    "taipei",
+    "taiwan",
+    "tokyo",
+    "zhuhai",
+    "中山",
+    "佛山",
+    "台北",
+    "台灣",
+    "廣州",
+    "廣東",
+    "東莞",
+    "惠州",
+    "新加坡",
+    "深圳",
+    "澳門",
+    "珠海"
+  ]
+}
