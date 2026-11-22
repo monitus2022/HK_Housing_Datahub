@@ -3,7 +3,7 @@ import {
   EMPTY_ESTATE_FILTERS,
   type EstateFilters,
 } from "./filters";
-import { scopeForDistrict } from "./geo";
+import { subregionById, scopeForDistrict } from "./geo";
 
 export interface SearchState {
   query: string;
@@ -50,17 +50,22 @@ function readSort(value: string | null): SortKey {
 export function searchStateFromParams(search: string): SearchState {
   const params = new URLSearchParams(search);
   const districtId = params.get("district") ?? "";
-  // A district is the most specific level, so it wins over any region or
-  // subregion in the URL: a hand-edited `?region=10&district=<other>` narrows
-  // to the district's real parents instead of producing an empty result set
-  // and a <select> whose value matches no option.
+  const subregionParam = params.get("subregion") ?? "";
+  // The most specific segment in the URL wins, so a hand-edited combination
+  // cannot produce an empty result set or a <select> whose value matches no
+  // option: a district overrides its parents, and a subregion overrides a
+  // contradicting region.
   const derived = districtId ? scopeForDistrict(districtId) : null;
+  const subregionRegion = subregionParam
+    ? subregionById(subregionParam)?.regionId
+    : undefined;
   return {
     query: params.get("q") ?? "",
     sort: readSort(params.get("sort")),
     filters: {
-      regionId: derived?.regionId ?? params.get("region") ?? "",
-      subregionId: derived?.subregionId ?? params.get("subregion") ?? "",
+      regionId:
+        derived?.regionId ?? subregionRegion ?? params.get("region") ?? "",
+      subregionId: derived?.subregionId ?? subregionParam,
       districtId,
       minPrice: params.get("minPrice") ?? "",
       maxPrice: params.get("maxPrice") ?? "",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DISTRICTS, scopeForDistrict } from "./geo";
+import { DISTRICTS, SUBREGIONS, scopeForDistrict } from "./geo";
 import {
   DEFAULT_SEARCH_STATE,
   searchStateFromParams,
@@ -50,6 +50,15 @@ describe("searchStateFromParams", () => {
     expect(state.filters.districtId).toBe(district!.id);
     expect(state.filters.subregionId).toBe(district!.subregionId);
     expect(state.filters.regionId).not.toBe("");
+  });
+
+  it("derives the region when a subregion contradicts it", () => {
+    const tko = SUBREGIONS.find((sub) => sub.en === "Tseung Kwan O");
+    expect(tko).toBeDefined();
+
+    const state = searchStateFromParams(`?region=99&subregion=${tko!.id}`);
+    expect(state.filters.regionId).toBe(tko!.regionId);
+    expect(state.filters.subregionId).toBe(tko!.id);
   });
 
   it("lets a district override contradictory region and subregion params", () => {
