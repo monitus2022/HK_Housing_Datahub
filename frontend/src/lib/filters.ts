@@ -1,6 +1,8 @@
 import type { EstateSummary } from "../types";
 
 export interface EstateFilters {
+  regionId: string;
+  subregionId: string;
   districtId: string;
   minPrice: string;
   maxPrice: string;
@@ -14,6 +16,8 @@ export interface EstateFilters {
 }
 
 export const EMPTY_ESTATE_FILTERS: EstateFilters = {
+  regionId: "",
+  subregionId: "",
   districtId: "",
   minPrice: "",
   maxPrice: "",
@@ -67,6 +71,12 @@ export function matchesFilters(
   estate: EstateSummary,
   filters: EstateFilters,
 ): boolean {
+  if (filters.regionId && estate.region_id !== filters.regionId) {
+    return false;
+  }
+  if (filters.subregionId && estate.subregion_id !== filters.subregionId) {
+    return false;
+  }
   if (filters.districtId && estate.district_id !== filters.districtId) {
     return false;
   }
@@ -113,7 +123,8 @@ export function matchesFilters(
 
 export function activeFilterCount(filters: EstateFilters): number {
   let count = 0;
-  if (filters.districtId) count += 1;
+  // Location is one cascade, so it counts once regardless of depth.
+  if (filters.regionId || filters.subregionId || filters.districtId) count += 1;
   if (filters.minPrice || filters.maxPrice) count += 1;
   if (filters.minNetFtPrice || filters.maxNetFtPrice) count += 1;
   if (filters.minNetArea || filters.maxNetArea) count += 1;

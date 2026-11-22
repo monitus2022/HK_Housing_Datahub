@@ -2,11 +2,16 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { EstateSummary } from "../types";
 import {
   filterEstates,
-  listDistricts,
   paginate,
   sortEstates,
   type SortKey,
 } from "../lib/estates";
+import {
+  districtsInScope,
+  REGIONS,
+  scopeLabel,
+  subregionsInRegion,
+} from "../lib/geo";
 import {
   activeFilterCount,
   listMtrLines,
@@ -99,7 +104,18 @@ export function EstateSearch({ estates, onSelect }: Props) {
   const deferredQuery = useDeferredValue(state.query);
   const { filters, sort } = state;
 
-  const districts = useMemo(() => listDistricts(estates), [estates]);
+  const subregionOptions = useMemo(
+    () => subregionsInRegion(filters.regionId),
+    [filters.regionId],
+  );
+  const districtOptions = useMemo(
+    () =>
+      districtsInScope({
+        regionId: filters.regionId,
+        subregionId: filters.subregionId,
+      }),
+    [filters.regionId, filters.subregionId],
+  );
   const mtrLines = useMemo(() => listMtrLines(estates), [estates]);
   const schoolNets = useMemo(() => listSchoolNets(estates), [estates]);
   const filterCount = activeFilterCount(filters);
@@ -159,10 +175,20 @@ export function EstateSearch({ estates, onSelect }: Props) {
 
   const chips: { label: string; clear: () => void }[] = [];
   if (filters.districtId) {
-    const district = districts.find((item) => item.id === filters.districtId);
     chips.push({
-      label: district?.nameEn ?? filters.districtId,
+      label: scopeLabel({ districtId: filters.districtId }),
       clear: () => updateFilter({ districtId: "" }),
+    });
+  } else if (filters.subregionId) {
+    chips.push({
+      label: scopeLabel({ subregionId: filters.subregionId }),
+      clear: () => updateFilter({ subregionId: "", districtId: "" }),
+    });
+  } else if (filters.regionId) {
+    chips.push({
+      label: scopeLabel({ regionId: filters.regionId }),
+      clear: () =>
+        updateFilter({ regionId: "", subregionId: "", districtId: "" }),
     });
   }
   if (filters.minPrice || filters.maxPrice) {
@@ -222,8 +248,9 @@ export function EstateSearch({ estates, onSelect }: Props) {
           <p className="eyebrow">Explore</p>
           <h2>Estate search</h2>
           <p className="muted">
-            Search by name, district, price, size, MTR line, or school net,
-            then open an estate for its price history and recent transactions.
+            Search by name, region, subregion, district, price, size, MTR line,
+            or school net, then open an estate for its price history and recent
+            transactions.
           </p>
         </div>
         <p className="result-count">
@@ -248,6 +275,47 @@ export function EstateSearch({ estates, onSelect }: Props) {
           />
         </label>
         <label className="field">
+          <span>Region</span>
+          <select
+            value={filters.regionId}
+            onChange={(event) =>
+              updateFilter({
+                regionId: event.target.value,
+                subregionId: "",
+                districtId: "",
+              })
+            }
+          >
+            <option value="">All regions</option>
+            {REGIONS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.en}
+                {item.zh ? ` · ${item.zh}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Subregion</span>
+          <select
+            value={filters.subregionId}
+            onChange={(event) =>
+              updateFilter({
+                subregionId: event.target.value,
+                districtId: "",
+              })
+            }
+          >
+            <option value="">All subregions</option>
+            {subregionOptions.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.en}
+                {item.zh ? ` · ${item.zh}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
           <span>District</span>
           <select
             value={filters.districtId}
@@ -256,10 +324,10 @@ export function EstateSearch({ estates, onSelect }: Props) {
             }
           >
             <option value="">All districts</option>
-            {districts.map((item) => (
+            {districtOptions.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.nameEn}
-                {item.nameZh ? ` · ${item.nameZh}` : ""}
+                {item.en}
+                {item.zh ? ` · ${item.zh}` : ""}
               </option>
             ))}
           </select>

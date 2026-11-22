@@ -16,6 +16,7 @@ import {
   searchStateToSearch,
 } from "./lib/searchState";
 import { EMPTY_ESTATE_FILTERS } from "./lib/filters";
+import { scopeForDistrict } from "./lib/geo";
 
 type View =
   | "overview"
@@ -83,10 +84,16 @@ export default function App() {
   }, [view]);
 
   const openEstatesForDistrict = useCallback((districtId: string) => {
+    const scope = scopeForDistrict(districtId);
     const next = searchStateToSearch(
       {
         ...DEFAULT_SEARCH_STATE,
-        filters: { ...EMPTY_ESTATE_FILTERS, districtId },
+        filters: {
+          ...EMPTY_ESTATE_FILTERS,
+          districtId,
+          regionId: scope?.regionId ?? "",
+          subregionId: scope?.subregionId ?? "",
+        },
       },
       "",
     );

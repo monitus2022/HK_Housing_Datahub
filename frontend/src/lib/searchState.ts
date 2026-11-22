@@ -3,6 +3,7 @@ import {
   EMPTY_ESTATE_FILTERS,
   type EstateFilters,
 } from "./filters";
+import { scopeForDistrict } from "./geo";
 
 export interface SearchState {
   query: string;
@@ -26,6 +27,8 @@ const SORTS: SortKey[] = [
 const PARAM_KEYS = [
   "q",
   "sort",
+  "region",
+  "subregion",
   "district",
   "minPrice",
   "maxPrice",
@@ -46,11 +49,17 @@ function readSort(value: string | null): SortKey {
 
 export function searchStateFromParams(search: string): SearchState {
   const params = new URLSearchParams(search);
+  const districtId = params.get("district") ?? "";
+  // Older links carry only `district`; fill its parents so the cascade is
+  // consistent instead of showing "All regions" above a chosen district.
+  const derived = districtId ? scopeForDistrict(districtId) : null;
   return {
     query: params.get("q") ?? "",
     sort: readSort(params.get("sort")),
     filters: {
-      districtId: params.get("district") ?? "",
+      regionId: params.get("region") ?? derived?.regionId ?? "",
+      subregionId: params.get("subregion") ?? derived?.subregionId ?? "",
+      districtId,
       minPrice: params.get("minPrice") ?? "",
       maxPrice: params.get("maxPrice") ?? "",
       minNetFtPrice: params.get("minNetFtPrice") ?? "",
@@ -76,6 +85,8 @@ export function searchStateToSearch(
     params.set("sort", state.sort);
   }
   const filters = state.filters;
+  if (filters.regionId) params.set("region", filters.regionId);
+  if (filters.subregionId) params.set("subregion", filters.subregionId);
   if (filters.districtId) params.set("district", filters.districtId);
   if (filters.minPrice) params.set("minPrice", filters.minPrice);
   if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
