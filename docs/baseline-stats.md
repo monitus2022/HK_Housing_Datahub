@@ -148,7 +148,8 @@ resolved from the current working directory, so run it from the repo root.
 ## Final handoff and post-release checks — 2026-11-11 (serving updated 2026-11-14)
 
 - **Tests:** `pytest -q` → 115 passed at the 2026-11-13 refresh (88 at the
-  2026-11-11 handoff; 118 collected on 2026-11-17), including 9 offline RAG
+  2026-11-11 handoff; 118 collected on 2026-11-17; 120 on 2026-11-22 after the
+  geography-builder tests), including 9 offline RAG
   idempotency tests against a temporary Chroma store (issue #17). A core-only
   venv without `chromadb` skips the RAG test module and the boto3 legacy-upload
   test.

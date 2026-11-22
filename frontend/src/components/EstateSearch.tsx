@@ -11,6 +11,7 @@ import {
   REGIONS,
   scopeForDistrict,
   scopeLabel,
+  subregionById,
   subregionsInRegion,
 } from "../lib/geo";
 import {
@@ -294,12 +295,18 @@ export function EstateSearch({ estates, onSelect }: Props) {
           <span>Subregion</span>
           <select
             value={filters.subregionId}
-            onChange={(event) =>
+            onChange={(event) => {
+              const value = event.target.value;
+              // Mirror the district handler: a subregion fills its region so
+              // the cascade and the URL agree before and after a reload.
               updateFilter({
-                subregionId: event.target.value,
+                subregionId: value,
                 districtId: "",
-              })
-            }
+                regionId: value
+                  ? (subregionById(value)?.regionId ?? "")
+                  : filters.regionId,
+              });
+            }}
           >
             <option value="">All subregions</option>
             {subregionOptions.map((item) => (
