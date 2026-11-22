@@ -122,6 +122,22 @@ def test_curated_ids_are_validated_against_the_hierarchy(tmp_path: Path) -> None
         builder.DIRECTIONS = original
 
 
+def test_a_real_id_in_the_wrong_region_is_rejected(tmp_path: Path) -> None:
+    builder = load_builder()
+    db = write_db(tmp_path / "fixture.db")
+
+    # 3017 exists, but it belongs to New Territories, not Hong Kong Island.
+    original = builder.DIRECTIONS
+    builder.DIRECTIONS = [
+        {"direction": "east", "regionId": "10", "subregionIds": ["3017"]}
+    ]
+    try:
+        with pytest.raises(SystemExit):
+            builder.build(db)
+    finally:
+        builder.DIRECTIONS = original
+
+
 def test_check_mode_reports_drift(tmp_path: Path) -> None:
     builder = load_builder()
     db = write_db(tmp_path / "fixture.db")

@@ -15,7 +15,8 @@
  *
  * Abbreviations and direction cells are curated data, not inferred: `KT` is
  * Kwun Tong *or* Kowloon Tong, and no scoring function can tell which a user
- * meant.
+ * meant. Fuzzy matching therefore only resolves when the best candidate is the
+ * only plausible one; a rival inside the edit budget becomes a hint instead.
  */
 import raw from "./gazetteer.json";
 import {
@@ -80,7 +81,12 @@ export const SCHOOL_NETS: SchoolNet[] = raw.schoolNets;
  * matches the curated "Central And Western".
  */
 export function normalise(text: string): string {
-  return normalisePlace(text.replace(/&/g, " and "));
+  // NFKC first: a fullwidth "＆" from a Chinese IME only becomes "&" after
+  // normalisation, so replacing before it would let the punctuation strip
+  // swallow the conjunction.
+  return normalisePlace(
+    text.normalize("NFKC").replace(/[&＆]/g, " and "),
+  );
 }
 
 function candidateFor(level: PlaceLevel, id: string): PlaceCandidate | null {
@@ -150,6 +156,11 @@ function isDescendant(
     current = parentOf(current);
   }
   return false;
+}
+
+/** Two candidates are the same place if either contains the other. */
+function isRelated(left: PlaceCandidate, right: PlaceCandidate): boolean {
+  return isDescendant(left, right) || isDescendant(right, left);
 }
 
 interface IndexEntry {
@@ -277,21 +288,65 @@ export function maxDistance(length: number): number {
   return 3;
 }
 
+/** How many candidates a hint row may show. */
+const HINT_LIMIT = 5;
+
+/**
+ * Fuzzy resolution with a margin test.
+ *
+ * A candidate is only accepted when no *different* place also falls inside the
+ * edit budget. "tuen wan" is one edit from Tsuen Wan and two from Tuen Mun, and
+ * picking the closer one would silently apply the wrong filter — the failure
+ * mode the false-filter metric exists to catch. Candidates that are the same
+ * place at two levels are collapsed first, so "shaitn" resolves once instead of
+ * looking like a tie with its own district.
+ */
 function fuzzy(term: string): PlaceOutcome {
-  let best = Number.POSITIVE_INFINITY;
-  const tied: PlaceCandidate[] = [];
+  const budget = maxDistance(term.length);
+  const nearest = new Map<
+    string,
+    { candidate: PlaceCandidate; distance: number }
+  >();
   for (const entry of ENTRIES) {
+    const key = `${entry.candidate.level}:${entry.candidate.id}`;
     const distance = editDistance(term, entry.key);
-    if (distance < best) {
-      best = distance;
-      tied.length = 0;
-      tied.push(entry.candidate);
-    } else if (distance === best) {
-      tied.push(entry.candidate);
+    const current = nearest.get(key);
+    if (!current || distance < current.distance) {
+      nearest.set(key, { candidate: entry.candidate, distance });
     }
   }
-  if (best > maxDistance(term.length)) return { kind: "unresolved", term };
-  return finish(term, tied, "fuzzy");
+  if (nearest.size === 0) return { kind: "unresolved", term };
+
+  const best = Math.min(...[...nearest.values()].map((row) => row.distance));
+  if (best > budget) return { kind: "unresolved", term };
+
+  const atBest = collapse(
+    [...nearest.values()]
+      .filter((row) => row.distance === best)
+      .map((row) => row.candidate),
+  );
+  if (atBest.length > 1) return finish(term, atBest, "fuzzy");
+
+  const winner = atBest[0];
+  const rivals = collapse(
+    [...nearest.values()]
+      .filter(
+        (row) =>
+          row.distance > best &&
+          row.distance <= budget &&
+          !isRelated(row.candidate, winner),
+      )
+      .map((row) => row.candidate),
+  );
+  if (rivals.length === 0) {
+    return { kind: "resolved", candidate: winner, via: "fuzzy" };
+  }
+  return {
+    kind: "ambiguous",
+    term,
+    candidates: [winner, ...rivals].slice(0, HINT_LIMIT),
+    via: "fuzzy",
+  };
 }
 
 function directionOutcome(

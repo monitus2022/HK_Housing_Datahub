@@ -29,8 +29,8 @@ DEFAULT_OUT = Path("frontend/src/lib/gazetteer.json")
 # Curated: abbreviations are candidate *sets*, never a single winner. A set with
 # more than one member is surfaced as a hint instead of being resolved.
 # Verified against the mart on 2026-11-22: KT is the only genuine collision.
-# "TW" is deliberately absent as an ambiguous term because Tai Wai is not a
-# district label in this dataset; it resolves through the exact index instead.
+# "TW" is listed because the abbreviation is common, but it is not ambiguous —
+# Tai Wai is not a district label in this dataset, so it has a single candidate.
 ABBREVIATIONS: dict[str, list[dict[str, str]]] = {
     "kt": [
         {"level": "subregion", "id": "2007"},  # Kwun Tong
@@ -58,12 +58,12 @@ DIRECTIONS: list[dict[str, Any]] = [
     {"direction": "west", "regionId": "10", "subregionIds": ["1001"]},
     {"direction": "south", "regionId": "10", "subregionIds": ["1003"]},
     {"direction": "north", "regionId": "10", "subregionIds": []},
-    {"direction": "east", "regionId": "20", "subregionIds": ["2007", "2011"]},
+    {"direction": "east", "regionId": "20", "subregionIds": ["2007", "2011", "2010"]},
     {"direction": "west", "regionId": "20", "subregionIds": ["2005", "2006"]},
     {"direction": "north", "regionId": "20", "subregionIds": ["2008"]},
     {"direction": "south", "regionId": "20", "subregionIds": ["2005"]},
     {"direction": "east", "regionId": "30", "subregionIds": ["3017", "3010"]},
-    {"direction": "west", "regionId": "30", "subregionIds": ["3013", "3014"]},
+    {"direction": "west", "regionId": "30", "subregionIds": ["3013", "3014", "3011", "3012"]},
     {"direction": "north", "regionId": "30", "subregionIds": ["3015"]},
     {"direction": "south", "regionId": "30", "subregionIds": ["3018"]},
 ]
@@ -133,6 +133,9 @@ def validate_refs(conn: sqlite3.Connection) -> None:
     districts = {row[0] for row in conn.execute(
         "SELECT DISTINCT district_id FROM mart_estate_summary"
     )}
+    pairs = {tuple(row) for row in conn.execute(
+        "SELECT DISTINCT region_id, subregion_id FROM mart_estate_summary"
+    )}
     known = {"region": regions, "subregion": subregions, "district": districts}
 
     problems: list[str] = []
@@ -148,6 +151,13 @@ def validate_refs(conn: sqlite3.Connection) -> None:
                 problems.append(
                     f"direction {cell['direction']!r}/{cell['regionId']}: "
                     f"subregion {subregion_id}"
+                )
+            elif (cell["regionId"], subregion_id) not in pairs:
+                # A real id in the wrong region would pass an existence check
+                # but produce a cell that can never match.
+                problems.append(
+                    f"direction {cell['direction']!r}/{cell['regionId']}: "
+                    f"subregion {subregion_id} belongs to another region"
                 )
     if problems:
         raise SystemExit("unknown curated ids:\n  " + "\n  ".join(problems))

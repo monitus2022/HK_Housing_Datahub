@@ -28,6 +28,8 @@ describe("vocabulary", () => {
 describe("normalisation", () => {
   it("folds case, punctuation, ampersands and spacing", () => {
     expect(normalise("  Central & Western  ")).toBe("central and western");
+    // Fullwidth ampersand from a Chinese IME must fold the same way.
+    expect(normalise("Central ＆ Western")).toBe("central and western");
     expect(normalise("ＴＳＵＥＮ　ＷＡＮ")).toBe("tsuen wan");
   });
 });
@@ -85,7 +87,7 @@ describe("place resolution", () => {
     expect(shaTin.candidate.id).toBe("3017");
   });
 
-  it("tolerates a typo inside the margin", () => {
+  it("tolerates a typo when the best match is unique", () => {
     for (const typo of ["shaitn", "shamtin"]) {
       const outcome = resolvePhrase(typo);
       expect(outcome.kind).toBe("resolved");
@@ -93,6 +95,27 @@ describe("place resolution", () => {
       expect(outcome.via).toBe("fuzzy");
       expect(outcome.candidate.scope.subregionId).toBe("3017");
     }
+  });
+
+  it("asks instead of guessing when a rival is inside the margin", () => {
+    // Tsuen Wan is one edit away, Tuen Mun two. Silently picking the closer
+    // one would apply the wrong subregion filter.
+    const tsuenWan = resolvePhrase("tuen wan");
+    expect(tsuenWan.kind).toBe("ambiguous");
+    if (tsuenWan.kind !== "ambiguous") return;
+    expect(tsuenWan.via).toBe("fuzzy");
+    expect(tsuenWan.candidates.map((c) => c.id).sort()).toEqual([
+      "3011",
+      "3013",
+    ]);
+
+    const hangHau = resolvePhrase("han hau");
+    expect(hangHau.kind).toBe("ambiguous");
+    if (hangHau.kind !== "ambiguous") return;
+    expect(hangHau.candidates.map((c) => c.id).sort()).toEqual([
+      "100204",
+      "201001",
+    ]);
   });
 
   it("does not fuzzy-match nonsense", () => {
@@ -133,6 +156,7 @@ describe("direction handling", () => {
     if (outcome.kind !== "ambiguous") return;
     expect(outcome.candidates.map((c) => c.id).sort()).toEqual([
       "2007",
+      "2010",
       "2011",
     ]);
   });
