@@ -14,7 +14,7 @@ it targets `dev` through the long-lived branch `feat/nl-lexicon-search`.
 
 ## 1. Problem
 
-The Estates tab exposes ten filter fields (`frontend/src/lib/filters.ts:3`), but
+The Estates tab exposes twelve filter fields (`frontend/src/lib/filters.ts:3`), but
 a user has no way to discover them from language. Two consequences:
 
 1. **The filter taxonomy is under-used.** `mtrLine` requires an exact line and
@@ -75,7 +75,7 @@ snapshot on 2026-11-22:
 |---|---|---|
 | Estates / districts | 9,750 / 60 | Closed, small vocabulary |
 | Estates with `first_op_date` in last 12m / 24m | 0 / 17 | Estate vocabulary is near-static → no retraining cadence |
-| TKO subregion | 5 districts (Hang Hau, Lohas Park, Po Lam, Tiu Keng Leng, TKO Town Centre) | `districtId` is singular; needs a set |
+| TKO subregion | 5 districts (Hang Hau, Lohas Park, Po Lam, Tiu Keng Leng, TKO Town Centre) | A subregion filter (P1) covers TKO without an array of district IDs |
 | `estate_summary.json.gz` | 568 KB | Already loaded client-side; no fetch needed for parsing |
 | Whole serving snapshot | 5.0 MB | Baseline for artifact-size judgement |
 | District labels are compound | e.g. `Happy Valley / Jardine's Lookout`, `Mid-Levels Central  / Admiralty` | 23 of 60 labels are compound; splitting yields 55 extra aliases, 175 in total |
@@ -84,12 +84,12 @@ snapshot on 2026-11-22:
 
 ## 5. Gaps in the current filter state
 
-`EstateFilters` has ten **single-valued string** fields and no sort. Required
-extensions:
+`EstateFilters` now has twelve **single-valued string** fields (P1 added
+`regionId` and `subregionId`) and no sort. Remaining extensions:
 
 | Need | Current | Change |
 |---|---|---|
-| `TKO` → 5 districts | `districtId: string` | `districtIds: string[]` (or a `subregion` field) + `matchesFilters` branch |
+| `TKO` → 5 districts | `districtId: string` | **Done in P1:** region/subregion cascade; no district array needed |
 | `near the MTR` (any line) | `mtrLine` requires an exact line | `mtrLinePresent: boolean` |
 | `good school net` (any net) | `schoolNet` requires an exact net | `schoolNetPresent: boolean` |
 | `cheapest first` | none | `sort` field |
@@ -136,11 +136,11 @@ and a **margin test** (ask rather than guess when two candidates are close).
 
 ## 8. Phases (one branch + PR each, per `AGENTS.md`)
 
-### P1 — Geography model and cascade filters (**shipped**)
+### P1 — Geography model and cascade filters (**in review**, PR #147)
 - `scripts/build_geo.py` derives region → subregion → district from `mart_estate_summary` into `frontend/src/lib/geo.json`, with a `--check` drift guard
 - `EstateFilters` gains `regionId` and `subregionId`; `matchesFilters` ANDs the levels; location counts once
 - Region → Subregion → District selects clear their children; a district choice back-fills its parents
-- **AC:** artifact deterministic and `--check` clean; cascade filters at all three levels; 156 frontend tests pass; no snapshot change
+- **AC:** artifact deterministic and `--check` clean; cascade filters at all three levels; 161 frontend tests pass; no snapshot change
 
 ### P2 — Gazetteer, normaliser, fuzzy matcher
 - Generated from dimension tables (districts, subregions, MTR lines, school nets)
@@ -223,7 +223,7 @@ phrases (single-stream) or ~40–60 min batched.
 
 | Risk | Mitigation |
 |---|---|
-| Feature can only express what filters exist | `Ignored:` / `Unrecognised:` disclosure; P1 closes the qualitative gaps |
+| Feature can only express what filters exist | `Ignored:` / `Unrecognised:` disclosure; P3 closes the qualitative gaps |
 | Lexicon coverage bounded by the probe set | Mined entries + typo/fuzzy layer + measured typo slice |
 | Wiring a model in "to show fine-tuning" | Model stays behind a toggle; lexicon is production (D3/D4) |
 | Scope creep into text-to-SQL or chat | D2, single-turn decision, explicit non-goals |
@@ -248,7 +248,7 @@ phrases (single-stream) or ~40–60 min batched.
 4. Docs updated in the same PRs (`README`, `decisions.md`, `deployment.md`).
 5. The four stress cases verified in the live build.
 
-## 15. Open questions (need a decision before P1)
+## 15. Decisions and remaining questions
 
 1. ~~**Multi-district:** add `districtIds: string[]`, or add a first-class
    `subregion` filter to the UI?~~ **Decided:** a first-class

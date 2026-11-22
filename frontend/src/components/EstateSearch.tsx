@@ -175,19 +175,12 @@ export function EstateSearch({ estates, onSelect }: Props) {
   };
 
   const chips: { label: string; clear: () => void }[] = [];
-  if (filters.districtId) {
+  if (filters.regionId || filters.subregionId || filters.districtId) {
     chips.push({
-      label: scopeLabel({ districtId: filters.districtId }),
-      clear: () => updateFilter({ districtId: "" }),
-    });
-  } else if (filters.subregionId) {
-    chips.push({
-      label: scopeLabel({ subregionId: filters.subregionId }),
-      clear: () => updateFilter({ subregionId: "", districtId: "" }),
-    });
-  } else if (filters.regionId) {
-    chips.push({
-      label: scopeLabel({ regionId: filters.regionId }),
+      label: scopeLabel(filters),
+      // One chip for one cascade: the label shows the most specific level, and
+      // clearing it returns to all estates rather than silently falling back
+      // to a parent that the district selection derived.
       clear: () =>
         updateFilter({ regionId: "", subregionId: "", districtId: "" }),
     });

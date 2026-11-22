@@ -1,4 +1,4 @@
-.PHONY: test quality quality-strict lint marts publish-dry frontend-check
+.PHONY: test quality quality-strict lint marts geo geo-check publish-dry frontend-check
 
 test:
 	pytest -q

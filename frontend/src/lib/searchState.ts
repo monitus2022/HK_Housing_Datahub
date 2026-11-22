@@ -50,15 +50,17 @@ function readSort(value: string | null): SortKey {
 export function searchStateFromParams(search: string): SearchState {
   const params = new URLSearchParams(search);
   const districtId = params.get("district") ?? "";
-  // Older links carry only `district`; fill its parents so the cascade is
-  // consistent instead of showing "All regions" above a chosen district.
+  // A district is the most specific level, so it wins over any region or
+  // subregion in the URL: a hand-edited `?region=10&district=<other>` narrows
+  // to the district's real parents instead of producing an empty result set
+  // and a <select> whose value matches no option.
   const derived = districtId ? scopeForDistrict(districtId) : null;
   return {
     query: params.get("q") ?? "",
     sort: readSort(params.get("sort")),
     filters: {
-      regionId: params.get("region") ?? derived?.regionId ?? "",
-      subregionId: params.get("subregion") ?? derived?.subregionId ?? "",
+      regionId: derived?.regionId ?? params.get("region") ?? "",
+      subregionId: derived?.subregionId ?? params.get("subregion") ?? "",
       districtId,
       minPrice: params.get("minPrice") ?? "",
       maxPrice: params.get("maxPrice") ?? "",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DISTRICTS } from "./geo";
+import { DISTRICTS, scopeForDistrict } from "./geo";
 import {
   DEFAULT_SEARCH_STATE,
   searchStateFromParams,
@@ -50,6 +50,21 @@ describe("searchStateFromParams", () => {
     expect(state.filters.districtId).toBe(district!.id);
     expect(state.filters.subregionId).toBe(district!.subregionId);
     expect(state.filters.regionId).not.toBe("");
+  });
+
+  it("lets a district override contradictory region and subregion params", () => {
+    const district = DISTRICTS.find((item) =>
+      item.aliases.includes("Lohas Park"),
+    );
+    expect(district).toBeDefined();
+    const expected = scopeForDistrict(district!.id);
+    expect(expected).not.toBeNull();
+
+    const state = searchStateFromParams(
+      `?region=10&subregion=9999&district=${district!.id}`,
+    );
+    expect(state.filters.regionId).toBe(expected!.regionId);
+    expect(state.filters.subregionId).toBe(expected!.subregionId);
   });
 });
 
