@@ -163,8 +163,8 @@ const PLACE_INDEX = buildPlaceIndex();
  * not. `geo.test.ts` pins the behaviour.
  *
  * Abbreviations such as "TKO" are deliberately absent: they arrive with the
- * gazetteer in P2, where the margin test can disambiguate collisions
- * ("KT" = Kwun Tong or Kowloon Tong, "TW" = Tsuen Wan or Tai Wai).
+ * gazetteer in P2, where collisions are curated as candidate sets ("KT" is Kwun
+ * Tong *and* Kowloon Tong) and surfaced as a hint rather than guessed.
  */
 export function resolvePlace(text: string): GeoScope | null {
   const key = normalisePlace(text);

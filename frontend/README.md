@@ -105,6 +105,17 @@ snapshot and opens that estate, and selecting or closing an estate updates the
 query string while keeping the search filters. On a missing file, the history and transactions sections show a
 section-level message while the estate summary still renders.
 
+Place names resolve through `src/lib/gazetteer.ts`, which layers abbreviations,
+direction words and typo tolerance over the geography model. It is deliberately
+conservative: `TKO` resolves to the Tseung Kwan O subregion, `KT` returns both
+Kwun Tong and Kowloon Tong as candidates instead of picking one, `east` asks
+which region unless the cascade already anchors it, `tuen wan` asks rather than
+choosing between Tsuen Wan and Tuen Mun, and `shenzhen` is refused rather than
+fuzzily matched to a Hong Kong estate. The module ships in P2 but is not wired
+into the search box yet; P3 does that. `make gazetteer` regenerates
+`src/lib/gazetteer.json` from the estate mart plus its MTR-line and school-net
+tables; `make gazetteer-check` fails when the artifact drifts.
+
 The map plots estate coordinates from `estate_summary` over OpenStreetMap
 tiles. Nearby estates are grouped into numbered screen-space clusters and split
 as you zoom; cluster colour follows the most common price bucket in the group.
