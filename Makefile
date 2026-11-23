@@ -1,4 +1,4 @@
-.PHONY: test quality quality-strict lint marts geo geo-check publish-dry frontend-check
+.PHONY: test quality quality-strict lint marts geo geo-check gazetteer gazetteer-check publish-dry frontend-check
 
 test:
 	pytest -q
@@ -17,6 +17,12 @@ geo:
 
 geo-check:
 	python scripts/build_geo.py --check
+
+gazetteer:
+	python scripts/build_gazetteer.py
+
+gazetteer-check:
+	python scripts/build_gazetteer.py --check
 
 publish-dry:
 	python scripts/publish_dashboard.py --db data/agency/agency_data.db --dry-run

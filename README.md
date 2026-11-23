@@ -394,6 +394,8 @@ make quality
 make marts
 make geo
 make geo-check
+make gazetteer
+make gazetteer-check
 make publish-dry
 make frontend-check
 ```
