@@ -111,10 +111,42 @@ conservative: `TKO` resolves to the Tseung Kwan O subregion, `KT` returns both
 Kwun Tong and Kowloon Tong as candidates instead of picking one, `east` asks
 which region unless the cascade already anchors it, `tuen wan` asks rather than
 choosing between Tsuen Wan and Tuen Mun, and `shenzhen` is refused rather than
-fuzzily matched to a Hong Kong estate. The module ships in P2 but is not wired
-into the search box yet; P3 does that. `make gazetteer` regenerates
+fuzzily matched to a Hong Kong estate. `make gazetteer` regenerates
 `src/lib/gazetteer.json` from the estate mart plus its MTR-line and school-net
 tables; `make gazetteer-check` fails when the artifact drifts.
+
+### Natural-language search
+
+`src/lib/lexicon.ts` parses one sentence into one query spec
+(`2 bedroom flat in TKO`, `3 room under 6m in Sha Tin`, `cheapest 2 bed in Kwun
+Tong`, `near the island line`, `school net 41`). It is deterministic and runs in
+the browser: no network call, no model and no dependency. Each submit **replaces**
+the current filters — one utterance is one query, so a previous query cannot
+silently narrow the new one — and the result area always discloses what happened:
+
+- `Interpreted as:` lists every slot, with `(default)` marking a vague phrase such
+  as `middle size` (400–700 ft², from the snapshot quartiles).
+- `Ignored:` names concepts that are understood but have no data behind them
+  (sea view, quiet, pet policy, parking, "near MTR" beyond line membership).
+- `Unrecognised:` lists words that were not used, so nothing is dropped quietly.
+- An ambiguous place asks instead of guessing and offers hint buttons; clicking a
+  hint rewrites the URL through the normal filter serializer, so the result stays
+  a single, shareable query.
+- A place outside Hong Kong refuses the whole sentence and leaves the current
+  results untouched.
+
+The box is behind a build-time flag, **off by default**:
+
+```bash
+VITE_FEATURE_NL_SEARCH=true npm run build
+```
+
+Cloudflare Pages sets the variable per environment. With the flag off the UI is
+hidden but the parser still ships in the shared bundle (about 1.4 kB gzipped);
+the flag is a rollout switch, not a code-splitting boundary.
+
+Estate-name matching is still the `q` box: the sentence parser only sets
+structured filters, which is why it never invents a result from free text.
 
 The map plots estate coordinates from `estate_summary` over OpenStreetMap
 tiles. Nearby estates are grouped into numbered screen-space clusters and split

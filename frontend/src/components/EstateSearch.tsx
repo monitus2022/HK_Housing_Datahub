@@ -28,6 +28,12 @@ import {
   type SearchState,
 } from "../lib/searchState";
 import {
+  parseQuery,
+  specToState,
+  type NlHint,
+  type NlParse,
+} from "../lib/lexicon";
+import {
   formatCompactHkd,
   formatDate,
   formatHkd,
@@ -37,6 +43,11 @@ import { wikiUrl } from "../lib/wiki";
 import { isRowActivation } from "../lib/activation";
 
 const PAGE_SIZE = 25;
+
+/** Longest utterance the box accepts; the lexicon is not a chat window. */
+const NL_MAX_LENGTH = 120;
+
+const NL_ENABLED = import.meta.env.VITE_FEATURE_NL_SEARCH === "true";
 
 interface Props {
   estates: EstateSummary[];
@@ -103,6 +114,8 @@ export function EstateSearch({ estates, onSelect }: Props) {
     searchStateFromParams(window.location.search),
   );
   const [page, setPage] = useState(1);
+  const [nlText, setNlText] = useState("");
+  const [nlParse, setNlParse] = useState<NlParse | null>(null);
   const deferredQuery = useDeferredValue(state.query);
   const { filters, sort } = state;
 
@@ -165,6 +178,9 @@ export function EstateSearch({ estates, onSelect }: Props) {
   }, [deferredQuery, filters, sort]);
 
   const updateFilter = (patch: Partial<EstateFilters>) => {
+    // A manual edit is a new query, so the previous sentence's interpretation
+    // no longer describes what is on screen.
+    setNlParse(null);
     setState((current) => ({
       ...current,
       filters: { ...current.filters, ...patch },
@@ -172,7 +188,43 @@ export function EstateSearch({ estates, onSelect }: Props) {
   };
 
   const clearAll = () => {
+    setNlParse(null);
     setState(DEFAULT_SEARCH_STATE);
+  };
+
+  const submitNl = (raw: string) => {
+    const text = raw.trim();
+    if (!text) return;
+    const parse = parseQuery(text, { regionId: state.filters.regionId });
+    setNlText(text);
+    setNlParse(parse);
+    // Only a parsed spec replaces the query. A refusal or an unresolved
+    // sentence leaves the current result set untouched.
+    if (parse.spec && (parse.kind === "applied" || parse.kind === "ambiguous")) {
+      setState(specToState(parse.spec));
+    }
+  };
+
+  const applyHint = (hint: NlHint) => {
+    setState({ query: "", sort: hint.sort, filters: hint.filters });
+    setNlParse((current) => {
+      if (!current?.spec) return current;
+      return {
+        ...current,
+        kind: "applied",
+        question: null,
+        spec: {
+          ...current.spec,
+          filters: hint.filters,
+          sort: hint.sort,
+          hints: [],
+          applied: [
+            ...current.spec.applied.filter((slot) => slot.field !== "Location"),
+            { field: "Location", value: hint.label },
+          ],
+        },
+      };
+    });
   };
 
   const chips: { label: string; clear: () => void }[] = [];
@@ -252,6 +304,96 @@ export function EstateSearch({ estates, onSelect }: Props) {
           {formatNumber(sorted.length)} estates
         </p>
       </div>
+
+      {NL_ENABLED ? (
+        <form
+          className="nl-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitNl(nlText);
+          }}
+        >
+          <label className="field field-grow">
+            <span>Describe a search</span>
+            <input
+              type="text"
+              value={nlText}
+              maxLength={NL_MAX_LENGTH}
+              onChange={(event) => setNlText(event.target.value)}
+              placeholder="e.g. 2 bedroom flat in TKO"
+              autoComplete="off"
+              aria-describedby="nl-help"
+            />
+          </label>
+          <button
+            type="submit"
+            className="button"
+            disabled={!nlText.trim()}
+          >
+            Apply
+          </button>
+          <p className="nl-help" id="nl-help">
+            One sentence, one search. It runs in your browser, and anything it
+            cannot use is listed below rather than guessed.
+          </p>
+        </form>
+      ) : null}
+
+      {NL_ENABLED && nlParse ? (
+        <div className="nl-result" role="status">
+          {nlParse.kind === "refused" ? (
+            <p className="nl-note nl-note-warn">
+              “{nlParse.term}” is outside Hong Kong’s housing market, so nothing
+              was applied.
+            </p>
+          ) : null}
+          {nlParse.kind === "unresolved" ? (
+            <p className="nl-note nl-note-warn">
+              No filter could be read from that sentence
+              {nlParse.term ? ` (“${nlParse.term}”)` : ""}, so nothing changed.
+            </p>
+          ) : null}
+          {nlParse.kind === "ambiguous" && nlParse.question ? (
+            <div className="nl-note">
+              <p>{nlParse.question}</p>
+              <div className="nl-hints">
+                {nlParse.spec?.hints.map((hint) => (
+                  <button
+                    key={`${hint.label}-${hint.detail}`}
+                    type="button"
+                    className="nl-hint"
+                    onClick={() => applyHint(hint)}
+                  >
+                    {hint.label} <span>{hint.detail}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {nlParse.spec && nlParse.spec.applied.length > 0 ? (
+            <p className="nl-note">
+              Interpreted as:{" "}
+              {nlParse.spec.applied.map((slot, index) => (
+                <span key={`${slot.field}-${index}`}>
+                  {index > 0 ? " · " : ""}
+                  {slot.field}: {slot.value}
+                  {slot.defaulted ? " (default)" : ""}
+                </span>
+              ))}
+            </p>
+          ) : null}
+          {nlParse.spec && nlParse.spec.ignored.length > 0 ? (
+            <p className="nl-note">
+              Ignored: {nlParse.spec.ignored.join("; ")}
+            </p>
+          ) : null}
+          {nlParse.spec && nlParse.spec.unrecognised.length > 0 ? (
+            <p className="nl-note">
+              Unrecognised: {nlParse.spec.unrecognised.join(", ")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="controls">
         <label className="field field-grow">
