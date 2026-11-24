@@ -30,6 +30,7 @@ import {
 import {
   parseQuery,
   specToState,
+  withRegion,
   type NlHint,
   type NlParse,
 } from "../lib/lexicon";
@@ -167,6 +168,8 @@ export function EstateSearch({ estates, onSelect }: Props) {
 
   useEffect(() => {
     const handlePop = () => {
+      // Back/forward is a different query, so the previous disclosure is stale.
+      setNlParse(null);
       setState(searchStateFromParams(window.location.search));
     };
     window.addEventListener("popstate", handlePop);
@@ -206,6 +209,18 @@ export function EstateSearch({ estates, onSelect }: Props) {
   };
 
   const applyHint = (hint: NlHint) => {
+    // A direction without a region produced region-level hints. Re-parsing the
+    // same sentence with the chosen region turns "east" into East Kowloon
+    // instead of silently applying all of Kowloon. Subregion hints are already
+    // the answer, so they apply directly.
+    if (nlParse?.direction && hint.level === "region") {
+      const refined = withRegion(nlParse, hint.filters.regionId);
+      if (refined.spec) {
+        setNlParse(refined);
+        setState(specToState(refined.spec));
+        return;
+      }
+    }
     setState({ query: "", sort: hint.sort, filters: hint.filters });
     setNlParse((current) => {
       if (!current?.spec) return current;
@@ -401,12 +416,13 @@ export function EstateSearch({ estates, onSelect }: Props) {
           <input
             type="search"
             value={state.query}
-            onChange={(event) =>
+            onChange={(event) => {
+              setNlParse(null);
               setState((current) => ({
                 ...current,
                 query: event.target.value,
-              }))
-            }
+              }));
+            }}
             placeholder="Estate, district, or estate ID"
             autoComplete="off"
           />
@@ -490,12 +506,13 @@ export function EstateSearch({ estates, onSelect }: Props) {
           <span>Sort</span>
           <select
             value={sort}
-            onChange={(event) =>
+            onChange={(event) => {
+              setNlParse(null);
               setState((current) => ({
                 ...current,
                 sort: event.target.value as SortKey,
-              }))
-            }
+              }));
+            }}
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>

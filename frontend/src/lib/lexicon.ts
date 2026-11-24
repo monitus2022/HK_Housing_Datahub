@@ -4,10 +4,10 @@
  * model: the same sentence always produces the same filters, and everything the
  * lexicon did *not* understand is reported back instead of being dropped.
  *
- * The parser consumes phrases in a fixed order — prices, areas, bedrooms, sort
- * words, MTR lines, school nets, then a place — and removes each phrase it
- * understands. Whatever is left is either shown as unrecognised, or matched
- * fuzzily as a whole. A phrase that is recognised but has no data behind it
+ * The parser consumes phrases in a fixed order — bedrooms, area, price, sort
+ * words, unsupported concepts, MTR lines, school nets, then a place — and
+ * removes each phrase it understands. Whatever is left is either shown as
+ * unrecognised, or matched fuzzily as a whole. A phrase that is recognised but has no data behind it
  * (sea view, quiet, "near MTR") goes to `ignored` rather than being silently
  * treated as free text: the result set must reflect what the user asked for, or
  * say what it could not do.
@@ -43,6 +43,7 @@ export interface NlSlot {
 export interface NlHint {
   label: string;
   detail: string;
+  level: "region" | "subregion" | "district";
   filters: EstateFilters;
   sort: SortKey;
 }
@@ -66,7 +67,9 @@ export interface NlParse {
   question: string | null;
   /** Offending phrase for "refused" and "unresolved". */
   term: string | null;
-  /** The normalised utterance, echoed back for the disclosure row. */
+  /** Direction word ("east") when the ambiguity came from a direction. */
+  direction: string | null;
+  /** The normalised utterance, re-parsed when a hint supplies an anchor. */
   input: string;
 }
 
@@ -162,7 +165,11 @@ const SORT_WORDS: { pattern: RegExp; key: SortKey; label: string }[] = [
   },
 ];
 
-/** Line names, plus the shorthand people actually type. */
+/** Line names, plus the shorthand people actually type.
+ *
+ * Shorthand must not collide with a place: "Tung Chung" is a district, so the
+ * line is only recognised when the user says "Tung Chung Line".
+ */
 const MTR_ALIASES: { phrase: string; value: string }[] = [
   ...MTR_LINES.map((line) => ({
     phrase: normalise(line.en),
@@ -171,7 +178,6 @@ const MTR_ALIASES: { phrase: string; value: string }[] = [
   { phrase: "tko line", value: "Tseung Kwan O Line" },
   { phrase: "east rail", value: "East Rail Line" },
   { phrase: "tuen ma", value: "Tuen Ma Line" },
-  { phrase: "tung chung", value: "Tung Chung Line" },
   { phrase: "south island", value: "South Island Line" },
   { phrase: "island line", value: "Island Line" },
 ].sort((left, right) => right.phrase.length - left.phrase.length);
@@ -207,17 +213,19 @@ function areaLabel(minimum: string, maximum: string): string {
   return `≤ ${maximum} ft²`;
 }
 
-function scale(unit: string | undefined): number {
-  switch ((unit ?? "m").toLowerCase()) {
+function scale(unit: string): number {
+  switch (unit.toLowerCase()) {
     case "k":
     case "thousand":
       return 1_000;
-    case "million":
-    case "mil":
-    case "m":
     default:
       return 1_000_000;
   }
+}
+
+/** "6dot5" is 6.5: normalisation strips punctuation, so the point is spelled. */
+function toNumber(raw: string): number {
+  return Number(raw.replace("dot", "."));
 }
 
 /** Remove one span, keeping the rest of the phrase separable. */
@@ -237,6 +245,7 @@ function hintFor(
   return {
     label: candidate.label,
     detail: `${candidate.level} · ${candidate.estates} estates`,
+    level: candidate.level,
     filters,
     sort,
   };
@@ -285,13 +294,16 @@ function emptySpec(sort: SortKey): NlSpec {
  * "east" with Region 10 already selected resolves to Eastern.
  */
 export function parseQuery(text: string, options: NlOptions = {}): NlParse {
-  const input = normalise(text);
+  // Keep decimal points that would otherwise be stripped as punctuation:
+  // "6.5m" becomes "6dot5m", and the price patterns read the word back.
+  const input = normalise(text.replace(/(\d)\.(\d)/g, "$1dot$2"));
   if (!input) {
     return {
       kind: "unresolved",
       spec: null,
       question: null,
       term: "",
+      direction: null,
       input,
     };
   }
@@ -308,6 +320,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       spec: null,
       question: null,
       term: refusing,
+      direction: null,
       input,
     };
   }
@@ -316,6 +329,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   const patch: Partial<EstateFilters> = {};
   let rest = input;
   let location: PlaceOutcome | null = null;
+  let direction: string | null = null;
 
   // --- dimension predicates -------------------------------------------------
 
@@ -430,11 +444,11 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
 
   const priceRange = consume(
     rest,
-    /(?:^| )\$?(\d+(?:\.\d+)?) ?(m|k|million|mil) ?(?:-|to)? ?\$?(\d+(?:\.\d+)?) ?(m|k|million|mil)(?= |$)/,
+    /(?:^| )\$?(\d+(?:dot\d+)?) ?(m|k|million|mil) ?(?:-|to)? ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
   );
   if (priceRange) {
-    const low = Number(priceRange.match[1]) * scale(priceRange.match[2]);
-    const high = Number(priceRange.match[3]) * scale(priceRange.match[4]);
+    const low = toNumber(priceRange.match[1]) * scale(priceRange.match[2]);
+    const high = toNumber(priceRange.match[3]) * scale(priceRange.match[4]);
     patch.minPrice = String(Math.round(low));
     patch.maxPrice = String(Math.round(high));
     spec.applied.push({
@@ -445,11 +459,11 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   } else {
     const priceMax = consume(
       rest,
-      /(?:under|below|less than|up to|max|cheaper than) ?\$?(\d+(?:\.\d+)?) ?(m|k|million|mil)(?= |$)/,
+      /(?:under|below|less than|up to|max|cheaper than) ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
     );
     if (priceMax) {
       patch.maxPrice = String(
-        Math.round(Number(priceMax.match[1]) * scale(priceMax.match[2])),
+        Math.round(toNumber(priceMax.match[1]) * scale(priceMax.match[2])),
       );
       spec.applied.push({
         field: "Price",
@@ -459,11 +473,11 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     } else {
       const priceMin = consume(
         rest,
-        /(?:over|above|more than|at least|min|from) ?\$?(\d+(?:\.\d+)?) ?(m|k|million|mil)(?= |$)/,
+        /(?:over|above|more than|at least|min|from) ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
       );
       if (priceMin) {
         patch.minPrice = String(
-          Math.round(Number(priceMin.match[1]) * scale(priceMin.match[2])),
+          Math.round(toNumber(priceMin.match[1]) * scale(priceMin.match[2])),
         );
         spec.applied.push({
           field: "Price",
@@ -539,6 +553,10 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
         spec.ignored.push(
           `School net ${netId.match[1]} spans ${names.join(" and ")}`,
         );
+      } else {
+        spec.ignored.push(
+          `School net ${netId.match[1]} is not in this snapshot`,
+        );
       }
     } else {
       const netName = rest.match(/(?:school net|schoolnet) ([a-z &]+)/);
@@ -568,6 +586,13 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   const placed = takePlace(rest, options.regionId);
   if (placed) {
     location = placed.outcome;
+    const outcome = placed.outcome;
+    if (
+      (outcome.kind === "resolved" || outcome.kind === "ambiguous") &&
+      outcome.via === "direction"
+    ) {
+      direction = directionWord(placed.span);
+    }
     rest = placed.rest;
   }
 
@@ -600,10 +625,18 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       value: `${candidate.label}${candidate.zh ? ` · ${candidate.zh}` : ""}`,
     });
   } else if (ambiguous) {
-    question =
-      ambiguous.via === "direction"
-        ? "East of which region?"
-        : "Which place did you mean?";
+    const label = direction
+      ? `${direction[0].toUpperCase()}${direction.slice(1)}`
+      : "Which";
+    if (ambiguous.via === "direction") {
+      question = ambiguous.candidates.every(
+        (candidate) => candidate.level === "region",
+      )
+        ? `${label} of which region?`
+        : `${label} of which district?`;
+    } else {
+      question = "Which place did you mean?";
+    }
     spec.hints = ambiguous.candidates
       .slice(0, HINT_LIMIT)
       .map((candidate) =>
@@ -630,19 +663,48 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       spec,
       question,
       term: ambiguous?.term ?? null,
+      direction,
       input,
     };
   }
   if (!appliedAnything) {
+    // Keep the spec when it carries disclosure, so "sea view" alone still
+    // reports what was ignored instead of a bare "nothing understood".
+    const disclosed = spec.ignored.length > 0;
     return {
       kind: "unresolved",
-      spec: null,
+      spec: disclosed ? spec : null,
       question: null,
       term: leftovers.join(" ") || null,
+      direction: null,
       input,
     };
   }
-  return { kind: "applied", spec, question: null, term: null, input };
+  return {
+    kind: "applied",
+    spec,
+    question: null,
+    term: null,
+    direction,
+    input,
+  };
+}
+
+/** The direction word inside a span, for the question and hint refinement. */
+function directionWord(span: string): string | null {
+  return (
+    span
+      .split(" ")
+      .find((word) => ["east", "west", "north", "south"].includes(word)) ?? null
+  );
+}
+
+/**
+ * Re-parse the same utterance with an anchor, used when a hint supplies the
+ * region an unanchored direction was missing.
+ */
+export function withRegion(parse: NlParse, regionId: string): NlParse {
+  return parseQuery(parse.input, { regionId });
 }
 
 /** Whole-phrase membership that respects word boundaries. */

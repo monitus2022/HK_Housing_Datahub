@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseQuery, specToState, type NlParse } from "./lexicon";
+import { parseQuery, specToState, withRegion, type NlParse } from "./lexicon";
+import { searchStateToSearch } from "./searchState";
 
 function applied(parse: NlParse) {
   expect(parse.kind).toBe("applied");
@@ -69,6 +70,19 @@ describe("one utterance, one spec", () => {
     expect(spec.applied.some((slot) => slot.defaulted)).toBe(true);
   });
 
+  it("reads a decimal price", () => {
+    const spec = applied(parseQuery("under 6.5m in TKO"));
+    expect(spec.filters.maxPrice).toBe("6500000");
+    expect(spec.filters.subregionId).toBe("2010");
+  });
+
+  it("does not mistake a place for an MTR line", () => {
+    // "Tung Chung" is a district; only "Tung Chung Line" is the railway.
+    const spec = applied(parseQuery("flat in Tung Chung"));
+    expect(spec.filters.mtrLine).toBe("");
+    expect(spec.filters.districtId).toBe("301803");
+  });
+
   it("reads an MTR line", () => {
     const spec = applied(parseQuery("near the island line"));
     expect(spec.filters.mtrLine).toBe("Island Line");
@@ -124,6 +138,35 @@ describe("no silent guessing", () => {
     expect(spec.filters.subregionId).toBe("1004");
   });
 
+  it("names the direction and the level it is asking about", () => {
+    expect(parseQuery("east").question).toBe("East of which region?");
+    const anchored = parseQuery("east", { regionId: "20" });
+    expect(anchored.kind).toBe("ambiguous");
+    expect(anchored.question).toBe("East of which district?");
+    expect(anchored.spec?.hints.map((hint) => hint.level)).toEqual([
+      "subregion",
+      "subregion",
+      "subregion",
+    ]);
+    expect(
+      anchored.spec?.hints.map((hint) => hint.filters.subregionId).sort(),
+    ).toEqual(["2007", "2010", "2011"]);
+  });
+
+  it("refines a direction hint into real subregions", () => {
+    // Clicking a region hint must not apply the whole region: re-parsing with
+    // that anchor turns "east" into East Kowloon.
+    const first = parseQuery("2 bed in east");
+    expect(first.kind).toBe("ambiguous");
+    expect(first.question).toBe("East of which region?");
+    const refined = withRegion(first, "20");
+    expect(refined.kind).toBe("ambiguous");
+    expect(refined.spec?.filters.bedrooms).toBe("2");
+    expect(
+      refined.spec?.hints.map((hint) => hint.filters.subregionId).sort(),
+    ).toEqual(["2007", "2010", "2011"]);
+  });
+
   it("refuses a place outside Hong Kong", () => {
     const parse = parseQuery("3 bed in Shenzhen");
     expect(parse.kind).toBe("refused");
@@ -164,6 +207,22 @@ describe("disclosure", () => {
     expect(spec.filters.minNetArea).toBe("");
     expect(spec.ignored.join(" ")).toContain("Size 500 ft² without a range");
   });
+
+  it("still reports ignored concepts when nothing else applies", () => {
+    const view = parseQuery("sea view");
+    expect(view.kind).toBe("unresolved");
+    expect(view.spec?.ignored).toContain("View (no view data)");
+
+    const mtr = parseQuery("mtr");
+    expect(mtr.kind).toBe("unresolved");
+    expect(mtr.spec?.ignored).toContain("MTR proximity (line-level data only)");
+  });
+
+  it("reports a school net that is not in the snapshot", () => {
+    const parse = parseQuery("school net 19");
+    expect(parse.kind).toBe("unresolved");
+    expect(parse.spec?.ignored.join(" ")).toContain("not in this snapshot");
+  });
 });
 
 describe("apply", () => {
@@ -174,5 +233,24 @@ describe("apply", () => {
     expect(state.filters.bedrooms).toBe("");
     expect(state.filters.subregionId).toBe("2010");
     expect(state.sort).toBe("tx_count_12m");
+  });
+
+  it("turns a hint into a shareable URL", () => {
+    const parse = parseQuery("KT");
+    const districtHint = parse.spec?.hints.find(
+      (hint) => hint.filters.districtId === "200903",
+    );
+    expect(districtHint).toBeDefined();
+    if (!parse.spec || !districtHint) return;
+    const url = searchStateToSearch(
+      specToState({
+        ...parse.spec,
+        filters: districtHint.filters,
+        hints: [],
+      }),
+    );
+    expect(url).toContain("district=200903");
+    expect(url).toContain("subregion=2009");
+    expect(url).toContain("region=20");
   });
 });
