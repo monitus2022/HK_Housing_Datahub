@@ -401,7 +401,7 @@ make publish-dry
 make frontend-check
 ```
 
-`tests/` contains the backend test suite (120 collected): upserts, run
+`tests/` contains the backend test suite (134 collected): upserts, run
 metadata, quality checks, response-model parsing, table mapping,
 duplicate-input dedupe, synthetic mart builds, serving manifest/publish
 planning, catalogue generation and drift guards, wiki-title fallback, and

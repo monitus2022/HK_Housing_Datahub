@@ -5,11 +5,17 @@ The generator writes **inputs and planted slot values only**. It never writes
 labels: the teacher labels the sentences, and the lexicon remains the baseline
 that must be beaten (see ``docs/nl-search-development.md``).
 
-Inputs are the two checked-in artifacts, so this runs offline:
+Inputs:
 
-- ``frontend/src/lib/geo.json``      region -> subregion -> district
+- ``frontend/src/lib/geo.json``       region -> subregion -> district
 - ``frontend/src/lib/gazetteer.json`` MTR lines, school nets, abbreviations,
                                       direction cells, out-of-scope places
+- ``data/agency/agency_data.db``      read-only, only for line/net co-occurrence
+
+The third input is what keeps "South Island Line in Tung Chung" out of the bulk.
+Because it is gitignored, a checkout without it refuses to run rather than
+silently pairing lines and nets at random; pass ``--no-correlation`` for offline
+use, and note that such output is uncorrelated and marked as such in the report.
 
 Sampling is **least-used-first** per value pool, which keeps rare values (South
 Island Line, net 99, "alphabetical") from being starved by uniform draws. Each
@@ -30,6 +36,7 @@ import json
 import random
 import re
 import sqlite3
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -55,7 +62,7 @@ FAMILIES: list[dict[str, Any]] = [
     },
     {
         "name": "place_bed",
-        "weight": 0.14,
+        "weight": 0.12,
         "slots": ["place", "bedrooms"],
         "templates": [
             "{bedrooms} in {place}",
@@ -101,6 +108,7 @@ FAMILIES: list[dict[str, Any]] = [
         "templates": [
             "{bedrooms} {area} in {place}",
             "{area} {bedrooms} in {place}",
+            "looking for {bedrooms} {area} in {place}",
         ],
     },
     {
@@ -115,7 +123,7 @@ FAMILIES: list[dict[str, Any]] = [
     },
     {
         "name": "place_net",
-        "weight": 0.09,
+        "weight": 0.11,
         "slots": ["place", "net"],
         "templates": [
             "{net} in {place}",
@@ -127,13 +135,21 @@ FAMILIES: list[dict[str, Any]] = [
         "name": "bed_price",
         "weight": 0.06,
         "slots": ["bedrooms", "price"],
-        "templates": ["{bedrooms} {price}", "{price} {bedrooms} flat"],
+        "templates": [
+            "{bedrooms} {price}",
+            "{price} {bedrooms} flat",
+            "{bedrooms} for {price}",
+        ],
     },
     {
         "name": "sort_place",
         "weight": 0.05,
         "slots": ["sort", "place"],
-        "templates": ["{sort} in {place}", "{sort} flats in {place}"],
+        "templates": [
+            "{sort} in {place}",
+            "{sort} flats in {place}",
+            "show me {sort} in {place}",
+        ],
     },
     {
         "name": "direction",
@@ -166,7 +182,7 @@ FAMILIES: list[dict[str, Any]] = [
             "{out_of_scope}",
             "flats in {out_of_scope}",
             "{out_of_scope} flats",
-            "3 bed in {out_of_scope}",
+            "show me flats in {out_of_scope}",
         ],
     },
     {
@@ -474,7 +490,7 @@ def render(
     pools: dict[str, list[dict[str, Any]]],
     usage: dict[str, Counter[str]],
     rng: random.Random,
-    cooccurrence: dict[str, dict[str, set[str]]],
+    cooccurrence: dict[str, dict[str, set[str]]] | None,
     region_of: dict[str, str],
 ) -> tuple[str, dict[str, Any], str, str]:
     chosen: dict[str, dict[str, Any]] = {}
@@ -482,7 +498,7 @@ def render(
     expect = "applied"
 
     anchor = ANCHOR_FAMILIES.get(family["name"])
-    if anchor:
+    if anchor and cooccurrence is not None:
         anchor_slot, anchor_key = anchor
         entry = least_used(pools[anchor_slot], usage[anchor_slot], rng)
         usage[anchor_slot][entry["key"]] += 1
@@ -522,7 +538,14 @@ def load_cooccurrence(db_path: Path) -> dict[str, dict[str, set[str]]]:
     may try to "correct". The mart is read-only here; tests pass a fixture.
     """
     if not db_path.exists():
-        return {}
+        raise SystemExit(
+            f"missing database: {db_path}\n"
+            "Line and net rows are paired only with subregions that actually contain\n"
+            "them. Without the mart those pairs become random, which is exactly the\n"
+            "defect this constraint exists to prevent, so this refuses to guess.\n"
+            "Pass --no-correlation to generate without the constraint; such output is\n"
+            "marked as uncorrelated and is not suitable for labelling."
+        )
     connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
         lines: dict[str, set[str]] = defaultdict(set)
@@ -543,13 +566,43 @@ def load_cooccurrence(db_path: Path) -> dict[str, dict[str, set[str]]]:
     return {"mtrLine": lines, "schoolNet": nets}
 
 
+def filter_correlated(
+    pools: dict[str, list[dict[str, Any]]],
+    cooccurrence: dict[str, dict[str, set[str]]],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[str]]]:
+    """Drop line and net values that no estate in the mart matches.
+
+    A name missing from the mart has no correct place, so pairing it with one
+    would invent a sentence the data cannot support. Dropping is visible in the
+    report; the alternative — silently widening every pair — hides the defect.
+    """
+    dropped: dict[str, list[str]] = {}
+    for slot, key, names in (
+        ("mtr", "mtrLine", cooccurrence.get("mtrLine", {})),
+        ("net", "schoolNet", cooccurrence.get("schoolNet", {})),
+    ):
+        kept = [
+            entry for entry in pools[slot] if str(entry["planted"][key]) in names
+        ]
+        dropped[key] = sorted(
+            str(entry["planted"][key])
+            for entry in pools[slot]
+            if str(entry["planted"][key]) not in names
+        )
+        pools[slot] = kept
+    return pools, dropped
+
+
 def place_allowed(
     entry: dict[str, Any],
     allowed: set[str],
     region_of: dict[str, str],
 ) -> bool:
     if not allowed:
-        return True
+        raise RuntimeError(
+            "co-occurrence came back empty for a value that is in the pool; "
+            "the mapping and the pool have drifted apart"
+        )
     subregion = entry["planted"].get("subregionId")
     if subregion:
         return subregion in allowed
@@ -566,7 +619,16 @@ def generate(
     geo = load_json(GEO)
     gazetteer = load_json(GAZETTEER)
     pools = build_pools(geo, gazetteer)
-    cooccurrence = load_cooccurrence(db_path) if db_path is not None else {}
+    cooccurrence = load_cooccurrence(db_path) if db_path is not None else None
+    if cooccurrence is not None:
+        pools, dropped = filter_correlated(pools, cooccurrence)
+        for key, names in dropped.items():
+            if names:
+                print(
+                    f"warning: {len(names)} {key} value(s) match no estate and are "
+                    f"excluded: {', '.join(names)}",
+                    file=sys.stderr,
+                )
     region_of = {s["id"]: s["regionId"] for s in geo["subregions"]}
     usage: dict[str, Counter[str]] = {
         slot: Counter({entry["key"]: 0 for entry in pool})
@@ -605,7 +667,12 @@ def generate(
     return rows
 
 
-def report(rows: list[dict[str, Any]], pools: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+def report(
+    rows: list[dict[str, Any]],
+    pools: dict[str, list[dict[str, Any]]],
+    correlation: str = "on",
+    excluded: dict[str, list[str]] | None = None,
+) -> dict[str, Any]:
     families = Counter(row["family"] for row in rows)
     expects = Counter(row["expect"] for row in rows)
     coverage: dict[str, Counter[str]] = defaultdict(Counter)
@@ -635,14 +702,29 @@ def report(rows: list[dict[str, Any]], pools: dict[str, list[dict[str, Any]]]) -
         if key:
             place_counts[str(key)] += 1
 
+    unique = len({normalise(row["text"]) for row in rows})
+    expected_places = {
+        str(
+            entry["planted"].get("districtId")
+            or entry["planted"].get("subregionId")
+            or entry["planted"].get("regionId")
+        )
+        for entry in pools["place"]
+    }
+
     return {
         "rows": len(rows),
-        "unique_texts": len({normalise(row["text"]) for row in rows}),
+        "unique_texts": unique,
+        "duplicates": len(rows) - unique,
+        "correlation": correlation,
+        "excluded_unmapped": excluded or {},
         "families": dict(sorted(families.items())),
         "expect": dict(sorted(expects.items())),
         "coverage": {slot: dict(sorted(values.items())) for slot, values in coverage.items()},
         "place_values": {
+            "expected": len(expected_places),
             "values": len(place_counts),
+            "missing": sorted(expected_places - set(place_counts)),
             "min": min(place_counts.values()) if place_counts else 0,
             "max": max(place_counts.values()) if place_counts else 0,
             "below_25": sorted(
@@ -653,12 +735,38 @@ def report(rows: list[dict[str, Any]], pools: dict[str, list[dict[str, Any]]]) -
     }
 
 
+def dropped_names(
+    geo: dict[str, Any], gazetteer: dict[str, Any], db_path: Path
+) -> dict[str, list[str]]:
+    """Line and net values the mart cannot place, for the report."""
+    cooccurrence = load_cooccurrence(db_path)
+    expected = build_pools(geo, gazetteer)
+    excluded: dict[str, list[str]] = {}
+    for slot, key, source in (
+        ("mtr", "mtrLine", "mtrLine"),
+        ("net", "schoolNet", "schoolNet"),
+    ):
+        known = cooccurrence.get(source, {})
+        excluded[key] = sorted(
+            str(entry["planted"][key])
+            for entry in expected[slot]
+            if str(entry["planted"][key]) not in known
+        )
+    return excluded
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--count", type=int, default=6000)
     parser.add_argument("--seed", type=int, default=20261124)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
+    parser.add_argument(
+        "--no-correlation",
+        action="store_true",
+        help="skip the mart; line and net rows then pair with any place "
+        "(offline use only, not suitable for labelling)",
+    )
     parser.add_argument("--report", action="store_true")
     parser.add_argument("--sample", type=int, default=0)
     parser.add_argument("--out-sample", type=Path, default=None)
@@ -666,8 +774,12 @@ def main(argv: list[str] | None = None) -> int:
 
     geo = load_json(GEO)
     gazetteer = load_json(GAZETTEER)
+    db_path = None if args.no_correlation else args.db
+    rows = generate(args.count, args.seed, db_path)
     pools = build_pools(geo, gazetteer)
-    rows = generate(args.count, args.seed, args.db)
+    excluded: dict[str, list[str]] = {}
+    if db_path is not None:
+        excluded = dropped_names(geo, gazetteer, db_path)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
@@ -677,13 +789,25 @@ def main(argv: list[str] | None = None) -> int:
     print(f"wrote {len(rows)} rows to {args.out}")
 
     if args.report:
-        print(json.dumps(report(rows, pools), indent=2, ensure_ascii=False))
+        print(
+            json.dumps(
+                report(
+                    rows,
+                    pools,
+                    correlation="off" if db_path is None else "on",
+                    excluded=excluded,
+                ),
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
 
     if args.sample:
         # Spread the sample across the generated file so every family shows up.
         step = max(1, len(rows) // args.sample)
         sample = rows[::step][: args.sample]
         out_sample = args.out_sample or args.out.with_name("sample.jsonl")
+        out_sample.parent.mkdir(parents=True, exist_ok=True)
         out_sample.write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in sample),
             encoding="utf-8",

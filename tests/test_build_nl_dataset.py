@@ -56,6 +56,16 @@ def test_family_weights_sum_to_one() -> None:
     generator.FAMILIES[:] = original
 
 
+def test_every_family_has_at_least_three_templates() -> None:
+    generator = load_generator()
+    thin = {
+        family["name"]: len(family["templates"])
+        for family in generator.FAMILIES
+        if len(family["templates"]) < 3
+    }
+    assert not thin, thin
+
+
 def test_generation_is_deterministic() -> None:
     generator = load_generator()
     first = generator.generate(120, seed=7, db_path=None)
@@ -123,7 +133,7 @@ def test_enum_values_are_not_starved() -> None:
     nets = {row["planted"]["schoolNet"] for row in rows if "schoolNet" in row["planted"]}
     assert len(lines) == 8, lines
     assert len(sorts) == 4, sorts
-    assert len(nets) >= 15, nets
+    assert len(nets) == 18, nets
 
 
 def test_negative_families_are_generated() -> None:
@@ -157,29 +167,72 @@ def test_line_and_net_places_follow_the_mart(tmp_path: Path) -> None:
     db = write_fixture_db(tmp_path / "fixture.db")
 
     rows = generator.generate(400, seed=31, db_path=db)
-    checked = 0
+    lines = 0
+    nets = 0
     for row in rows:
         planted = row["planted"]
         line = planted.get("mtrLine")
-        if line == "Island Line" and "subregionId" in planted:
-            assert planted["subregionId"] == "1001", row
-            checked += 1
-        if line == "Tseung Kwan O Line" and "subregionId" in planted:
-            assert planted["subregionId"] == "2010", row
-            checked += 1
-    assert checked > 0, "no correlated rows were generated"
+        net = planted.get("schoolNet")
+        subregion = planted.get("subregionId")
+        if line and subregion:
+            assert subregion == {"Island Line": "1001", "Tseung Kwan O Line": "2010"}[line], row
+            lines += 1
+        if net and subregion:
+            # Both nets live in 1001 in the fixture, so the net half of
+            # load_cooccurrence is exercised rather than assumed.
+            assert subregion == {"Central & Western": "1001", "Wan Chai": "1001", "Saikung": "2010"}[net], row
+            nets += 1
+    assert lines > 0, "no correlated line rows were generated"
+    assert nets > 0, "no correlated net rows were generated"
+
+
+def test_unmapped_values_are_dropped_not_widened(tmp_path: Path) -> None:
+    """A line or net the mart cannot place must not appear at all."""
+    generator = load_generator()
+    db = write_fixture_db(tmp_path / "fixture.db")
+    rows = generator.generate(600, seed=37, db_path=db)
+
+    lines = {row["planted"]["mtrLine"] for row in rows if "mtrLine" in row["planted"]}
+    nets = {row["planted"]["schoolNet"] for row in rows if "schoolNet" in row["planted"]}
+    assert lines == {"Island Line", "Tseung Kwan O Line"}, lines
+    assert nets <= {"Central & Western", "Wan Chai", "Saikung"}, nets
+
+
+def test_missing_database_is_refused(tmp_path: Path) -> None:
+    generator = load_generator()
+    with pytest.raises(SystemExit) as error:
+        generator.generate(20, seed=41, db_path=tmp_path / "absent.db")
+    assert "--no-correlation" in str(error.value)
+
+
+def test_uncorrelated_run_is_marked_in_the_report(tmp_path: Path, capsys) -> None:
+    """A run without the mart must say so, not look like a correlated one."""
+    generator = load_generator()
+    out = tmp_path / "c.jsonl"
+    generator.main(["--count", "60", "--no-correlation", "--out", str(out), "--report"])
+
+    captured = capsys.readouterr().out
+    report = json.loads(captured[captured.index("{") :])
+    assert report["correlation"] == "off"
+    assert report["duplicates"] == 0
+    # At 60 rows most places never appear; `missing` must show that rather
+    # than letting an absent value pass as covered.
+    places = report["place_values"]
+    assert places["expected"] == 77
+    assert places["values"] + len(places["missing"]) == places["expected"]
 
 
 def test_cli_writes_candidates_and_sample(tmp_path: Path) -> None:
     generator = load_generator()
     out = tmp_path / "candidates.jsonl"
-    sample = tmp_path / "sample.jsonl"
+    sample = tmp_path / "nested" / "sample.jsonl"
 
     assert (
         generator.main(
             [
                 "--count",
                 "200",
+                "--no-correlation",
                 "--out",
                 str(out),
                 "--sample",
