@@ -12,8 +12,9 @@ One utterance becomes one query spec. There is no chat, no session memory, no
 text-to-SQL and no backend:
 
 - runs entirely in the browser, so no per-request inference and no hosting cost;
-- the sentence parser is deterministic and ships behind
-  `VITE_FEATURE_NL_SEARCH` (off by default);
+- the sentence parser is deterministic and is bundled only when
+  `VITE_FEATURE_NL_SEARCH=true`; the default build tree-shakes it out (the
+  gazetteer index remains, about 1.4 kB gzipped);
 - the user must get exactly what they asked for in the output dataset, or be
   told what could not be represented — never a quiet approximation.
 
@@ -32,7 +33,7 @@ from the remainder, so leftovers are reported rather than re-matched.
 | bedrooms | `2 bed`, `3 room`, `三房` | `bedrooms` (`4+` above 3) |
 | area | `500-700 sq ft`, `under 600 ft` | `minNetArea` / `maxNetArea` |
 | vague size | `small`, `middle size` | marked default (see §3) |
-| price | `under 6m`, `5m to 8m`, `6.5m` | `minPrice` / `maxPrice` |
+| price | `under 6m`, `5m to 8m`, `under 6.5m` | `minPrice` / `maxPrice` |
 | sort | `cheapest`, `most active` | `sort` |
 | unsupported | `sea view`, `quiet`, `parking`, `near MTR` | `Ignored:` |
 | MTR line | `island line`, `tko line` | `mtrLine` |
@@ -53,9 +54,11 @@ sentence cannot silently narrow the next one.
 
 ## 3. Flat size: the vocabulary and where the numbers come from
 
-The dashboard stores `latest_net_area` (saleable area in ft²) from each estate's
-latest transaction. Three bands are supported, all applied as **marked
-defaults** — the UI shows `Area 400–700 ft² (default)`, and the chip is editable:
+The dashboard stores `latest_net_area` — the **net area of the latest
+transaction** (HKP net area; not RVD saleable area, see
+`docs/data-dictionary.md`). Three bands are supported, all applied as **marked
+defaults** — the UI shows `Area 400–700 ft² (default)`; the chip clears the band
+and the exact range can be edited in the Filters panel:
 
 | Phrase | Band | Slot values |
 |---|---|---|
@@ -66,14 +69,15 @@ defaults** — the UI shows `Area 400–700 ft² (default)`, and the chip is edi
 ### Why 400 and 700
 
 They are quantiles of the snapshot, not architectural definitions. Over the
-9,750 estates (6,324 with a usable area; 3,426 have none):
+9,750 estates (6,324 with a usable area; 3,426 unusable — missing or
+non-positive):
 
 | Quantile | 10% | 25% | 50% | 75% | 90% |
 |---|---|---|---|---|---|
 | ft² | 295 | 382 | 533 | 734 | 1,138 |
 
 The bands were set at roughly the 25th and 75th percentiles, rounded to round
-numbers. The result splits estates with a known area into close thirds:
+numbers. The result splits estates with a known area roughly 28 / 44 / 28:
 
 | Band | Estates | Share of known areas |
 |---|---|---|
@@ -97,8 +101,8 @@ slice of the market, not a sliver or almost everything.
 - **`mansion` is not a size.** In Hong Kong English it usually names a residential
   block, and 豪宅 is a market segment, not an area.
 - **Estates without a usable area are excluded** while the filter is active.
-  Since 35% of estates have no latest area, a size filter narrows the result set
-  by construction; that is why the band is always visible as a default.
+  Since 35% of estates have no usable latest area, a size filter narrows the
+  result set by construction; that is why the band is always visible as a default.
 
 ### Proposed intensity scale (not implemented)
 
@@ -124,7 +128,7 @@ Conflating these is what makes NL filters feel like guessing:
 
 | Kind | Example | Mechanism |
 |---|---|---|
-| abbreviation collision | `KT` | curated candidate set (Kwun Tong / Kowloon Tong) + margin test |
+| abbreviation collision | `KT` | curated candidate set, surfaced as a hint — never scored |
 | vague term | `middle size` | curated band applied as a marked default |
 | incomplete modifier | `east` | curated direction cell; needs a region, then a subregion |
 
@@ -203,8 +207,8 @@ inputs. The holdout is human-labelled and never used for training.
 
 ## 7. Known gaps and follow-ups
 
-- `small size` / `large size` leave `size` in `Unrecognised` (only `middle size`
-  consumes it).
+- `small size` / `large size` leave `size` in `Unrecognised`; the middle family
+  (`middle`/`mid`/`medium` + `size`/`sized`) consumes it.
 - No hints for vague-size bands yet; the recorded decision expected alternatives
   such as 300–500 / 500–700 / 700–900.
 - Chinese size words (`大單位`, `細單位`, `豪宅`) are not understood, although
@@ -212,8 +216,9 @@ inputs. The holdout is human-labelled and never used for training.
 - `school net N` sets the net **name**, because the filter is name-based and
   several nets share one; it therefore covers every net with that name and the UI
   says so.
-- `shatn` resolves to the Sha Tin district while exact `Sha Tin` resolves to the
-  subregion (related rivals are excluded from the margin set).
+- `shatn` resolves to the Sha Tin **district** (`301702`, with subregion `3017`
+  filled in) while exact `Sha Tin` stops at the subregion `3017`; related rivals
+  are excluded from the margin set, which is what produces the district.
 - Hints are capped at four in gazetteer order, not ranked by distance.
 
 ## 8. Files and commands
