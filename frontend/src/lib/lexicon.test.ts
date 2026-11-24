@@ -49,6 +49,66 @@ describe("one utterance, one spec", () => {
     });
   });
 
+  it("consumes the word size after any vague word", () => {
+    for (const text of ["small size", "large size", "middle size"]) {
+      const spec = applied(parseQuery(text));
+      expect(spec.unrecognised).toEqual([]);
+      expect(spec.applied[0].defaulted).toBe(true);
+    }
+  });
+
+  it("offers neighbouring bands while a default is applied", () => {
+    const middle = applied(parseQuery("2 bed middle size"));
+    expect(middle.hints.map((hint) => hint.label)).toEqual([
+      "300–500 ft²",
+      "500–700 ft²",
+      "700–900 ft²",
+    ]);
+    expect(middle.hints.every((hint) => hint.level === "size")).toBe(true);
+    // A band hint keeps the rest of the sentence.
+    expect(middle.hints.every((hint) => hint.filters.bedrooms === "2")).toBe(
+      true,
+    );
+
+    const small = applied(parseQuery("small flat"));
+    expect(small.hints.map((hint) => hint.label)).toEqual([
+      "≤ 300 ft²",
+      "300–450 ft²",
+    ]);
+
+    const large = applied(parseQuery("large flat"));
+    expect(large.hints.map((hint) => hint.label)).toEqual([
+      "700–900 ft²",
+      "900–1200 ft²",
+    ]);
+  });
+
+  it("reads Chinese size words only next to 單位", () => {
+    const big = applied(parseQuery("大單位"));
+    expect([big.filters.minNetArea, big.filters.maxNetArea]).toEqual([
+      "700",
+      "",
+    ]);
+
+    const small = applied(parseQuery("細單位"));
+    expect([small.filters.minNetArea, small.filters.maxNetArea]).toEqual([
+      "",
+      "400",
+    ]);
+
+    const middle = applied(parseQuery("中型單位"));
+    expect([middle.filters.minNetArea, middle.filters.maxNetArea]).toEqual([
+      "400",
+      "700",
+    ]);
+
+    // 大埔 is a place, not a size.
+    const taiPo = applied(parseQuery("大埔"));
+    expect(taiPo.filters.minNetArea).toBe("");
+    expect(taiPo.filters.maxNetArea).toBe("");
+    expect(taiPo.filters.districtId || taiPo.filters.subregionId).not.toBe("");
+  });
+
   it("maps ordering words onto the existing sort keys", () => {
     const spec = applied(parseQuery("cheapest 2 bed in Kwun Tong"));
     expect(spec.sort).toBe("latest_price");

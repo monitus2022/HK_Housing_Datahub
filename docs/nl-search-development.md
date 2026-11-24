@@ -32,7 +32,7 @@ from the remainder, so leftovers are reported rather than re-matched.
 | out-of-scope | `shenzhen`, `深圳` | refuse the whole sentence |
 | bedrooms | `2 bed`, `3 room`, `三房` | `bedrooms` (`4+` above 3) |
 | area | `500-700 sq ft`, `under 600 ft` | `minNetArea` / `maxNetArea` |
-| vague size | `small`, `middle size` | marked default (see §3) |
+| vague size | `small`, `middle size`, `大單位` | marked default + band hints (see §3) |
 | price | `under 6m`, `5m to 8m`, `under 6.5m` | `minPrice` / `maxPrice` |
 | sort | `cheapest`, `most active` | `sort` |
 | unsupported | `sea view`, `quiet`, `parking`, `near MTR` | `Ignored:` |
@@ -62,9 +62,28 @@ and the exact range can be edited in the Filters panel:
 
 | Phrase | Band | Slot values |
 |---|---|---|
-| `small`, `compact`, `tiny` | small | `maxNetArea = 400` |
-| `middle`, `mid`, `medium` (+ `size`, `sized`) | middle | `minNetArea = 400`, `maxNetArea = 700` |
-| `large`, `big`, `spacious` | large | `minNetArea = 700` |
+| `small`, `compact`, `tiny`, `small size` | small | `maxNetArea = 400` |
+| `middle`, `mid`, `medium` (+ `size`, `sized`), `中型單位` | middle | `minNetArea = 400`, `maxNetArea = 700` |
+| `large`, `big`, `spacious`, `large size`, `大單位` | large | `minNetArea = 700` |
+
+`細單位` maps to small. Chinese size words only match next to `單位`, so a bare
+`大` cannot swallow `大埔`.
+
+### Hints move a band without retyping
+
+A default is only honest if it can be corrected. While a band is applied, the
+parser also offers neighbouring bands as hint buttons, each carrying the rest of
+the sentence:
+
+| Applied | Hints |
+|---|---|
+| small | ≤ 300, 300–450 |
+| middle | 300–500, 500–700, 700–900 |
+| large | 700–900, 900–1200 |
+
+Clicking one replaces just the area filter and rewrites the URL; the
+`Interpreted as` line then shows the chosen band without `(default)`. If the
+sentence also had an ambiguous place, that question stays open.
 
 ### Why 400 and 700
 
@@ -96,8 +115,8 @@ slice of the market, not a sliver or almost everything.
   different places — harder to explain, and worse for a shareable URL.
 - **Intensity is not honoured.** `very big` applies the large band and reports
   `Unrecognised: very`; `super large size mansion` applies large and reports
-  `super`, `size`, `mansion`; `huge` alone is unresolved. The parser never
-  claims to understand an intensity word it has no band for.
+  `super`, `mansion`; `huge` alone is unresolved. The parser never claims to
+  understand an intensity word it has no band for.
 - **`mansion` is not a size.** In Hong Kong English it usually names a residential
   block, and 豪宅 is a market segment, not an area.
 - **Estates without a usable area are excluded** while the filter is active.
@@ -106,8 +125,9 @@ slice of the market, not a sliver or almost everything.
 
 ### Proposed intensity scale (not implemented)
 
-If intensity should carry meaning, the defensible version is a five-band scale
-derived from the same distribution, applied with the same default marking:
+Hints already let a user move between the three bands. What remains a
+**proposal** is giving intensity words their own defaults, on a five-band scale
+derived from the same distribution and applied with the same default marking:
 
 | Phrase | Band | Estates (of 6,324) |
 |---|---|---|
@@ -207,19 +227,16 @@ inputs. The holdout is human-labelled and never used for training.
 
 ## 7. Known gaps and follow-ups
 
-- `small size` / `large size` leave `size` in `Unrecognised`; the middle family
-  (`middle`/`mid`/`medium` + `size`/`sized`) consumes it.
-- No hints for vague-size bands yet; the recorded decision expected alternatives
-  such as 300–500 / 500–700 / 700–900.
-- Chinese size words (`大單位`, `細單位`, `豪宅`) are not understood, although
-  Chinese place names are.
+- `huge`, `super large` and `豪宅` are unresolved rather than mapped to a band:
+  there is no shipped default for them (see the intensity-scale proposal in §3).
 - `school net N` sets the net **name**, because the filter is name-based and
   several nets share one; it therefore covers every net with that name and the UI
   says so.
 - `shatn` resolves to the Sha Tin **district** (`301702`, with subregion `3017`
   filled in) while exact `Sha Tin` stops at the subregion `3017`; related rivals
   are excluded from the margin set, which is what produces the district.
-- Hints are capped at four in gazetteer order, not ranked by distance.
+- Place hints are capped at four and listed in gazetteer order, not ranked by
+  distance. Size hints are not capped.
 
 ## 8. Files and commands
 

@@ -209,6 +209,28 @@ export function EstateSearch({ estates, onSelect }: Props) {
   };
 
   const applyHint = (hint: NlHint) => {
+    // A size hint only moves the band. It keeps a pending place question and the
+    // rest of the sentence intact.
+    if (hint.level === "size") {
+      setState({ query: "", sort: hint.sort, filters: hint.filters });
+      setNlParse((current) => {
+        if (!current?.spec) return current;
+        return {
+          ...current,
+          spec: {
+            ...current.spec,
+            filters: hint.filters,
+            sort: hint.sort,
+            hints: current.spec.hints.filter((item) => item.level !== "size"),
+            applied: [
+              ...current.spec.applied.filter((slot) => slot.field !== "Area"),
+              { field: "Area", value: hint.label },
+            ],
+          },
+        };
+      });
+      return;
+    }
     // A direction without a region produced region-level hints. Re-parsing the
     // same sentence with the chosen region turns "east" into East Kowloon
     // instead of silently applying all of Kowloon. Subregion hints are already
@@ -368,13 +390,17 @@ export function EstateSearch({ estates, onSelect }: Props) {
               {nlParse.term ? ` (“${nlParse.term}”)` : ""}, so nothing changed.
             </p>
           ) : null}
-          {nlParse.kind === "ambiguous" && nlParse.question ? (
+          {nlParse.spec && nlParse.spec.hints.length > 0 ? (
             <div className="nl-note">
-              <p>{nlParse.question}</p>
+              <p>
+                {nlParse.kind === "ambiguous" && nlParse.question
+                  ? nlParse.question
+                  : "Different size?"}
+              </p>
               <div className="nl-hints">
-                {nlParse.spec?.hints.map((hint) => (
+                {nlParse.spec.hints.map((hint) => (
                   <button
-                    key={`${hint.label}-${hint.detail}`}
+                    key={`${hint.level}-${hint.label}-${hint.detail}`}
                     type="button"
                     className="nl-hint"
                     onClick={() => applyHint(hint)}

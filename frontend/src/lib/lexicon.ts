@@ -44,7 +44,8 @@ export interface NlSlot {
 export interface NlHint {
   label: string;
   detail: string;
-  level: "region" | "subregion" | "district";
+  /** "size" hints replace the area band; place hints replace the location. */
+  level: "region" | "subregion" | "district" | "size";
   filters: EstateFilters;
   sort: SortKey;
 }
@@ -167,6 +168,43 @@ const SORT_WORDS: { pattern: RegExp; key: SortKey; label: string }[] = [
     label: "Alphabetical",
   },
 ];
+
+type SizeBand = "small" | "middle" | "large";
+
+/** Defaults applied by a vague size word, from the snapshot quartiles. */
+const SIZE_BANDS: Record<SizeBand, { min: string; max: string }> = {
+  small: { min: "", max: "400" },
+  middle: { min: "400", max: "700" },
+  large: { min: "700", max: "" },
+};
+
+/**
+ * Neighbouring bands offered as hints while a default is applied, so a user who
+ * disagrees can move one step without typing numbers.
+ */
+const SIZE_ALTERNATIVES: Record<SizeBand, { min: string; max: string }[]> = {
+  small: [
+    { min: "", max: "300" },
+    { min: "300", max: "450" },
+  ],
+  middle: [
+    { min: "300", max: "500" },
+    { min: "500", max: "700" },
+    { min: "700", max: "900" },
+  ],
+  large: [
+    { min: "700", max: "900" },
+    { min: "900", max: "1200" },
+  ],
+};
+
+/** 大/細/中 are only size words next to 單位; a bare 大 would eat 大埔. */
+const CJK_SIZE_BANDS: Record<string, SizeBand> = {
+  "大": "large",
+  "細": "small",
+  "中": "middle",
+  "中型": "middle",
+};
 
 /** Line names, plus the shorthand people actually type.
  *
@@ -401,46 +439,53 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
 
+  let sizeAlternatives: { min: string; max: string }[] = [];
   if (!patch.minNetArea && !patch.maxNetArea) {
     // Vague size words get a marked default rather than being dropped: the
     // quartiles of the snapshot are 382 / 533 / 734 ft², so these bands cover
     // the middle, the small and the large half of the market.
     const middle = consume(
       rest,
-      /(?:^| )(?:middle|mid|medium) ?(?:size|sized)(?= |$)/,
+      /(?:^| )(?:middle|mid|medium) ?(?:size|sized)?(?= |$)/,
     );
     const small = middle
       ? null
-      : consume(rest, /(?:^| )(?:small|compact|tiny)(?= |$)/);
+      : consume(
+          rest,
+          /(?:^| )(?:small|compact|tiny) ?(?:size|sized)?(?= |$)/,
+        );
     const large =
       middle || small
         ? null
-        : consume(rest, /(?:^| )(?:large|big|spacious)(?= |$)/);
-    if (middle) {
-      patch.minNetArea = "400";
-      patch.maxNetArea = "700";
+        : consume(
+            rest,
+            /(?:^| )(?:large|big|spacious) ?(?:size|sized)?(?= |$)/,
+          );
+    const cjk =
+      middle || small || large
+        ? null
+        : consume(rest, /(?:^| )(中型|大|細|中) ?單位(?= |$)/);
+    const consumed = middle ?? small ?? large ?? cjk;
+    const band: SizeBand | null = middle
+      ? "middle"
+      : small
+        ? "small"
+        : large
+          ? "large"
+          : cjk
+            ? (CJK_SIZE_BANDS[cjk.match[1]] ?? null)
+            : null;
+    if (consumed && band) {
+      const sizeBand = SIZE_BANDS[band];
+      patch.minNetArea = sizeBand.min;
+      patch.maxNetArea = sizeBand.max;
       spec.applied.push({
         field: "Area",
-        value: areaLabel("400", "700"),
+        value: areaLabel(sizeBand.min, sizeBand.max),
         defaulted: true,
       });
-      rest = middle.rest;
-    } else if (small) {
-      patch.maxNetArea = "400";
-      spec.applied.push({
-        field: "Area",
-        value: areaLabel("", "400"),
-        defaulted: true,
-      });
-      rest = small.rest;
-    } else if (large) {
-      patch.minNetArea = "700";
-      spec.applied.push({
-        field: "Area",
-        value: areaLabel("700", ""),
-        defaulted: true,
-      });
-      rest = large.rest;
+      sizeAlternatives = SIZE_ALTERNATIVES[band];
+      rest = consumed.rest;
     }
   }
 
@@ -663,6 +708,22 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
 
   spec.filters = { ...EMPTY_ESTATE_FILTERS, ...patch };
   spec.unrecognised = leftovers.map(unfoldDots);
+
+  // Band alternatives come after place hints, so a question stays first while
+  // the user can also correct the size without retyping the sentence.
+  for (const alternative of sizeAlternatives) {
+    spec.hints.push({
+      label: areaLabel(alternative.min, alternative.max),
+      detail: "area band",
+      level: "size",
+      filters: {
+        ...spec.filters,
+        minNetArea: alternative.min,
+        maxNetArea: alternative.max,
+      },
+      sort: spec.sort,
+    });
+  }
 
   const appliedAnything = spec.applied.length > 0;
   if (question) {
