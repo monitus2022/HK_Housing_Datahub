@@ -63,6 +63,33 @@ describe("one utterance, one spec", () => {
     }
   });
 
+  it("handles the documented acceptance sentence", () => {
+    const spec = applied(parseQuery("2 bed middle size in sha tin"));
+    expect(spec.filters.bedrooms).toBe("2");
+    expect(spec.filters.subregionId).toBe("3017");
+    expect([spec.filters.minNetArea, spec.filters.maxNetArea]).toEqual([
+      "400",
+      "700",
+    ]);
+    expect(spec.hints).toHaveLength(3);
+    // Every band hint keeps the rest of the sentence, including the scope.
+    for (const hint of spec.hints) {
+      const next = hintSpec(spec, hint);
+      expect(next.filters.bedrooms).toBe("2");
+      expect(next.filters.subregionId).toBe("3017");
+    }
+  });
+
+  it("accepts the size spellings people use", () => {
+    for (const text of ["medium sized flat", "mid sized flat"]) {
+      const spec = applied(parseQuery(text));
+      expect([spec.filters.minNetArea, spec.filters.maxNetArea]).toEqual([
+        "400",
+        "700",
+      ]);
+    }
+  });
+
   it("offers neighbouring bands while a default is applied", () => {
     const middle = applied(parseQuery("2 bed middle size"));
     expect(middle.hints.map((hint) => hint.label)).toEqual([
@@ -113,8 +140,7 @@ describe("one utterance, one spec", () => {
     ]);
   });
 
-  it("reads Chinese size words only next to 單位", () => {
-    const big = applied(parseQuery("大單位"));
+  it("reads Chinese size words only next to 單位", () => {    const big = applied(parseQuery("大單位"));
     expect([big.filters.minNetArea, big.filters.maxNetArea]).toEqual([
       "700",
       "",
@@ -374,6 +400,55 @@ describe("hint composition", () => {
     expect(refined.spec?.hints.every((hint) => hint.kind === "place")).toBe(
       true,
     );
+  });
+
+  it("keeps a chosen place when the band is chosen afterwards", () => {
+    const parse = parseQuery("middle size in KT");
+    expect(parse.kind).toBe("ambiguous");
+    if (!parse.spec) throw new Error("expected a spec");
+
+    const place = parse.spec.hints.find(
+      (hint) => hint.kind === "place" && hint.level === "subregion",
+    );
+    if (!place) throw new Error("expected a subregion hint");
+    const answered = hintSpec(parse.spec, place);
+    expect(answered.filters.subregionId).toBe("2007");
+    expect(answered.filters.districtId).toBe("");
+
+    // The band hints survive answering the place question.
+    const bands = answered.hints.filter((hint) => hint.kind === "size");
+    expect(bands).toHaveLength(3);
+    const withBand = hintSpec(answered, bands[0]);
+    expect(withBand.filters.subregionId).toBe("2007");
+    expect(withBand.filters.minNetArea).toBe("300");
+    expect(withBand.filters.maxNetArea).toBe("500");
+    const area = withBand.applied.find((slot) => slot.field === "Area");
+    expect(area).toEqual({ field: "Area", value: "300–500 ft²" });
+    expect(withBand.hints).toEqual([]);
+  });
+
+  it("keeps a refined direction when the band is chosen afterwards", () => {
+    const parse = parseQuery("middle size in east");
+    const refined = refineDirection(parse, "20");
+    expect(refined.spec?.hints.some((hint) => hint.kind === "place")).toBe(
+      true,
+    );
+    const band = refined.spec?.hints.find((hint) => hint.kind === "size");
+    if (!refined.spec || !band) return;
+    const withBand = hintSpec(refined.spec, band);
+    expect(withBand.filters.minNetArea).toBe("300");
+    // The place question is still open, now at subregion level.
+    expect(withBand.hints.some((hint) => hint.kind === "place")).toBe(true);
+    expect(
+      withBand.hints
+        .filter((hint) => hint.kind === "place")
+        .map((hint) => (hint.kind === "place" ? hint.level : "")),
+    ).toEqual(["subregion", "subregion", "subregion"]);
+  });
+
+  it("does not refine a parse that was not a direction", () => {
+    const parse = parseQuery("TKO");
+    expect(refineDirection(parse, "10")).toBe(parse);
   });
 });
 

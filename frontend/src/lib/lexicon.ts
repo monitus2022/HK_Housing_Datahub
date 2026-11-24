@@ -771,14 +771,6 @@ function directionWord(span: string): string | null {
   );
 }
 
-/**
- * Re-parse the same utterance with an anchor, used when a hint supplies the
- * region an unanchored direction was missing.
- */
-export function withRegion(parse: NlParse, regionId: string): NlParse {
-  return parseQuery(parse.input, { regionId });
-}
-
 /** Whole-phrase membership that respects word boundaries. */
 function hasPhrase(rest: string, phrase: string): boolean {
   return ` ${rest} `.includes(` ${phrase} `);
@@ -825,6 +817,8 @@ export function hintSpec(spec: NlSpec, hint: NlHint): NlSpec {
  * refined sentence would otherwise fall back to the vague-size default.
  */
 export function refineDirection(parse: NlParse, regionId: string): NlParse {
+  // Only a direction can be anchored; anything else is returned untouched.
+  if (!parse.direction) return parse;
   const refined = parseQuery(parse.input, { regionId });
   const chosen = parse.spec?.applied.find(
     (slot) => slot.field === "Area" && !slot.defaulted,
