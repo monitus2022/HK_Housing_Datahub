@@ -162,6 +162,8 @@ code-splitting boundary.
 
 Estate-name matching is still the `q` box: the sentence parser only sets
 structured filters, which is why it never invents a result from free text.
+The size bands, the parse order and the dataset/labelling plan are written up in
+[`docs/nl-search-development.md`](../docs/nl-search-development.md).
 
 The map plots estate coordinates from `estate_summary` over OpenStreetMap
 tiles. Nearby estates are grouped into numbered screen-space clusters and split
