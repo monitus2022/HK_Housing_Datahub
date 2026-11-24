@@ -4,10 +4,11 @@
  * model: the same sentence always produces the same filters, and everything the
  * lexicon did *not* understand is reported back instead of being dropped.
  *
- * The parser consumes phrases in a fixed order — bedrooms, area, price, sort
- * words, unsupported concepts, MTR lines, school nets, then a place — and
- * removes each phrase it understands. Whatever is left is either shown as
- * unrecognised, or matched fuzzily as a whole. A phrase that is recognised but has no data behind it
+ * The parser consumes phrases in a fixed order — bedrooms, area (including
+ * vague-size defaults and a bare-size fallback), price, sort words, unsupported
+ * concepts, MTR lines, school nets, then a place — and removes each phrase it
+ * understands. Whatever is left is either shown as unrecognised, or matched
+ * fuzzily as a whole. A phrase that is recognised but has no data behind it
  * (sea view, quiet, "near MTR") goes to `ignored` rather than being silently
  * treated as free text: the result set must reflect what the user asked for, or
  * say what it could not do.
@@ -61,13 +62,15 @@ export type NlKind = "applied" | "ambiguous" | "refused" | "unresolved";
 
 export interface NlParse {
   kind: NlKind;
-  /** Full replacement state for "applied" and "ambiguous". */
+  /** Replacement state for "applied" and "ambiguous"; also carries `ignored`
+   * disclosure for an unresolved sentence that understood a concept. */
   spec: NlSpec | null;
   /** The question to ask when kind is "ambiguous". */
   question: string | null;
   /** Offending phrase for "refused" and "unresolved". */
   term: string | null;
-  /** Direction word ("east") when the ambiguity came from a direction. */
+  /** Direction word ("east") when the location or its ambiguity came from a
+   * direction cell; hints use it to re-anchor the utterance. */
   direction: string | null;
   /** The normalised utterance, re-parsed when a hint supplies an anchor. */
   input: string;
@@ -216,7 +219,6 @@ function areaLabel(minimum: string, maximum: string): string {
 function scale(unit: string): number {
   switch (unit.toLowerCase()) {
     case "k":
-    case "thousand":
       return 1_000;
     default:
       return 1_000_000;
@@ -548,7 +550,10 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       rest = netId.rest;
       if (names.length === 1) {
         patch.schoolNet = names[0];
-        spec.applied.push({ field: "School net", value: names[0] });
+        spec.applied.push({
+          field: "School net",
+          value: `${names[0]} (all nets with this name)`,
+        });
       } else if (names.length > 1) {
         spec.ignored.push(
           `School net ${netId.match[1]} spans ${names.join(" and ")}`,
@@ -629,11 +634,14 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       ? `${direction[0].toUpperCase()}${direction.slice(1)}`
       : "Which";
     if (ambiguous.via === "direction") {
-      question = ambiguous.candidates.every(
+      // Direction cells hold subregions, so the second question must ask for a
+      // subregion or it contradicts its own hint labels.
+      const level = ambiguous.candidates.every(
         (candidate) => candidate.level === "region",
       )
-        ? `${label} of which region?`
-        : `${label} of which district?`;
+        ? "region"
+        : "subregion";
+      question = `${label} of which ${level}?`;
     } else {
       question = "Which place did you mean?";
     }
@@ -654,7 +662,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   }
 
   spec.filters = { ...EMPTY_ESTATE_FILTERS, ...patch };
-  spec.unrecognised = leftovers;
+  spec.unrecognised = leftovers.map(unfoldDots);
 
   const appliedAnything = spec.applied.length > 0;
   if (question) {
@@ -675,7 +683,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       kind: "unresolved",
       spec: disclosed ? spec : null,
       question: null,
-      term: leftovers.join(" ") || null,
+      term: unfoldDots(leftovers.join(" ")) || null,
       direction: null,
       input,
     };
@@ -688,6 +696,11 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     direction,
     input,
   };
+}
+
+/** Undo the decimal sentinel for anything shown to the user. */
+function unfoldDots(text: string): string {
+  return text.replace(/(\d)dot(\d)/g, "$1.$2");
 }
 
 /** The direction word inside a span, for the question and hint refinement. */

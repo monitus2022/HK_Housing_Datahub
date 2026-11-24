@@ -133,7 +133,7 @@ silently narrow the new one — and the result area always discloses what happen
 - An ambiguous place asks instead of guessing and offers hint buttons; clicking a
   hint rewrites the URL through the normal filter serializer, so the result stays
   a single, shareable query. A direction such as `east` is refined in two steps:
-  pick the region, then the district inside it.
+  pick the region, then the subregion inside it.
 - A place outside Hong Kong refuses the whole sentence and leaves the current
   results untouched. A bare `Tung Chung` is a district, never the railway line.
 
@@ -155,8 +155,10 @@ VITE_FEATURE_NL_SEARCH=true npm run build
 Cloudflare Pages sets the variable per environment. With the flag off the form
 and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
 imported for its module-level index, so the shared bundle grows by about 5.4 kB
-raw / 1.4 kB gzipped. With the flag on the feature costs about 19 kB raw /
-5.9 kB gzipped. The flag is a rollout switch, not a code-splitting boundary.
+raw / 1.4 kB gzipped over the pre-P3 build. With the flag on the feature adds
+about 13 kB raw / 4.5 kB gzipped over the flag-off build (19 kB / 5.9 kB over
+the pre-P3 baseline). The flag is a build-time rollout switch, not a
+code-splitting boundary.
 
 Estate-name matching is still the `q` box: the sentence parser only sets
 structured filters, which is why it never invents a result from free text.

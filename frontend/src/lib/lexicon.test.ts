@@ -91,6 +91,15 @@ describe("one utterance, one spec", () => {
   it("reads a numeric school net", () => {
     const spec = applied(parseQuery("school net 41"));
     expect(spec.filters.schoolNet).toBe("Kowloon City");
+    // The filter matches the net name, so say that it is not id 41 alone.
+    expect(
+      spec.applied.find((slot) => slot.field === "School net")?.value,
+    ).toContain("all nets with this name");
+  });
+
+  it("shows a decimal back as the user typed it", () => {
+    const parse = parseQuery("2 bed 6.5m");
+    expect(parse.spec?.unrecognised).toEqual(["6.5m"]);
   });
 
   it("resolves a typo in the leftover phrase", () => {
@@ -142,7 +151,7 @@ describe("no silent guessing", () => {
     expect(parseQuery("east").question).toBe("East of which region?");
     const anchored = parseQuery("east", { regionId: "20" });
     expect(anchored.kind).toBe("ambiguous");
-    expect(anchored.question).toBe("East of which district?");
+    expect(anchored.question).toBe("East of which subregion?");
     expect(anchored.spec?.hints.map((hint) => hint.level)).toEqual([
       "subregion",
       "subregion",
