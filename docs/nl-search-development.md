@@ -185,6 +185,30 @@ whether the labels are trustworthy. The plan separates the two:
 | Closed-world absences (`shenzhen` is not in HK) | may label REFUSE/ABSTAIN negatives |
 | Teacher (3B CPU first, 7B GPU if needed) | labels the positive and ambiguous rows |
 
+### Candidate generation
+
+`scripts/build_nl_dataset.py` produces the inputs: 14 weighted families (place,
+place+bed, place+bed+price, line, net, sort, direction, abbreviation,
+out-of-scope, unsupported…), each with 3–4 whole-sentence templates and value
+pools drawn from `geo.json` and `gazetteer.json`. It reads no model and no
+network.
+
+- **Least-used sampling per planted value.** "2 bed", "two bedrooms" and `兩房`
+  are one coverage cell, so a value with more spellings does not get more rows.
+- **Co-occurrence from the mart.** A line or net is paired only with subregions
+  that actually contain it, so the bulk avoids sentences like "South Island Line
+  in Tung Chung". (The mart itself has odd pairings — net "Tai Po" appears in one
+  Yuen Long estate — and those are kept, because the dataset mirrors the data.)
+- **Consistency.** A district always carries its subregion and region; area and
+  price ranges are ordered; one location per row.
+- **Planted values are diagnostics, not labels.** Each row records `planted` and
+  a coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`). The teacher's
+  label is produced independently; `planted` is used for coverage gates and
+  per-slot recall checks.
+
+A 6,000-row run yields 6,000 unique texts, every MTR line, sort key and school
+net above 25 rows, and roughly 52% Chinese or mixed-language rows.
+
 ### Volume gates (all must hold before training)
 
 - ≥ 3,000 training rows after filtering, ≥ 300 dev rows;
