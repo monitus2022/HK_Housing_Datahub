@@ -183,7 +183,7 @@ whether the labels are trustworthy. The plan separates the two:
 | Matcher's margin / difficulty | **sampler**: picks rows worth teacher time |
 | Matcher's parse output | **never a label** — it is the baseline to beat |
 | Closed-world absences (`shenzhen` is not in HK) | may label REFUSE/ABSTAIN negatives |
-| 8B teacher | labels the positive and ambiguous rows |
+| Teacher (3B CPU first, 7B GPU if needed) | labels the positive and ambiguous rows |
 
 ### Volume gates (all must hold before training)
 
@@ -213,6 +213,39 @@ whether the labels are trustworthy. The plan separates the two:
 - **Contradiction check.** No row may carry mutually exclusive labels
   (e.g. `minNetArea > maxNetArea`, a district outside its subregion).
 
+### Teacher selection (two stages)
+
+The teacher is not fine-tuned; it only labels. So the cheap question is "which
+teacher agrees with a human", measured directly, not inferred from student
+scores.
+
+**Stage 1 — small model on the development Mac, CPU only.** A 3B instruct model
+at 4-bit (`~2–5 tok/s` decode) labels the audit slices only: 150 random rows plus
+the abstain/refuse slice. Ten to twenty minutes of laptop time, no GPU needed,
+and it doubles as the "is a bigger teacher even necessary?" control.
+
+**Stage 2 — 7B on the GPU box (RTX 3060 8 GB), if Stage 1 falls short.** Q4_K_M
+fits in ~4.7 GB with a 4k context and does ~25 tok/s, so a 5,000-row bulk pass is
+about five hours, or ten with two samples.
+
+Decision thresholds, applied to the same 150 human-labelled rows:
+
+| Stage 1 agreement | Outcome |
+|---|---|
+| ≥ 95% | labels are good enough; keep the CPU teacher for the audit, but run the 5,000-row bulk pass on the GPU if one is available (CPU bulk is 17–40 h) |
+| 90–94% | escalate to the 7B teacher; re-audit |
+| < 90% | neither teacher is trustworthy: fix the prompt/exemplars, or use a cloud model for the one-off labelling run |
+
+Rules that make the comparison meaningful:
+
+- identical prompt, JSON schema and few-shot exemplars for every teacher, so the
+  variable is model capacity, not prompt craft;
+- record the model name, version, quantisation and prompt hash in the dataset
+  metadata — cloud and local models change under the same name;
+- comparing two teachers **end to end** (train one student per teacher, same
+  holdout) is a tie-break only, for the 90–94% band. Below that, training is not
+  worth the hours, and above it there is nothing to distinguish.
+
 ### Human checkpoints
 
 1. **Before bulk labelling:** approve the dataset spec and a 50-row sample
@@ -228,6 +261,12 @@ The student must beat `rules + lexicon` by **≥ 8 whole-query EM points** on th
 150-item hand-written holdout. Below that, it does not ship, and the result is
 written up with both standalone EM and recovery rate on lexicon-abstained
 inputs. The holdout is human-labelled and never used for training.
+
+An 8-point gap sits near the noise floor at n = 150 (roughly ±7 points at 95%),
+so the comparison is **paired**: same items, same labels, McNemar's test on the
+rows where the two systems disagree. If the result is to be published rather
+than only used as a gate, grow the holdout to 300–400 before labelling it — after
+seeing the numbers is too late.
 
 ## 7. Known gaps and follow-ups
 
