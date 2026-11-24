@@ -585,9 +585,11 @@ def filter_correlated(
             entry for entry in pools[slot] if str(entry["planted"][key]) in names
         ]
         dropped[key] = sorted(
-            str(entry["planted"][key])
-            for entry in pools[slot]
-            if str(entry["planted"][key]) not in names
+            {
+                str(entry["planted"][key])
+                for entry in pools[slot]
+                if str(entry["planted"][key]) not in names
+            }
         )
         pools[slot] = kept
     return pools, dropped
@@ -748,9 +750,11 @@ def dropped_names(
     ):
         known = cooccurrence.get(source, {})
         excluded[key] = sorted(
-            str(entry["planted"][key])
-            for entry in expected[slot]
-            if str(entry["planted"][key]) not in known
+            {
+                str(entry["planted"][key])
+                for entry in expected[slot]
+                if str(entry["planted"][key]) not in known
+            }
         )
     return excluded
 
