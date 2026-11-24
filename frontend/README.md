@@ -111,10 +111,63 @@ conservative: `TKO` resolves to the Tseung Kwan O subregion, `KT` returns both
 Kwun Tong and Kowloon Tong as candidates instead of picking one, `east` asks
 which region unless the cascade already anchors it, `tuen wan` asks rather than
 choosing between Tsuen Wan and Tuen Mun, and `shenzhen` is refused rather than
-fuzzily matched to a Hong Kong estate. The module ships in P2 but is not wired
-into the search box yet; P3 does that. `make gazetteer` regenerates
+fuzzily matched to a Hong Kong estate. `make gazetteer` regenerates
 `src/lib/gazetteer.json` from the estate mart plus its MTR-line and school-net
 tables; `make gazetteer-check` fails when the artifact drifts.
+
+### Natural-language search
+
+`src/lib/lexicon.ts` parses one sentence into one query spec
+(`2 bedroom flat in TKO`, `3 room under 6m in Sha Tin`, `cheapest 2 bed in Kwun
+Tong`, `near the island line`, `school net 41`). It is deterministic and runs in
+the browser: no network call, no model and no dependency. Each submit **replaces**
+the current filters — one utterance is one query, so a previous query cannot
+silently narrow the new one — and the result area always discloses what happened:
+
+- `Interpreted as:` lists every slot, with `(default)` marking a vague phrase such
+  as `middle size` (400–700 ft², from the snapshot quartiles).
+- `Ignored:` names concepts that are understood but have no data behind them
+  (sea view, quiet, pet policy, parking, "near MTR" beyond line membership), and
+  is shown even when nothing else in the sentence applied.
+- `Unrecognised:` lists words that were not used, so nothing is dropped quietly.
+- An ambiguous place asks instead of guessing and offers hint buttons; clicking a
+  hint rewrites the URL through the normal filter serializer, so the result stays
+  a single, shareable query. A direction such as `east` is refined in two steps:
+  pick the region, then the subregion inside it.
+- A place outside Hong Kong refuses the whole sentence and leaves the current
+  results untouched. A bare `Tung Chung` is a district, never the railway line.
+
+Two limits worth knowing:
+
+- `school net 41` sets the net **name** ("Kowloon City"), because the filter
+  matches names and several nets share one. It therefore covers every Kowloon
+  City net, not only 41, and the disclosure says so.
+- Bedroom and area filters use the latest transaction. Most estates have no
+  bedroom value in the snapshot, so a bedroom filter deliberately shows a much
+  smaller result set.
+
+The box is behind a build-time flag, **off by default**:
+
+```bash
+VITE_FEATURE_NL_SEARCH=true npm run build
+```
+
+Cloudflare Pages sets the variable per environment. With the flag off the form
+and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
+imported for its module-level index, so the shared bundle grows by about 5.4 kB
+raw / 1.4 kB gzipped over the pre-P3 build. With the flag on the feature adds
+about 13 kB raw / 4.5 kB gzipped over the flag-off build (19 kB / 5.9 kB over
+the pre-P3 baseline). The flag is a build-time rollout switch, not a
+code-splitting boundary.
+
+Estate-name matching is still the `q` box: the sentence parser only sets
+structured filters, which is why it never invents a result from free text.
+Vague sizes (`small`, `middle size`, `大單位`) apply a band derived from the
+snapshot quartiles, marked `(default)`, and offer neighbouring bands as hints so
+the choice can be corrected without retyping; choosing a hint replaces the band
+and drops the `(default)` mark. The size bands and the labelling plan are
+written up in
+[`docs/nl-search-development.md`](../docs/nl-search-development.md).
 
 The map plots estate coordinates from `estate_summary` over OpenStreetMap
 tiles. Nearby estates are grouped into numbered screen-space clusters and split

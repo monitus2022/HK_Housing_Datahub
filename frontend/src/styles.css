@@ -752,6 +752,61 @@ select:focus {
   border-color: var(--accent);
 }
 
+.nl-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.nl-help {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.nl-result {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.nl-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.nl-note-warn {
+  color: var(--danger);
+}
+
+.nl-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.nl-hint {
+  border: 1px solid #b7ded8;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #0b5b54;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+}
+
+.nl-hint span {
+  color: var(--muted);
+}
+
+.nl-hint:hover {
+  border-color: var(--accent);
+}
+
 .catalog-summary {
   display: flex;
   flex-wrap: wrap;

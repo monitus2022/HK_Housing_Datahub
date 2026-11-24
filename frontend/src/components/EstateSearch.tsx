@@ -28,6 +28,14 @@ import {
   type SearchState,
 } from "../lib/searchState";
 import {
+  hintSpec,
+  parseQuery,
+  refineDirection,
+  specToState,
+  type NlHint,
+  type NlParse,
+} from "../lib/lexicon";
+import {
   formatCompactHkd,
   formatDate,
   formatHkd,
@@ -37,6 +45,11 @@ import { wikiUrl } from "../lib/wiki";
 import { isRowActivation } from "../lib/activation";
 
 const PAGE_SIZE = 25;
+
+/** Longest utterance the box accepts; the lexicon is not a chat window. */
+const NL_MAX_LENGTH = 120;
+
+const NL_ENABLED = import.meta.env.VITE_FEATURE_NL_SEARCH === "true";
 
 interface Props {
   estates: EstateSummary[];
@@ -103,6 +116,8 @@ export function EstateSearch({ estates, onSelect }: Props) {
     searchStateFromParams(window.location.search),
   );
   const [page, setPage] = useState(1);
+  const [nlText, setNlText] = useState("");
+  const [nlParse, setNlParse] = useState<NlParse | null>(null);
   const deferredQuery = useDeferredValue(state.query);
   const { filters, sort } = state;
 
@@ -154,6 +169,8 @@ export function EstateSearch({ estates, onSelect }: Props) {
 
   useEffect(() => {
     const handlePop = () => {
+      // Back/forward is a different query, so the previous disclosure is stale.
+      setNlParse(null);
       setState(searchStateFromParams(window.location.search));
     };
     window.addEventListener("popstate", handlePop);
@@ -165,6 +182,9 @@ export function EstateSearch({ estates, onSelect }: Props) {
   }, [deferredQuery, filters, sort]);
 
   const updateFilter = (patch: Partial<EstateFilters>) => {
+    // A manual edit is a new query, so the previous sentence's interpretation
+    // no longer describes what is on screen.
+    setNlParse(null);
     setState((current) => ({
       ...current,
       filters: { ...current.filters, ...patch },
@@ -172,7 +192,51 @@ export function EstateSearch({ estates, onSelect }: Props) {
   };
 
   const clearAll = () => {
+    setNlParse(null);
     setState(DEFAULT_SEARCH_STATE);
+  };
+
+  const submitNl = (raw: string) => {
+    const text = raw.trim();
+    if (!text) return;
+    const parse = parseQuery(text, { regionId: state.filters.regionId });
+    setNlText(text);
+    setNlParse(parse);
+    // Only a parsed spec replaces the query. A refusal or an unresolved
+    // sentence leaves the current result set untouched.
+    if (parse.spec && (parse.kind === "applied" || parse.kind === "ambiguous")) {
+      setState(specToState(parse.spec));
+    }
+  };
+
+  const applyHint = (hint: NlHint) => {
+    const current = nlParse?.spec;
+    if (!nlParse || !current) return;
+    // A direction without a region produced region-level hints. Re-parsing the
+    // same sentence with the chosen region turns "east" into East Kowloon
+    // instead of silently applying all of Kowloon. Subregion hints are already
+    // the answer, so they apply directly.
+    if (hint.kind === "place" && hint.level === "region" && nlParse.direction) {
+      const refined = refineDirection(nlParse, hint.scope.regionId);
+      if (refined.spec) {
+        setNlParse(refined);
+        setState(specToState(refined.spec));
+        return;
+      }
+    }
+    const next = hintSpec(current, hint);
+    // Answering the place question leaves the band hints; choosing a band leaves
+    // the place question open.
+    const stillAsking =
+      nlParse.kind === "ambiguous" &&
+      next.hints.some((item) => item.kind === "place");
+    setState(specToState(next));
+    setNlParse({
+      ...nlParse,
+      kind: stillAsking ? "ambiguous" : "applied",
+      question: stillAsking ? nlParse.question : null,
+      spec: next,
+    });
   };
 
   const chips: { label: string; clear: () => void }[] = [];
@@ -253,18 +317,113 @@ export function EstateSearch({ estates, onSelect }: Props) {
         </p>
       </div>
 
+      {NL_ENABLED ? (
+        <form
+          className="nl-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitNl(nlText);
+          }}
+        >
+          <label className="field field-grow">
+            <span>Describe a search</span>
+            <input
+              type="text"
+              value={nlText}
+              maxLength={NL_MAX_LENGTH}
+              onChange={(event) => setNlText(event.target.value)}
+              placeholder="e.g. 2 bedroom flat in TKO"
+              autoComplete="off"
+              aria-describedby="nl-help"
+            />
+          </label>
+          <button
+            type="submit"
+            className="button"
+            disabled={!nlText.trim()}
+          >
+            Apply
+          </button>
+          <p className="nl-help" id="nl-help">
+            One sentence, one search. It runs in your browser, and anything it
+            cannot use is listed below rather than guessed.
+          </p>
+        </form>
+      ) : null}
+
+      {NL_ENABLED && nlParse ? (
+        <div className="nl-result" role="status">
+          {nlParse.kind === "refused" ? (
+            <p className="nl-note nl-note-warn">
+              “{nlParse.term}” is outside Hong Kong’s housing market, so nothing
+              was applied.
+            </p>
+          ) : null}
+          {nlParse.kind === "unresolved" ? (
+            <p className="nl-note nl-note-warn">
+              No filter could be read from that sentence
+              {nlParse.term ? ` (“${nlParse.term}”)` : ""}, so nothing changed.
+            </p>
+          ) : null}
+          {nlParse.spec && nlParse.spec.hints.length > 0 ? (
+            <div className="nl-note">
+              <p>
+                {nlParse.kind === "ambiguous" && nlParse.question
+                  ? nlParse.question
+                  : "Different size?"}
+              </p>
+              <div className="nl-hints">
+                {nlParse.spec.hints.map((hint) => (
+                  <button
+                    key={`${hint.level}-${hint.label}-${hint.detail}`}
+                    type="button"
+                    className="nl-hint"
+                    onClick={() => applyHint(hint)}
+                  >
+                    {hint.label} <span>{hint.detail}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {nlParse.spec && nlParse.spec.applied.length > 0 ? (
+            <p className="nl-note">
+              Interpreted as:{" "}
+              {nlParse.spec.applied.map((slot, index) => (
+                <span key={`${slot.field}-${index}`}>
+                  {index > 0 ? " · " : ""}
+                  {slot.field}: {slot.value}
+                  {slot.defaulted ? " (default)" : ""}
+                </span>
+              ))}
+            </p>
+          ) : null}
+          {nlParse.spec && nlParse.spec.ignored.length > 0 ? (
+            <p className="nl-note">
+              Ignored: {nlParse.spec.ignored.join("; ")}
+            </p>
+          ) : null}
+          {nlParse.spec && nlParse.spec.unrecognised.length > 0 ? (
+            <p className="nl-note">
+              Unrecognised: {nlParse.spec.unrecognised.join(", ")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="controls">
         <label className="field field-grow">
           <span>Search</span>
           <input
             type="search"
             value={state.query}
-            onChange={(event) =>
+            onChange={(event) => {
+              setNlParse(null);
               setState((current) => ({
                 ...current,
                 query: event.target.value,
-              }))
-            }
+              }));
+            }}
             placeholder="Estate, district, or estate ID"
             autoComplete="off"
           />
@@ -348,12 +507,13 @@ export function EstateSearch({ estates, onSelect }: Props) {
           <span>Sort</span>
           <select
             value={sort}
-            onChange={(event) =>
+            onChange={(event) => {
+              setNlParse(null);
               setState((current) => ({
                 ...current,
                 sort: event.target.value as SortKey,
-              }))
-            }
+              }));
+            }}
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
