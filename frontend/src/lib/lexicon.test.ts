@@ -398,6 +398,9 @@ describe("hint composition", () => {
     expect(refined.kind).toBe("ambiguous");
     expect(refined.spec?.filters.minNetArea).toBe("300");
     expect(refined.spec?.filters.maxNetArea).toBe("500");
+    // The refined sentence still asks its question: exactly the three subregion
+    // hints survive, so an empty hint list is not mistaken for "all place hints".
+    expect(refined.spec?.hints).toHaveLength(3);
     expect(refined.spec?.hints.every((hint) => hint.kind === "place")).toBe(
       true,
     );
