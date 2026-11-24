@@ -227,13 +227,15 @@ before trusting any of them.
 at 4-bit (`~2–5 tok/s` decode) labels the audit slices only: 150 random rows plus
 the ~80-row abstain/refuse slice. At 230 rows that is roughly **1–3 hours** of
 laptop time, no GPU. It doubles as the "is a bigger teacher even necessary?"
-control. It is **not** used for bulk labelling: 5,000 rows on CPU would take
-roughly **17–62 hours**.
+control. The CPU run is audit-only; a CPU bulk pass would take roughly **17–62
+hours**.
 
 **Stage 2 — 7B on the GPU box (RTX 3060 8 GB), if Stage 1 falls short.** Q4_K_M
 is about **4.7 GB of weights plus ~0.5 GB of KV cache** for a GQA 7B at 4k
-context, which fits in 8 GB with headroom; a non-GQA 7B would not. At ~25 tok/s a
-5,000-row bulk pass is about **5 hours**, or 10 with two samples.
+context, which fits in 8 GB with headroom. A non-GQA 7B is much tighter (~2 GB of
+4k KV on top of the weights) and may not fit once runtime and context overhead
+are included; prefer a GQA model or a shorter context. At ~25 tok/s a 5,000-row
+bulk pass is about **5 hours**, or 10 with two samples.
 
 Decision thresholds, applied to the same 150 human-labelled rows:
 
