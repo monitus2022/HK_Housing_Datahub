@@ -153,10 +153,16 @@ describe("disclosure", () => {
   });
 
   it("says MTR filters are line-level only", () => {
-    const spec = applied(parseQuery("2 bed in tko near mtr"));
+    const spec = applied(parseQuery("2 bed in tko near mtr station"));
     expect(spec.ignored).toContain("MTR proximity (line-level data only)");
     expect(spec.filters.mtrLine).toBe("");
     expect(spec.filters.subregionId).toBe("2010");
+  });
+
+  it("says a size needs a direction", () => {
+    const spec = applied(parseQuery("2 bed 500 sq ft in TKO"));
+    expect(spec.filters.minNetArea).toBe("");
+    expect(spec.ignored.join(" ")).toContain("Size 500 ft² without a range");
   });
 });
 

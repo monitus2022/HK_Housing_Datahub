@@ -101,6 +101,7 @@ const GLUE = new Set([
   "or",
   "place",
   "property",
+  "station",
   "the",
   "to",
   "unit",
@@ -118,6 +119,7 @@ const UNSUPPORTED: { pattern: RegExp; label: string }[] = [
   { pattern: /\b(?:new build|newly built|brand new)\b/, label: "Building age (no age filter)" },
   { pattern: /\b(?:car ?park|parking)\b/, label: "Parking (no data)" },
   { pattern: /\b(?:near|close to|next to) ?(?:the )?mtr\b/, label: "MTR proximity (line-level data only)" },
+  { pattern: /(?:^| )mtr(?: station)?(?= |$)/, label: "MTR proximity (line-level data only)" },
   { pattern: /\b(?:good|great|top|best) ?schools?\b/, label: "School quality (net membership only)" },
 ];
 
@@ -488,6 +490,22 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     if (!hit) continue;
     spec.ignored.push(entry.label);
     rest = hit.rest;
+  }
+
+  if (!patch.minNetArea && !patch.maxNetArea) {
+    // A lone size names the dimension but not a direction. Say both forms work
+    // instead of dropping three words into Unrecognised.
+    const bareArea = consume(
+      rest,
+      /(?:^| )(\d{2,5}) ?(?:sq ?ft|sqft|square feet|ft)(?= |$)/,
+    );
+    if (bareArea) {
+      const size = bareArea.match[1];
+      spec.ignored.push(
+        `Size ${size} ft² without a range (say "under ${size} ft²" or "${size}-700 ft²")`,
+      );
+      rest = bareArea.rest;
+    }
   }
 
   // --- MTR lines and school nets -------------------------------------------
