@@ -140,7 +140,8 @@ describe("one utterance, one spec", () => {
     ]);
   });
 
-  it("reads Chinese size words only next to 單位", () => {    const big = applied(parseQuery("大單位"));
+  it("reads Chinese size words only next to 單位", () => {
+    const big = applied(parseQuery("大單位"));
     expect([big.filters.minNetArea, big.filters.maxNetArea]).toEqual([
       "700",
       "",
@@ -391,7 +392,7 @@ describe("hint composition", () => {
     expect(parse.kind).toBe("ambiguous");
     if (!parse.spec) throw new Error("expected a spec");
     const band = parse.spec.hints.find((hint) => hint.kind === "size");
-    if (!band) return;
+    if (!band) throw new Error("expected a band hint");
     const withBand = hintSpec(parse.spec, band);
     const refined = refineDirection({ ...parse, spec: withBand }, "20");
     expect(refined.kind).toBe("ambiguous");
@@ -434,9 +435,12 @@ describe("hint composition", () => {
       true,
     );
     const band = refined.spec?.hints.find((hint) => hint.kind === "size");
-    if (!refined.spec || !band) return;
+    if (!refined.spec || !band) {
+      throw new Error("refineDirection dropped the band hints");
+    }
     const withBand = hintSpec(refined.spec, band);
     expect(withBand.filters.minNetArea).toBe("300");
+    expect(withBand.filters.maxNetArea).toBe("500");
     // The place question is still open, now at subregion level.
     expect(withBand.hints.some((hint) => hint.kind === "place")).toBe(true);
     expect(
