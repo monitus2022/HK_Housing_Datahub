@@ -219,22 +219,36 @@ The teacher is not fine-tuned; it only labels. So the cheap question is "which
 teacher agrees with a human", measured directly, not inferred from student
 scores.
 
+Timing estimates below assume **60–90 output tokens per row** (a JSON spec with a
+few slots) and are rough; prompt prefill is extra. Measure the first real batch
+before trusting any of them.
+
 **Stage 1 — small model on the development Mac, CPU only.** A 3B instruct model
 at 4-bit (`~2–5 tok/s` decode) labels the audit slices only: 150 random rows plus
-the abstain/refuse slice. Ten to twenty minutes of laptop time, no GPU needed,
-and it doubles as the "is a bigger teacher even necessary?" control.
+the ~80-row abstain/refuse slice. At 230 rows that is roughly **1–3 hours** of
+laptop time, no GPU. It doubles as the "is a bigger teacher even necessary?"
+control. The CPU run is audit-only; a CPU bulk pass would take roughly **17–62
+hours**.
 
 **Stage 2 — 7B on the GPU box (RTX 3060 8 GB), if Stage 1 falls short.** Q4_K_M
-fits in ~4.7 GB with a 4k context and does ~25 tok/s, so a 5,000-row bulk pass is
-about five hours, or ten with two samples.
+is about **4.7 GB of weights plus ~0.5 GB of KV cache** for a GQA 7B at 4k
+context, which fits in 8 GB with headroom. A non-GQA 7B is much tighter (~2 GB of
+4k KV on top of the weights) and may not fit once runtime and context overhead
+are included; prefer a GQA model or a shorter context. At ~25 tok/s a 5,000-row
+bulk pass is about **5 hours**, or 10 with two samples.
 
 Decision thresholds, applied to the same 150 human-labelled rows:
 
 | Stage 1 agreement | Outcome |
 |---|---|
-| ≥ 95% | labels are good enough; keep the CPU teacher for the audit, but run the 5,000-row bulk pass on the GPU if one is available (CPU bulk is 17–40 h) |
-| 90–94% | escalate to the 7B teacher; re-audit |
+| ≥ 95% | labels are good enough. The **same 3B model, run on the GPU box**, does the 5,000-row bulk pass; the Stage 1 CPU run is audit-only |
+| 90–94% | escalate to the 7B teacher; re-audit before any bulk run |
 | < 90% | neither teacher is trustworthy: fix the prompt/exemplars, or use a cloud model for the one-off labelling run |
+
+The thresholds apply to the 150 random rows only. The **abstain/refuse slice
+keeps its own ≥ 90% gate**, and a teacher that scores ≥ 95% on the 150 rows but
+fails that slice is not eligible: a model that cannot refuse `sea view` will
+teach the student to invent a filter for it.
 
 Rules that make the comparison meaningful:
 
@@ -248,9 +262,11 @@ Rules that make the comparison meaningful:
 
 ### Human checkpoints
 
-1. **Before bulk labelling:** approve the dataset spec and a 50-row sample
-   (scope, phrasing style, label shape). Cheap, catches a wrong schema early.
-2. **After bulk labelling:** review the 150-row audit and the full disagreement
+1. **Before Stage 1:** approve the dataset spec, a 50-row sample, and
+   **human-label the 150 random rows and the ~80 abstain/refuse rows blind**.
+   The teacher comparison has nothing to compare against otherwise, and doing it
+   after seeing teacher output would bias the audit.
+2. **After bulk labelling:** review the bulk labels and the full disagreement
    slice. Sign-off recorded on the issue; training does not start without it.
 3. **Before shipping:** review the P5 metrics against the kill criterion, and the
    model card. The toggle ships only after that approval.
