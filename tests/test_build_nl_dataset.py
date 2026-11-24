@@ -1,7 +1,8 @@
 """Offline tests for the natural-language dataset generator.
 
-The generator reads only the checked-in ``geo.json`` and ``gazetteer.json``, so
-these tests need no database and no network.
+The generator also reads the mart for line/net co-occurrence, so these tests
+supply either ``db_path=None`` (correlation off) or a temporary fixture database.
+No test touches the real DB or the network.
 """
 
 from __future__ import annotations

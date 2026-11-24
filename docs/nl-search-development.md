@@ -208,7 +208,8 @@ network.
 - **Planted values are diagnostics, not labels.** Each row records `planted` and
   a coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`). The teacher's
   label is produced independently; `planted` is used for coverage gates and
-  per-slot recall checks.
+  per-slot recall checks. An absent bound is the empty string, not null, so
+  `maxPrice: ""` means "no upper bound".
 
 The mart is the only non-artifact input, and it lives under gitignored `data/`.
 A checkout without it **refuses to run** rather than silently pairing lines and
