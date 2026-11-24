@@ -41,14 +41,22 @@ export interface NlSlot {
   defaulted?: boolean;
 }
 
-export interface NlHint {
-  label: string;
-  detail: string;
-  /** "size" hints replace the area band; place hints replace the location. */
-  level: "region" | "subregion" | "district" | "size";
-  filters: EstateFilters;
-  sort: SortKey;
-}
+export type NlHint =
+  | {
+      kind: "place";
+      label: string;
+      detail: string;
+      level: "region" | "subregion" | "district";
+      /** Full location scope, so a subregion hint clears a stale district. */
+      scope: { regionId: string; subregionId: string; districtId: string };
+    }
+  | {
+      kind: "size";
+      label: string;
+      detail: string;
+      level: "size";
+      band: { minNetArea: string; maxNetArea: string };
+    };
 
 export interface NlSpec {
   filters: EstateFilters;
@@ -277,17 +285,17 @@ function roomValue(count: number): string {
   return count >= 4 ? "4+" : String(count);
 }
 
-function hintFor(
-  candidate: PlaceCandidate,
-  filters: EstateFilters,
-  sort: SortKey,
-): NlHint {
+function hintFor(candidate: PlaceCandidate): NlHint {
   return {
+    kind: "place",
     label: candidate.label,
     detail: `${candidate.level} · ${candidate.estates} estates`,
     level: candidate.level,
-    filters,
-    sort,
+    scope: {
+      regionId: candidate.scope.regionId ?? "",
+      subregionId: candidate.scope.subregionId ?? "",
+      districtId: candidate.scope.districtId ?? "",
+    },
   };
 }
 
@@ -444,10 +452,13 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     // Vague size words get a marked default rather than being dropped: the
     // quartiles of the snapshot are 382 / 533 / 734 ft², so these bands cover
     // the middle, the small and the large half of the market.
-    const middle = consume(
-      rest,
-      /(?:^| )(?:middle|mid|medium) ?(?:size|sized)?(?= |$)/,
-    );
+    // "mid" must not eat a place: "mid levels central" is a district, so the
+    // abbreviation only counts as a size word next to "size"/"sized".
+    const middle =
+      consume(
+        rest,
+        /(?:^| )(?:middle|medium) ?(?:size|sized)?(?= |$)/,
+      ) ?? consume(rest, /(?:^| )mid ?(?:size|sized)(?= |$)/);
     const small = middle
       ? null
       : consume(
@@ -660,7 +671,6 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
 
-  const otherFilters: EstateFilters = { ...EMPTY_ESTATE_FILTERS, ...patch };
   const ambiguous = location?.kind === "ambiguous" ? location : null;
   let question: string | null = null;
 
@@ -692,18 +702,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
     spec.hints = ambiguous.candidates
       .slice(0, HINT_LIMIT)
-      .map((candidate) =>
-        hintFor(
-          candidate,
-          {
-            ...otherFilters,
-            regionId: candidate.scope.regionId ?? "",
-            subregionId: candidate.scope.subregionId ?? "",
-            districtId: candidate.scope.districtId ?? "",
-          },
-          spec.sort,
-        ),
-      );
+      .map((candidate) => hintFor(candidate));
   }
 
   spec.filters = { ...EMPTY_ESTATE_FILTERS, ...patch };
@@ -713,15 +712,14 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   // the user can also correct the size without retyping the sentence.
   for (const alternative of sizeAlternatives) {
     spec.hints.push({
+      kind: "size",
       label: areaLabel(alternative.min, alternative.max),
       detail: "area band",
       level: "size",
-      filters: {
-        ...spec.filters,
+      band: {
         minNetArea: alternative.min,
         maxNetArea: alternative.max,
       },
-      sort: spec.sort,
     });
   }
 
@@ -784,6 +782,70 @@ export function withRegion(parse: NlParse, regionId: string): NlParse {
 /** Whole-phrase membership that respects word boundaries. */
 function hasPhrase(rest: string, phrase: string): boolean {
   return ` ${rest} `.includes(` ${phrase} `);
+}
+
+/**
+ * Apply a hint to the spec that is currently on screen.
+ *
+ * Hints carry only the slot they replace, so a chosen band and a chosen place
+ * compose in either order instead of one overwriting the other with whatever the
+ * parse saw at the time.
+ */
+export function hintSpec(spec: NlSpec, hint: NlHint): NlSpec {
+  if (hint.kind === "size") {
+    return {
+      ...spec,
+      filters: {
+        ...spec.filters,
+        minNetArea: hint.band.minNetArea,
+        maxNetArea: hint.band.maxNetArea,
+      },
+      applied: [
+        ...spec.applied.filter((slot) => slot.field !== "Area"),
+        { field: "Area", value: hint.label },
+      ],
+      hints: spec.hints.filter((item) => item.kind !== "size"),
+    };
+  }
+  return {
+    ...spec,
+    filters: { ...spec.filters, ...hint.scope },
+    applied: [
+      ...spec.applied.filter((slot) => slot.field !== "Location"),
+      { field: "Location", value: hint.label },
+    ],
+    hints: spec.hints.filter((item) => item.kind !== "place"),
+  };
+}
+
+/**
+ * Re-parse an unanchored direction with the region the user picked.
+ *
+ * A band the user chose (rather than a default) survives the re-parse: the
+ * refined sentence would otherwise fall back to the vague-size default.
+ */
+export function refineDirection(parse: NlParse, regionId: string): NlParse {
+  const refined = parseQuery(parse.input, { regionId });
+  const chosen = parse.spec?.applied.find(
+    (slot) => slot.field === "Area" && !slot.defaulted,
+  );
+  if (!refined.spec || !chosen) return refined;
+  return {
+    ...refined,
+    spec: {
+      ...refined.spec,
+      filters: {
+        ...refined.spec.filters,
+        minNetArea: parse.spec?.filters.minNetArea ?? "",
+        maxNetArea: parse.spec?.filters.maxNetArea ?? "",
+      },
+      applied: [
+        ...refined.spec.applied.filter((slot) => slot.field !== "Area"),
+        { field: "Area", value: chosen.value },
+      ],
+      hints: refined.spec.hints.filter((item) => item.kind !== "size"),
+    },
+  };
 }
 
 /**

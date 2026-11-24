@@ -63,7 +63,7 @@ and the exact range can be edited in the Filters panel:
 | Phrase | Band | Slot values |
 |---|---|---|
 | `small`, `compact`, `tiny`, `small size` | small | `maxNetArea = 400` |
-| `middle`, `mid`, `medium` (+ `size`, `sized`), `中型單位` | middle | `minNetArea = 400`, `maxNetArea = 700` |
+| `middle`, `medium` (+ `size`, `sized`), `mid size`/`sized`, `中型單位` | middle | `minNetArea = 400`, `maxNetArea = 700` |
 | `large`, `big`, `spacious`, `large size`, `大單位` | large | `minNetArea = 700` |
 
 `細單位` maps to small. Chinese size words only match next to `單位`, so a bare
@@ -82,8 +82,12 @@ the sentence:
 | large | 700–900, 900–1200 |
 
 Clicking one replaces just the area filter and rewrites the URL; the
-`Interpreted as` line then shows the chosen band without `(default)`. If the
-sentence also had an ambiguous place, that question stays open.
+`Interpreted as` line then shows the chosen band without `(default)`. A chosen
+band survives answering a pending place question, and a band choice leaves the
+place question open.
+
+`mid` is only a size word next to `size`/`sized`: a bare `mid` would otherwise
+eat the district `Mid-Levels Central`, applying an area filter instead.
 
 ### Why 400 and 700
 
@@ -227,8 +231,9 @@ inputs. The holdout is human-labelled and never used for training.
 
 ## 7. Known gaps and follow-ups
 
-- `huge`, `super large` and `豪宅` are unresolved rather than mapped to a band:
-  there is no shipped default for them (see the intensity-scale proposal in §3).
+- `huge` and `豪宅` are unresolved rather than mapped to a band; `super large`
+  applies the large band and reports `super` as unrecognised (see the
+  intensity-scale proposal in §3).
 - `school net N` sets the net **name**, because the filter is name-based and
   several nets share one; it therefore covers every net with that name and the UI
   says so.

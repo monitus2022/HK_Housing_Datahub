@@ -28,9 +28,10 @@ import {
   type SearchState,
 } from "../lib/searchState";
 import {
+  hintSpec,
   parseQuery,
+  refineDirection,
   specToState,
-  withRegion,
   type NlHint,
   type NlParse,
 } from "../lib/lexicon";
@@ -209,58 +210,32 @@ export function EstateSearch({ estates, onSelect }: Props) {
   };
 
   const applyHint = (hint: NlHint) => {
-    // A size hint only moves the band. It keeps a pending place question and the
-    // rest of the sentence intact.
-    if (hint.level === "size") {
-      setState({ query: "", sort: hint.sort, filters: hint.filters });
-      setNlParse((current) => {
-        if (!current?.spec) return current;
-        return {
-          ...current,
-          spec: {
-            ...current.spec,
-            filters: hint.filters,
-            sort: hint.sort,
-            hints: current.spec.hints.filter((item) => item.level !== "size"),
-            applied: [
-              ...current.spec.applied.filter((slot) => slot.field !== "Area"),
-              { field: "Area", value: hint.label },
-            ],
-          },
-        };
-      });
-      return;
-    }
+    const current = nlParse?.spec;
+    if (!nlParse || !current) return;
     // A direction without a region produced region-level hints. Re-parsing the
     // same sentence with the chosen region turns "east" into East Kowloon
     // instead of silently applying all of Kowloon. Subregion hints are already
     // the answer, so they apply directly.
-    if (nlParse?.direction && hint.level === "region") {
-      const refined = withRegion(nlParse, hint.filters.regionId);
+    if (hint.kind === "place" && hint.level === "region" && nlParse.direction) {
+      const refined = refineDirection(nlParse, hint.scope.regionId);
       if (refined.spec) {
         setNlParse(refined);
         setState(specToState(refined.spec));
         return;
       }
     }
-    setState({ query: "", sort: hint.sort, filters: hint.filters });
-    setNlParse((current) => {
-      if (!current?.spec) return current;
-      return {
-        ...current,
-        kind: "applied",
-        question: null,
-        spec: {
-          ...current.spec,
-          filters: hint.filters,
-          sort: hint.sort,
-          hints: [],
-          applied: [
-            ...current.spec.applied.filter((slot) => slot.field !== "Location"),
-            { field: "Location", value: hint.label },
-          ],
-        },
-      };
+    const next = hintSpec(current, hint);
+    // Answering the place question leaves the band hints; choosing a band leaves
+    // the place question open.
+    const stillAsking =
+      nlParse.kind === "ambiguous" &&
+      next.hints.some((item) => item.kind === "place");
+    setState(specToState(next));
+    setNlParse({
+      ...nlParse,
+      kind: stillAsking ? "ambiguous" : "applied",
+      question: stillAsking ? nlParse.question : null,
+      spec: next,
     });
   };
 

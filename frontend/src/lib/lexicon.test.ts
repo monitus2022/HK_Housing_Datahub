@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseQuery, specToState, withRegion, type NlParse } from "./lexicon";
+import {
+  hintSpec,
+  parseQuery,
+  refineDirection,
+  specToState,
+  type NlParse,
+} from "./lexicon";
 import { searchStateToSearch } from "./searchState";
 
 function applied(parse: NlParse) {
@@ -65,10 +71,20 @@ describe("one utterance, one spec", () => {
       "700–900 ft²",
     ]);
     expect(middle.hints.every((hint) => hint.level === "size")).toBe(true);
-    // A band hint keeps the rest of the sentence.
-    expect(middle.hints.every((hint) => hint.filters.bedrooms === "2")).toBe(
-      true,
-    );
+
+    // Choosing a band keeps the rest of the sentence.
+    const picked = middle.hints[0];
+    const next = hintSpec(middle, picked);
+    expect(next.filters.bedrooms).toBe("2");
+    expect(next.filters.minNetArea).toBe("300");
+    expect(next.filters.maxNetArea).toBe("500");
+    expect(next.applied).toContainEqual({
+      field: "Area",
+      value: "300–500 ft²",
+    });
+    // The chosen band is not a default, and the band hints are spent.
+    expect(next.applied.every((slot) => !slot.defaulted)).toBe(true);
+    expect(next.hints).toEqual([]);
 
     const small = applied(parseQuery("small flat"));
     expect(small.hints.map((hint) => hint.label)).toEqual([
@@ -80,6 +96,20 @@ describe("one utterance, one spec", () => {
     expect(large.hints.map((hint) => hint.label)).toEqual([
       "700–900 ft²",
       "900–1200 ft²",
+    ]);
+  });
+
+  it("does not read a place as a size word", () => {
+    // "mid levels central" is a district; only "mid size" is a band.
+    const place = applied(parseQuery("flat in mid levels central"));
+    expect(place.filters.minNetArea).toBe("");
+    expect(place.filters.maxNetArea).toBe("");
+    expect(place.filters.districtId).toBe("100101");
+
+    const band = applied(parseQuery("mid size"));
+    expect([band.filters.minNetArea, band.filters.maxNetArea]).toEqual([
+      "400",
+      "700",
     ]);
   });
 
@@ -178,7 +208,11 @@ describe("no silent guessing", () => {
     expect(spec?.filters.districtId).toBe("");
     expect(
       spec?.hints
-        .map((hint) => hint.filters.districtId || hint.filters.subregionId)
+        .map((hint) =>
+          hint.kind === "place"
+            ? hint.scope.districtId || hint.scope.subregionId
+            : "",
+        )
         .sort(),
     ).toEqual(["2007", "200903"]);
   });
@@ -195,7 +229,9 @@ describe("no silent guessing", () => {
     const parse = parseQuery("east");
     expect(parse.kind).toBe("ambiguous");
     expect(parse.question).toBe("East of which region?");
-    expect(parse.spec?.hints.map((hint) => hint.filters.regionId).sort()).toEqual([
+    expect(parse.spec?.hints.map((hint) =>
+        hint.kind === "place" ? hint.scope.regionId : "",
+      ).sort()).toEqual([
       "10",
       "20",
       "30",
@@ -218,7 +254,9 @@ describe("no silent guessing", () => {
       "subregion",
     ]);
     expect(
-      anchored.spec?.hints.map((hint) => hint.filters.subregionId).sort(),
+      anchored.spec?.hints.map((hint) =>
+        hint.kind === "place" ? hint.scope.subregionId : "",
+      ).sort(),
     ).toEqual(["2007", "2010", "2011"]);
   });
 
@@ -228,11 +266,13 @@ describe("no silent guessing", () => {
     const first = parseQuery("2 bed in east");
     expect(first.kind).toBe("ambiguous");
     expect(first.question).toBe("East of which region?");
-    const refined = withRegion(first, "20");
+    const refined = refineDirection(first, "20");
     expect(refined.kind).toBe("ambiguous");
     expect(refined.spec?.filters.bedrooms).toBe("2");
     expect(
-      refined.spec?.hints.map((hint) => hint.filters.subregionId).sort(),
+      refined.spec?.hints.map((hint) =>
+        hint.kind === "place" ? hint.scope.subregionId : "",
+      ).sort(),
     ).toEqual(["2007", "2010", "2011"]);
   });
 
@@ -294,6 +334,49 @@ describe("disclosure", () => {
   });
 });
 
+describe("hint composition", () => {
+  it("keeps a chosen band when the place is answered afterwards", () => {
+    const parse = parseQuery("middle size in KT");
+    expect(parse.kind).toBe("ambiguous");
+    if (!parse.spec) throw new Error("expected a spec");
+
+    const band = parse.spec.hints.find((hint) => hint.kind === "size");
+    expect(band).toBeDefined();
+    if (!band) return;
+    const withBand = hintSpec(parse.spec, band);
+    expect(withBand.filters.minNetArea).toBe("300");
+    // Choosing a band does not answer the place question.
+    expect(withBand.hints.some((hint) => hint.kind === "place")).toBe(true);
+
+    const place = withBand.hints.find((hint) => hint.kind === "place");
+    expect(place).toBeDefined();
+    if (!place) return;
+    const answered = hintSpec(withBand, place);
+    expect(answered.filters.minNetArea).toBe("300");
+    expect(answered.filters.maxNetArea).toBe("500");
+    expect(
+      answered.filters.subregionId || answered.filters.districtId,
+    ).not.toBe("");
+    expect(answered.hints).toEqual([]);
+  });
+
+  it("keeps a chosen band through direction refinement", () => {
+    const parse = parseQuery("middle size in east");
+    expect(parse.kind).toBe("ambiguous");
+    if (!parse.spec) throw new Error("expected a spec");
+    const band = parse.spec.hints.find((hint) => hint.kind === "size");
+    if (!band) return;
+    const withBand = hintSpec(parse.spec, band);
+    const refined = refineDirection({ ...parse, spec: withBand }, "20");
+    expect(refined.kind).toBe("ambiguous");
+    expect(refined.spec?.filters.minNetArea).toBe("300");
+    expect(refined.spec?.filters.maxNetArea).toBe("500");
+    expect(refined.spec?.hints.every((hint) => hint.kind === "place")).toBe(
+      true,
+    );
+  });
+});
+
 describe("apply", () => {
   it("replaces the previous query rather than narrowing it", () => {
     const spec = applied(parseQuery("TKO"));
@@ -307,16 +390,13 @@ describe("apply", () => {
   it("turns a hint into a shareable URL", () => {
     const parse = parseQuery("KT");
     const districtHint = parse.spec?.hints.find(
-      (hint) => hint.filters.districtId === "200903",
+      (hint) =>
+        hint.kind === "place" && hint.scope.districtId === "200903",
     );
     expect(districtHint).toBeDefined();
     if (!parse.spec || !districtHint) return;
     const url = searchStateToSearch(
-      specToState({
-        ...parse.spec,
-        filters: districtHint.filters,
-        hints: [],
-      }),
+      specToState(hintSpec(parse.spec, districtHint)),
     );
     expect(url).toContain("district=200903");
     expect(url).toContain("subregion=2009");

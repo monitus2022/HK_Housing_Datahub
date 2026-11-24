@@ -163,9 +163,10 @@ code-splitting boundary.
 Estate-name matching is still the `q` box: the sentence parser only sets
 structured filters, which is why it never invents a result from free text.
 Vague sizes (`small`, `middle size`, `大單位`) apply a band derived from the
-snapshot quartiles, always marked `(default)`, and offer neighbouring bands as
-hints so the choice can be corrected without retyping. The size bands and the
-labelling plan are written up in
+snapshot quartiles, marked `(default)`, and offer neighbouring bands as hints so
+the choice can be corrected without retyping; choosing a hint replaces the band
+and drops the `(default)` mark. The size bands and the labelling plan are
+written up in
 [`docs/nl-search-development.md`](../docs/nl-search-development.md).
 
 The map plots estate coordinates from `estate_summary` over OpenStreetMap
