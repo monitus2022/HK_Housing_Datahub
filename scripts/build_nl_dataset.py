@@ -86,7 +86,7 @@ FAMILIES: list[dict[str, Any]] = [
     },
     {
         "name": "place_bed_price",
-        "weight": 0.11,
+        "weight": 0.09,
         "slots": ["place", "bedrooms", "price"],
         "templates": [
             "{bedrooms} {price} in {place}",
@@ -115,7 +115,7 @@ FAMILIES: list[dict[str, Any]] = [
     },
     {
         "name": "place_net",
-        "weight": 0.07,
+        "weight": 0.09,
         "slots": ["place", "net"],
         "templates": [
             "{net} in {place}",
@@ -456,7 +456,10 @@ def least_used(
     """
     candidates = [entry for entry in pool if predicate is None or predicate(entry)]
     if not candidates:
-        candidates = pool
+        raise RuntimeError(
+            "no pool entry satisfies the constraint; refusing to widen the pool "
+            "and break the co-occurrence mapping silently"
+        )
     lowest = min(usage[entry["key"]] for entry in candidates)
     tied = [entry for entry in candidates if usage[entry["key"]] == lowest]
     chosen = rng.choice(tied)["key"]
@@ -621,12 +624,31 @@ def report(rows: list[dict[str, Any]], pools: dict[str, list[dict[str, Any]]]) -
         )
         if level:
             coverage["place"][level] += 1
+    place_counts: Counter[str] = Counter()
+    for row in rows:
+        planted = row["planted"]
+        key = (
+            planted.get("districtId")
+            or planted.get("subregionId")
+            or planted.get("regionId")
+        )
+        if key:
+            place_counts[str(key)] += 1
+
     return {
         "rows": len(rows),
         "unique_texts": len({normalise(row["text"]) for row in rows}),
         "families": dict(sorted(families.items())),
         "expect": dict(sorted(expects.items())),
         "coverage": {slot: dict(sorted(values.items())) for slot, values in coverage.items()},
+        "place_values": {
+            "values": len(place_counts),
+            "min": min(place_counts.values()) if place_counts else 0,
+            "max": max(place_counts.values()) if place_counts else 0,
+            "below_25": sorted(
+                key for key, count in place_counts.items() if count < 25
+            ),
+        },
         "pool_sizes": {slot: len(pool) for slot, pool in pools.items()},
     }
 

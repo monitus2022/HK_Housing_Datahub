@@ -187,7 +187,7 @@ whether the labels are trustworthy. The plan separates the two:
 
 ### Candidate generation
 
-`scripts/build_nl_dataset.py` produces the inputs: 14 weighted families (place,
+`scripts/build_nl_dataset.py` produces the inputs: 15 weighted families (place,
 place+bed, place+bed+price, line, net, sort, direction, abbreviation,
 out-of-scope, unsupported…), each with 3–4 whole-sentence templates and value
 pools drawn from `geo.json` and `gazetteer.json`. It reads no model and no
