@@ -225,12 +225,12 @@ scope, with every one of the 77 scopes present. Roughly half the rows contain
 Chinese, because Chinese place names and size words are in the lexicon.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
-0.83 of the sampling weight, and dedupe spreads that to **94.5% of emitted rows**
-carrying a location (5,667 of 6,000; 88.5% at 1,000 rows). The weight is not the
-row share — families with more distinct texts survive dedupe better — so quote
-the measured figure, not 0.83. This is the realistic shape of a property query
-but **not** the shape the training set needs. The "no slot in more than 55% of rows" gate below applies to
-the sampled training set, so it must be applied with down-sampling, not inherited
+0.83 of the sampling weight, but **94.5% of emitted rows** carry a location
+(5,667 of 6,000; 88.5% at 1,000 rows). The gap is dedupe and the abbreviation
+family, which also plants a place: families with more distinct texts survive
+dedupe better. Quote the measured figure, not 0.83. This is realistic for a
+property query but **not** the shape the training set needs, so the "no slot in
+more than 55% of rows" gate below must be met by down-sampling, not inherited
 from this generator.
 
 ### Volume gates (all must hold before training)
