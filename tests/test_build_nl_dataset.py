@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import random
 import sqlite3
 from pathlib import Path
 
@@ -221,6 +222,42 @@ def test_uncorrelated_run_is_marked_in_the_report(tmp_path: Path, capsys) -> Non
     places = report["place_values"]
     assert places["expected"] == 77
     assert places["values"] + len(places["missing"]) == places["expected"]
+
+
+def test_place_allowed_refuses_an_empty_allowance() -> None:
+    """An empty allowance is a drift bug, not permission to pair anything."""
+    generator = load_generator()
+    entry = {"planted": {"subregionId": "1001"}}
+    with pytest.raises(RuntimeError):
+        generator.place_allowed(entry, set(), {"1001": "10"})
+
+
+def test_least_used_refuses_an_unsatisfiable_predicate() -> None:
+    generator = load_generator()
+    pool = [{"forms": ["x"], "planted": {}, "expect": "applied", "key": "k"}]
+    usage = {"k": 0}
+    with pytest.raises(RuntimeError):
+        generator.least_used(pool, usage, random.Random(1), lambda entry: False)
+
+
+def test_report_lists_values_the_mart_cannot_place(tmp_path: Path, capsys) -> None:
+    generator = load_generator()
+    db = write_fixture_db(tmp_path / "fixture.db")
+    out = tmp_path / "c.jsonl"
+    assert (
+        generator.main(["--count", "80", "--db", str(db), "--out", str(out), "--report"])
+        == 0
+    )
+    captured = capsys.readouterr().out
+    report = json.loads(captured[captured.index("{") :])
+    excluded = report["excluded_unmapped"]
+    # The fixture maps two lines and three nets; the rest must be named, not paired.
+    assert "South Island Line" in excluded["mtrLine"]
+    assert len(excluded["mtrLine"]) == 6
+    assert "Yuen Long" in excluded["schoolNet"]
+    # pool_sizes must reflect the filtered pools, not the unfiltered rebuild.
+    assert report["pool_sizes"]["mtr"] == 2
+    assert report["pool_sizes"]["net"] == 3
 
 
 def test_cli_writes_candidates_and_sample(tmp_path: Path) -> None:

@@ -190,8 +190,9 @@ whether the labels are trustworthy. The plan separates the two:
 `scripts/build_nl_dataset.py` produces the inputs: 15 weighted families (place,
 place+bed, place+bed+price, line, net, sort, direction, abbreviation,
 out-of-scope, unsupported…), each with 3–5 whole-sentence templates and value
-pools drawn from `geo.json` and `gazetteer.json`. It uses no model and no
-network.
+pools drawn from `geo.json` and `gazetteer.json`, plus hardened pools for
+bedrooms, sizes, prices, sorts, directions and unsupported terms defined in the
+script itself. It uses no model and no network.
 
 - **Least-used sampling per planted value.** "2 bed", "two bedrooms" and `兩房`
   are one coverage cell, so a value with more spellings does not get more rows.
@@ -202,7 +203,9 @@ network.
   "in Discovery Bay"). A line or net name the mart cannot place is dropped from
   the pool and listed in `--report`, never silently paired with anything. (The
   mart itself has odd pairings — net "Tai Po" appears in one Yuen Long estate —
-  and those are kept, because the dataset mirrors the data.)
+  and those are kept, because the dataset mirrors the data. The same applies to
+  lines: the mart really does place the Tsuen Wan Line in Yuen Long and the East
+  Rail Line in Causeway Bay, so those rows are generated.)
 - **Consistency.** A district always carries its subregion and region; area and
   price ranges are ordered; one location per row.
 - **Planted values are diagnostics, not labels.** Each row records `planted` and
@@ -221,9 +224,12 @@ line, 31–47 per school-net name, 100–104 per sort key, and 57–85 per place
 scope, with every one of the 77 scopes present. Roughly half the rows contain
 Chinese, because Chinese place names and size words are in the lexicon.
 
-The candidate mix is deliberately place-heavy (~83% of rows carry a location),
-which is the realistic shape of a property query but **not** the shape the
-training set needs. The "no slot in more than 55% of rows" gate below applies to
+The candidate mix is deliberately place-heavy: the place-carrying families carry
+0.83 of the sampling weight, and dedupe spreads that to **94.5% of emitted rows**
+carrying a location (5,667 of 6,000; 88.5% at 1,000 rows). The weight is not the
+row share — families with more distinct texts survive dedupe better — so quote
+the measured figure, not 0.83. This is the realistic shape of a property query
+but **not** the shape the training set needs. The "no slot in more than 55% of rows" gate below applies to
 the sampled training set, so it must be applied with down-sampling, not inherited
 from this generator.
 
@@ -349,5 +355,7 @@ seeing the numbers is too late.
 | `frontend/src/lib/geo.ts` / `.json` | region → subregion → district model |
 | `frontend/src/components/EstateSearch.tsx` | the input, disclosure rows and hints |
 | `scripts/build_gazetteer.py`, `scripts/build_geo.py` | regenerate the artifacts |
+| `scripts/build_nl_dataset.py` | generate the NL candidate rows |
 | `make gazetteer-check`, `make geo-check` | fail on artifact drift |
+| `make nl-dataset` | 6,000 candidates + coverage report + 50-row sample |
 | `frontend/README.md` | user-facing behaviour and the feature flag |

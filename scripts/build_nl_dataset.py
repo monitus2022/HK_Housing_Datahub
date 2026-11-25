@@ -465,7 +465,11 @@ def least_used(
     rng: random.Random,
     predicate: Any = None,
 ) -> dict[str, Any]:
-    """Pick the least-used value, then a random phrasing of it.
+    """Pick the approximately least-used value, then a random phrasing of it.
+
+    Counters are incremented on selection, so attempts that are later discarded
+    as duplicates still consume a value's budget; the spread is therefore
+    approximate rather than exactly even.
 
     Balancing per planted value (not per phrase) is what keeps "3 bed" from
     getting three times the rows of "1 bed" just because it has more spellings.
@@ -546,13 +550,25 @@ def load_cooccurrence(db_path: Path) -> dict[str, dict[str, set[str]]]:
             "Pass --no-correlation to generate without the constraint; such output is\n"
             "marked as uncorrelated and is not suitable for labelling."
         )
-    connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
+        connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    except sqlite3.DatabaseError as error:
+        raise SystemExit(f"cannot open {db_path}: {error}") from error
+    try:
+        try:
+            records = list(
+                connection.execute(
+                    "SELECT mtr_lines, school_nets, subregion_id FROM mart_estate_summary"
+                )
+            )
+        except sqlite3.DatabaseError as error:
+            raise SystemExit(
+                f"{db_path} is not a usable mart ({error}); pass --no-correlation "
+                "to generate without line/net correlation"
+            ) from error
         lines: dict[str, set[str]] = defaultdict(set)
         nets: dict[str, set[str]] = defaultdict(set)
-        for line_names, net_names, subregion_id in connection.execute(
-            "SELECT mtr_lines, school_nets, subregion_id FROM mart_estate_summary"
-        ):
+        for line_names, net_names, subregion_id in records:
             for name in (line_names or "").split(","):
                 name = name.strip()
                 if name:
@@ -723,6 +739,11 @@ def report(
         "families": dict(sorted(families.items())),
         "expect": dict(sorted(expects.items())),
         "coverage": {slot: dict(sorted(values.items())) for slot, values in coverage.items()},
+        "below_gate": {
+            slot: sorted(name for name, count in values.items() if count < 25)
+            for slot, values in coverage.items()
+            if slot != "place"
+        },
         "place_values": {
             "expected": len(expected_places),
             "values": len(place_counts),
@@ -735,28 +756,6 @@ def report(
         },
         "pool_sizes": {slot: len(pool) for slot, pool in pools.items()},
     }
-
-
-def dropped_names(
-    geo: dict[str, Any], gazetteer: dict[str, Any], db_path: Path
-) -> dict[str, list[str]]:
-    """Line and net values the mart cannot place, for the report."""
-    cooccurrence = load_cooccurrence(db_path)
-    expected = build_pools(geo, gazetteer)
-    excluded: dict[str, list[str]] = {}
-    for slot, key, source in (
-        ("mtr", "mtrLine", "mtrLine"),
-        ("net", "schoolNet", "schoolNet"),
-    ):
-        known = cooccurrence.get(source, {})
-        excluded[key] = sorted(
-            {
-                str(entry["planted"][key])
-                for entry in expected[slot]
-                if str(entry["planted"][key]) not in known
-            }
-        )
-    return excluded
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -783,7 +782,9 @@ def main(argv: list[str] | None = None) -> int:
     pools = build_pools(geo, gazetteer)
     excluded: dict[str, list[str]] = {}
     if db_path is not None:
-        excluded = dropped_names(geo, gazetteer, db_path)
+        # Report the pools the run actually used: filter_correlated has already
+        # dropped names the mart cannot place, and pool_sizes must not overstate.
+        pools, excluded = filter_correlated(pools, load_cooccurrence(db_path))
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
