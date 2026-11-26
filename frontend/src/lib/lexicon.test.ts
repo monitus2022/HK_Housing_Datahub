@@ -586,7 +586,8 @@ describe("estate names", () => {
   it("warms the index without changing behaviour", () => {
     const estates = [...ESTATES];
     expect(() => warmEstateIndex(estates)).not.toThrow();
-    // Warming populates the same cache the parser reads.
+    // A smoke test only: parseQuery would build the index itself, so this cannot
+    // prove the cache was used, just that warming leaves behaviour intact.
     expect(applied(parseQuery("Taikoo Shing", { estates })).estate?.name).toBe(
       "Taikoo Shing",
     );

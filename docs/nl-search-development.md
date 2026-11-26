@@ -53,8 +53,8 @@ district name `Mei Foo`, and place-first would apply the district and leave the
 rest unrecognised. One consequence: an estate whose name contains an unsupported
 concept (`Sea View`-style names) is consumed by the unsupported step first.
 
-The index costs ~59 ms for 9,750 estates, so the app builds it while the browser
-is idle rather than on submit. The applied text is a **substring** match, so it
+The index costs ~59 ms for 9,750 estates, so the flag-on build warms it while the
+browser is idle rather than on submit; with the flag off nothing is indexed. The applied text is a **substring** match, so it
 can return more rows than the disclosed estate count — a name that prefixes
 another estate, or a district name, widens it.
 

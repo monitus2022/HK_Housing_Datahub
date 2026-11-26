@@ -156,8 +156,6 @@ export function EstateSearch({ estates, onSelect }: Props) {
       }),
     [filters.regionId, filters.subregionId],
   );
-  // Indexing ~9,750 names costs ~59 ms; do it while the browser is idle so the
-  // first submit does not pay for it.
   const mtrLines = useMemo(() => listMtrLines(estates), [estates]);
   const schoolNets = useMemo(() => listSchoolNets(estates), [estates]);
   const filterCount = activeFilterCount(filters);
