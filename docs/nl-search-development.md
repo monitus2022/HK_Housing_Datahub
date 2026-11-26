@@ -44,8 +44,11 @@ from the remainder, so leftovers are reported rather than re-matched.
 `Diamond Hill / San Po Kong / Ngau Chi Wan`. Nobody types the slash form, so the
 dataset plants the components (which already exist as aliases) and the chip shows
 the component the user typed. A joined label is still indexed as a whole, but a
-phrase beyond four words resolves only its first component; that is the window
-cap, not a promise.
+longer phrase resolves **at most one** component: `takePlace` scans windows
+longest-first, so `Diamond Hill / San Po Kong / Ngau Chi Wan` yields
+`San Po Kong`, and `Kwun Tong / Lam Tin / Yau Tong` yields `Kwun Tong` at the
+*subregion* scope because subregions are indexed before districts. That is the
+four-word window, not a promise.
 
 Chinese is part of v1, not deferred to the model: prices accept Arabic or
 Chinese numerals (`六百萬`, `1.5萬`) with `以下`/`以上`/`至` ranges, a bare `600萬`
@@ -232,14 +235,14 @@ A checkout without it **refuses to run** rather than silently pairing lines and
 nets at random; `--no-correlation` generates anyway and marks the report
 `correlation: off`. Uncorrelated output is for smoke tests only, never labels.
 
-A 6,000-row run yields 6,000 unique texts (no duplicates), 49–67 rows per MTR
-line, 31–47 per school-net name, 100–104 per sort key, and 57–85 per place
+A 6,000-row run yields 6,000 unique texts (no duplicates), 42–69 rows per MTR
+line, 33–46 per school-net name, 102–106 per sort key, and 60–83 per place
 scope, with every one of the 77 scopes present. Roughly half the rows contain
 Chinese, because Chinese place names and size words are in the lexicon.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
-0.83 of the sampling weight, but **94.5% of emitted rows** carry a location
-(5,667 of 6,000; 88.5% at 1,000 rows). The gap is dedupe and the abbreviation
+0.83 of the sampling weight, but **94.0% of emitted rows** carry a location
+(5,638 of 6,000; 87.1% at 1,000 rows). The gap is dedupe and the abbreviation
 family, which also plants a place: families with more distinct texts survive
 dedupe better. Quote the measured figure, not 0.83. This is realistic for a
 property query but **not** the shape the training set needs, so the "no slot in

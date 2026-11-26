@@ -853,6 +853,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   }
 
   let leftovers = leftoverWords(rest);
+  let fuzzyPhrase = "";
   if (!location && leftovers.length > 0) {
     // The whole leftover phrase, typo tolerance included. "shatn" is one typo
     // away from Sha Tin; "qwepoiqwepoi" is not close to anything.
@@ -861,6 +862,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       const outcome = resolvePhrase(phrase, { regionId: options.regionId });
       if (outcome.kind === "resolved" || outcome.kind === "ambiguous") {
         location = outcome;
+        fuzzyPhrase = phrase;
         leftovers = [];
       }
     }
@@ -876,8 +878,13 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     patch.subregionId = scope.subregionId ?? "";
     patch.districtId = scope.districtId ?? "";
     // A joined label ("Yau Yat Chuen / Shek Kip Mei") reads as a multiple
-    // choice, so show the component the user actually typed.
-    const typed = placed && candidate.label.includes(" / ") ? tidyCase(placed.span) : "";
+    // choice, so show the component the user actually typed - including when the
+    // whole-phrase typo fallback found it.
+    const typedSpan = placed?.span ?? fuzzyPhrase;
+    const typed =
+      typedSpan && candidate.label.includes(" / ")
+        ? componentOf(candidate.label, typedSpan)
+        : "";
     spec.applied.push({
       field: "Location",
       value:
@@ -960,6 +967,17 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
 /** Restore capital letters to a normalised span ("shek kip mei"). */
 function tidyCase(span: string): string {
   return span.replace(/\b[a-z]/g, (char) => char.toUpperCase());
+}
+
+/**
+ * The component of a joined label that the user typed, in its canonical
+ * spelling. Title-casing the normalised span would turn "Jardine's Lookout"
+ * into "Jardine S Lookout", so prefer the label's own text.
+ */
+function componentOf(label: string, typed: string): string {
+  const wanted = normalise(typed);
+  const part = label.split(" / ").find((candidate) => normalise(candidate) === wanted);
+  return part ?? tidyCase(typed);
 }
 
 /** Undo the decimal sentinel for anything shown to the user. */

@@ -501,6 +501,21 @@ describe("compound district labels", () => {
     );
   });
 
+  it("keeps the canonical spelling, including apostrophes and hyphens", () => {
+    const value = applied(parseQuery("Jardine's Lookout")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(value).toBe("Jardine's Lookout");
+  });
+
+  it("shows the typed component even when the typo fallback found it", () => {
+    const spec = applied(parseQuery("shek kip mey"));
+    expect(spec.filters.districtId).toBe("200603");
+    const value = spec.applied.find((slot) => slot.field === "Location")?.value;
+    expect(value).toBe("Shek Kip Mey");
+    expect(value).not.toContain("/");
+  });
+
   it("still shows the canonical label for a single-name place", () => {
     const value = applied(parseQuery("Sha Tin")).applied.find(
       (slot) => slot.field === "Location",
