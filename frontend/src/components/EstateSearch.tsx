@@ -199,7 +199,10 @@ export function EstateSearch({ estates, onSelect }: Props) {
   const submitNl = (raw: string) => {
     const text = raw.trim();
     if (!text) return;
-    const parse = parseQuery(text, { regionId: state.filters.regionId });
+    const parse = parseQuery(text, {
+      regionId: state.filters.regionId,
+      estates,
+    });
     setNlText(text);
     setNlParse(parse);
     // Only a parsed spec replaces the query. A refusal or an unresolved

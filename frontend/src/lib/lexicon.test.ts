@@ -486,6 +486,68 @@ describe("apply", () => {
   });
 });
 
+const ESTATES = [
+  { estate_name_en: "Taikoo Shing", estate_name_zh: "太古城" },
+  { estate_name_en: "Mei Foo Sun Chuen", estate_name_zh: "美孚新邨" },
+  { estate_name_en: "Amoy Gardens", estate_name_zh: "淘大花園" },
+];
+
+describe("estate names", () => {
+  it("combines an estate with other slots", () => {
+    const spec = applied(
+      parseQuery("太古城 兩房 under 6m", { estates: ESTATES }),
+    );
+    expect(spec.estate?.name).toBe("太古城");
+    expect(spec.filters.bedrooms).toBe("2");
+    expect(spec.filters.maxPrice).toBe("6000000");
+    expect(spec.unrecognised).toEqual([]);
+    expect(spec.applied.map((slot) => slot.field)).toEqual([
+      "Bedrooms",
+      "Price",
+      "Estate",
+    ]);
+  });
+
+  it("matches the English name and removes the whole span", () => {
+    const spec = applied(parseQuery("mei foo sun chuen 3 bed", { estates: ESTATES }));
+    expect(spec.estate?.name).toBe("Mei Foo Sun Chuen");
+    expect(spec.filters.bedrooms).toBe("3");
+    expect(spec.unrecognised).toEqual([]);
+  });
+
+  it("prefers the estate to the district prefix", () => {
+    // "Mei Foo Sun Chuen" starts with the district name "Mei Foo"; the estate
+    // must win, and the rest must not leak into the district.
+    const spec = applied(parseQuery("Mei Foo Sun Chuen", { estates: ESTATES }));
+    expect(spec.estate?.name).toBe("Mei Foo Sun Chuen");
+    expect(spec.filters.districtId).toBe("");
+  });
+
+  it("applies the estate as the text query, keeping the filters", () => {
+    const spec = applied(parseQuery("太古城 兩房", { estates: ESTATES }));
+    const state = specToState(spec);
+    expect(state.query).toBe("太古城");
+    expect(state.filters.bedrooms).toBe("2");
+  });
+
+  it("says how many estates share a name", () => {
+    const shared = [
+      ...ESTATES,
+      { estate_name_en: "Amoy Gardens", estate_name_zh: "淘大花園" },
+    ];
+    const spec = applied(parseQuery("Amoy Gardens", { estates: shared }));
+    expect(spec.estate?.count).toBe(2);
+    expect(spec.applied.find((slot) => slot.field === "Estate")?.value).toBe(
+      "Amoy Gardens (2 estates)",
+    );
+  });
+
+  it("does not recognise an estate name without the loaded list", () => {
+    expect(parseQuery("太古城").kind).toBe("unresolved");
+    expect(parseQuery("太古城", { estates: [] }).kind).toBe("unresolved");
+  });
+});
+
 describe("compound district labels", () => {
   it("shows the component the user typed, not the joined label", () => {
     const zh = applied(parseQuery("石硤尾"));

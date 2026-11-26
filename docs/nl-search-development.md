@@ -39,6 +39,15 @@ from the remainder, so leftovers are reported rather than re-matched.
 | MTR line | `island line`, `tko line`, `港島綫`, `東鐵線` | `mtrLine` |
 | school net | `school net 41`, `校網 41`, `41校網` | `schoolNet` (by name — see §7) |
 | place | `TKO`, `KT`, `Sha Tin`, `east`, `港島東` | region / subregion / district |
+| estate | `太古城`, `Taikoo Shing`, `Mei Foo Sun Chuen` | text query, combined with the other slots |
+
+Estate names are matched against the estates the dashboard already loads, so
+nothing is bundled or fetched twice: the parser receives the list and builds a
+name index once per array. `太古城 兩房 under 6m` applies the estate as the text
+query and the bedrooms and price as filters. A name shared by several estates is
+applied with a count (`Amoy Gardens (2 estates)`) rather than picking one. The
+match is exact, longest-span-first — no typo tolerance, because a wrong estate is
+worse than an unrecognised one.
 
 23 of the 60 district labels are joined names — `Yau Yat Chuen / Shek Kip Mei`,
 `Diamond Hill / San Po Kong / Ngau Chi Wan`. Nobody types the slash form, so the

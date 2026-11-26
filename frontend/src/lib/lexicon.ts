@@ -58,6 +58,12 @@ export type NlHint =
       band: { minNetArea: string; maxNetArea: string };
     };
 
+export interface NlEstateMatch {
+  name: string;
+  /** How many loaded estates carry this name (some names repeat). */
+  count: number;
+}
+
 export interface NlSpec {
   filters: EstateFilters;
   sort: SortKey;
@@ -65,6 +71,8 @@ export interface NlSpec {
   ignored: string[];
   unrecognised: string[];
   hints: NlHint[];
+  /** The estate the sentence names, if any; applied as the text query. */
+  estate: NlEstateMatch | null;
 }
 
 export type NlKind = "applied" | "ambiguous" | "refused" | "unresolved";
@@ -85,9 +93,19 @@ export interface NlParse {
   input: string;
 }
 
+export interface NlEstateName {
+  estate_name_en: string;
+  estate_name_zh: string;
+}
+
 export interface NlOptions {
   /** Current cascade region, used to anchor direction words. */
   regionId?: string;
+  /**
+   * Estates already loaded by the dashboard. Passing them lets the parser
+   * recognise an estate name; it is never fetched or bundled here.
+   */
+  estates?: readonly NlEstateName[];
 }
 
 /** Words that only glue a sentence together. Dropped before reporting. */
@@ -433,6 +451,51 @@ function roomValue(count: number): string {
   return count >= 4 ? "4+" : String(count);
 }
 
+/** The name index costs one pass over ~9,750 rows, so cache it per array. */
+const ESTATE_INDEX = new WeakMap<
+  readonly NlEstateName[],
+  Map<string, NlEstateMatch>
+>();
+
+function estateIndex(
+  estates: readonly NlEstateName[],
+): Map<string, NlEstateMatch> {
+  const cached = ESTATE_INDEX.get(estates);
+  if (cached) return cached;
+  const index = new Map<string, NlEstateMatch>();
+  for (const estate of estates) {
+    for (const raw of [estate.estate_name_en, estate.estate_name_zh]) {
+      const key = normalise(raw ?? "");
+      if (!key) continue;
+      const existing = index.get(key);
+      if (existing) existing.count += 1;
+      else index.set(key, { name: (raw ?? "").trim(), count: 1 });
+    }
+  }
+  ESTATE_INDEX.set(estates, index);
+  return index;
+}
+
+/** Longest estate-name span in the sentence, exact match only. */
+function takeEstate(
+  rest: string,
+  estates: readonly NlEstateName[] | undefined,
+): { rest: string; match: NlEstateMatch } | null {
+  if (!estates || estates.length === 0) return null;
+  const index = estateIndex(estates);
+  const words = rest.split(" ").filter(Boolean);
+  for (let size = Math.min(6, words.length); size >= 1; size -= 1) {
+    for (let start = 0; start + size <= words.length; start += 1) {
+      const span = words.slice(start, start + size).join(" ");
+      const key = normalise(span);
+      if (key.length < 3) continue;
+      const match = index.get(key);
+      if (match) return { rest: removeSpan(rest, span), match };
+    }
+  }
+  return null;
+}
+
 function hintFor(candidate: PlaceCandidate): NlHint {
   return {
     kind: "place",
@@ -480,6 +543,7 @@ function emptySpec(sort: SortKey): NlSpec {
     ignored: [],
     unrecognised: [],
     hints: [],
+    estate: null,
   };
 }
 
@@ -837,6 +901,23 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
 
+  // --- estate name ----------------------------------------------------------
+  // Before the place lookup: "Mei Foo Sun Chuen" is an estate that starts with a
+  // district name, and splitting it would apply the district and drop the rest.
+
+  const estateHit = takeEstate(rest, options.estates);
+  if (estateHit) {
+    spec.estate = estateHit.match;
+    spec.applied.push({
+      field: "Estate",
+      value:
+        estateHit.match.count > 1
+          ? `${estateHit.match.name} (${estateHit.match.count} estates)`
+          : estateHit.match.name,
+    });
+    rest = estateHit.rest;
+  }
+
   // --- location -------------------------------------------------------------
 
   const placed = takePlace(rest, options.regionId);
@@ -1085,7 +1166,9 @@ export function refineDirection(parse: NlParse, regionId: string): NlParse {
  */
 export function specToState(spec: NlSpec): SearchState {
   return {
-    query: "",
+    // filterEstates already narrows on this text, so an estate name needs no
+    // new filter field.
+    query: spec.estate?.name ?? "",
     sort: spec.sort,
     filters: { ...spec.filters },
   };
