@@ -179,10 +179,36 @@ def test_language_predicate_rejects_an_incompatible_entry() -> None:
         pool, usage, random.Random(3), generator.language_predicate("place", "zh")
     )
     assert picked["key"] == "both"
-    picked_en = generator.least_used(
-        pool, usage, random.Random(3), generator.language_predicate("place", "en")
-    )
-    assert picked_en["key"] in {"en", "both"}
+    # Both entries are English-capable, so assert the predicate, not the pick.
+    english = generator.language_predicate("place", "en")
+    assert all(english(entry) for entry in pool)
+
+
+def test_anchor_path_skips_a_monolingual_line() -> None:
+    """The anchor selection must obey the row language, not only the main loop.
+
+    Real lines and nets are all bilingual, so this can only be shown with a pool
+    where the English-only candidate is the least-used one: without the predicate
+    it is chosen first and leaks "mono" into a Chinese row.
+    """
+    generator = load_generator()
+    pools = {
+        "mtr": [
+            {"forms": {"en": ["mono"]}, "planted": {"mtrLine": "Mono"}, "expect": "applied", "key": "m"},
+            {"forms": {"en": ["bilingual"], "zh": ["雙語"]}, "planted": {"mtrLine": "Bilingual"}, "expect": "applied", "key": "b"},
+        ],
+        "place": [
+            {"forms": {"en": ["place"], "zh": ["地方"]}, "planted": {"subregionId": "1001"}, "expect": "applied", "key": "p"},
+        ],
+    }
+    family = next(f for f in generator.FAMILIES if f["name"] == "place_line")
+    usage = {"mtr": Counter({"m": 0, "b": 5}), "place": Counter({"p": 0})}
+    cooccurrence = {"mtrLine": {"Mono": {"1001"}, "Bilingual": {"1001"}}}
+    for seed in range(5):
+        text, _, _, _ = generator.render(
+            family, pools, usage, random.Random(seed), cooccurrence, {"1001": "10"}, "zh"
+        )
+        assert "mono" not in text, text
 
 
 def test_language_purity_survives_the_correlated_path(tmp_path: Path) -> None:
