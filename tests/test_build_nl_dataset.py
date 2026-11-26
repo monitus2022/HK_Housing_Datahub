@@ -173,15 +173,20 @@ def test_language_predicate_rejects_an_incompatible_entry() -> None:
     pool = [
         {"forms": {"en": ["english only"]}, "planted": {}, "expect": "applied", "key": "en"},
         {"forms": {"en": ["both"], "zh": ["兩者"]}, "planted": {}, "expect": "applied", "key": "both"},
+        {"forms": {"zh": ["只有中文"]}, "planted": {}, "expect": "applied", "key": "zh"},
     ]
-    usage = {"en": 0, "both": 0}
+    usage = {"en": 0, "both": 0, "zh": 0}
     picked = generator.least_used(
         pool, usage, random.Random(3), generator.language_predicate("place", "zh")
     )
-    assert picked["key"] == "both"
-    # Both entries are English-capable, so assert the predicate, not the pick.
+    # Either bilingual or Chinese-only is fine; the English-only one is not.
+    assert picked["key"] != "en"
+    assert "zh" in picked["forms"]
+    # Assert the predicate itself, not a pick: it must accept the English-capable
+    # entries and reject the Chinese-only one.
     english = generator.language_predicate("place", "en")
-    assert all(english(entry) for entry in pool)
+    accepted = {entry["key"] for entry in pool if english(entry)}
+    assert accepted == {"en", "both"}
 
 
 def test_anchor_path_skips_a_monolingual_line() -> None:

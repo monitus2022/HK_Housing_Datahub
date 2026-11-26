@@ -66,7 +66,8 @@ is not a random mix of languages inside one sentence. Chinese rows use Chinese
 templates and Chinese forms for every slot (`一房 600萬以下 觀塘`), so a Chinese
 row never contains an English place or an English city. Families with no Chinese
 template — abbreviations — are English-only, and mixed requires a place slot.
-`room`/`rooms` outnumber `bed` forms 1.37:1, because that is the word people use.
+`room`/`rooms` outnumber `bed` forms about 1.45:1 (698 vs 481 rows at 6,000),
+because that is the word people use.
 
 23 of the 60 district labels are joined names — `Yau Yat Chuen / Shek Kip Mei`,
 `Diamond Hill / San Po Kong / Ngau Chi Wan`. Nobody types the slash form, so the
