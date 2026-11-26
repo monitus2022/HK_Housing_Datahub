@@ -167,7 +167,7 @@ VITE_FEATURE_NL_SEARCH=true npm run build
 Cloudflare Pages sets the variable per environment. With the flag off the form
 and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
 imported for its module-level index. With the flag on the feature adds about
-20.0 kB raw / 6.8 kB gzipped over the flag-off build (419.86 kB / 123.75 kB off,
+20.5 kB raw / 7.0 kB gzipped over the flag-off build (419.86 kB / 123.75 kB off,
 440.37 kB / 130.71 kB on, measured at head). The flag is a build-time rollout switch, not a
 code-splitting boundary.
 
