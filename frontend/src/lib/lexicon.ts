@@ -878,7 +878,9 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       new RegExp(`(?:^| )(\\d{2,5}) ?${AREA_UNIT}(?= |$)`),
     );
     if (bareArea) {
-      const size = bareArea.match[1];
+      // Report the converted value: the filters are in ft², and "Size 50 ft²"
+      // for 50平方米 would be wrong by a factor of ten.
+      const size = toSquareFeet(bareArea.match[1], bareArea.match[2]);
       spec.ignored.push(
         `Size ${size} ft² without a range (say "under ${size} ft²" or "${size}-700 ft²")`,
       );

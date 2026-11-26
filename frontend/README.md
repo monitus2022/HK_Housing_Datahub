@@ -121,7 +121,8 @@ tables; `make gazetteer-check` fails when the artifact drifts.
 (`2 bedroom flat in TKO`, `3 room under 6m in Sha Tin`, `cheapest 2 bed in Kwun
 Tong`, `near the island line`, `school net 41`). Chinese works too: `兩房 in
 大埔`, `600萬以下`, `最平`, `港島綫`, `40校網`, `500至700呎`. 平方米 is the same
-dimension, so `50至70平方米` converts to 538–753 ft² rather than being refused. Estate names are recognised from
+dimension in another unit, so `50至70平方米` converts to 538–753 ft² instead of
+being reported as Unrecognised. Estate names are recognised from
 the estate list the dashboard already holds (`太古城 兩房 under 6m`): the name
 becomes the text query and the other slots still apply. It is deterministic and runs in
 the browser: no network call, no model and no dependency. Each submit **replaces**
@@ -167,7 +168,7 @@ Cloudflare Pages sets the variable per environment. With the flag off the form
 and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
 imported for its module-level index. With the flag on the feature adds about
 20.0 kB raw / 6.8 kB gzipped over the flag-off build (419.86 kB / 123.75 kB off,
-439.83 kB / 130.51 kB on, measured at head). The flag is a build-time rollout switch, not a
+440.37 kB / 130.71 kB on, measured at head). The flag is a build-time rollout switch, not a
 code-splitting boundary.
 
 An estate name in the sentence is applied as the `q` text query, which is a

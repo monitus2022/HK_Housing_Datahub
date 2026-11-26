@@ -680,8 +680,30 @@ describe("area units", () => {
   it("still asks for a direction when a size stands alone", () => {
     const parse = parseQuery("2 bed 500呎 in 大埔");
     expect(parse.kind).toBe("applied");
+    // Both bounds, because a stray ceiling is exactly the regression to catch.
     expect(parse.spec?.filters.minNetArea ?? "").toBe("");
+    expect(parse.spec?.filters.maxNetArea ?? "").toBe("");
     expect(parse.spec?.ignored.join(" ")).toContain("Size 500 ft² without a range");
+  });
+
+  it("discloses a bare metric size in square feet", () => {
+    const parse = parseQuery("2 bed 50平方米 in 大埔");
+    expect(parse.spec?.filters.minNetArea ?? "").toBe("");
+    expect(parse.spec?.filters.maxNetArea ?? "").toBe("");
+    expect(parse.spec?.ignored.join(" ")).toContain("Size 538 ft² without a range");
+  });
+
+  it("accepts the metric unit aliases and the Chinese ceiling", () => {
+    expect(applied(parseQuery("600平方米以下")).filters.maxNetArea).toBe("6458");
+    expect(applied(parseQuery("50平米以上")).filters.minNetArea).toBe("538");
+    expect(applied(parseQuery("50平方公尺以上")).filters.minNetArea).toBe("538");
+    expect(applied(parseQuery("50 m2 以上")).filters.minNetArea).toBe("538");
+  });
+
+  it("rejects a descending converted range instead of applying it", () => {
+    const parse = parseQuery("80至50平方米");
+    expect(parse.spec?.filters.minNetArea ?? "").toBe("");
+    expect(parse.spec?.filters.maxNetArea ?? "").toBe("");
   });
 });
 
