@@ -51,7 +51,7 @@ DEFAULT_DB = ROOT / "data" / "agency" / "agency_data.db"
 FAMILIES: list[dict[str, Any]] = [
     {
         "name": "place",
-        "weight": 0.15,
+        "weight": 0.13,
         "slots": ["place"],
         "templates": [
             "{place}",
@@ -73,7 +73,7 @@ FAMILIES: list[dict[str, Any]] = [
     },
     {
         "name": "place_price",
-        "weight": 0.08,
+        "weight": 0.07,
         "slots": ["place", "price"],
         "templates": [
             "{price} in {place}",
@@ -139,6 +139,16 @@ FAMILIES: list[dict[str, Any]] = [
             "{bedrooms} {price}",
             "{price} {bedrooms} flat",
             "{bedrooms} for {price}",
+        ],
+    },
+    {
+        "name": "place_age",
+        "weight": 0.03,
+        "slots": ["place", "age"],
+        "templates": [
+            "{age} in {place}",
+            "{place} {age}",
+            "looking for {age} in {place}",
         ],
     },
     {
@@ -254,6 +264,14 @@ PRICES = [
     ("6.5m to 9m", "6500000", "9000000"),
 ]
 
+AGES = [
+    "new build",
+    "newly built",
+    "brand new",
+    "new",
+    "新樓",
+]
+
 # Sort phrases -> SortKey.
 SORTS = [
     ("cheapest", "latest_price"),
@@ -271,7 +289,6 @@ UNSUPPORTED = [
     "near mtr",
     "good schools",
     "furnished",
-    "new build",
 ]
 
 DIRECTIONS = ["east", "west", "north", "south"]
@@ -418,6 +435,7 @@ def build_pools(
         item([phrase], {"minPrice": low, "maxPrice": high})
         for phrase, low, high in PRICES
     ]
+    pools["age"] = [item([phrase], {"maxBuildingAge": "5"}) for phrase in AGES]
     pools["sort"] = [
         item([phrase], {"sort": key}) for phrase, key in SORTS
     ]
@@ -718,7 +736,7 @@ def report(
     expects = Counter(row["expect"] for row in rows)
     coverage: dict[str, Counter[str]] = defaultdict(Counter)
     for row in rows:
-        for slot in ("mtrLine", "schoolNet", "sort", "bedrooms"):
+        for slot in ("mtrLine", "schoolNet", "sort", "bedrooms", "maxBuildingAge"):
             if slot in row["planted"]:
                 coverage[slot][str(row["planted"][slot])] += 1
         level = (

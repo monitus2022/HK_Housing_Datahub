@@ -40,6 +40,7 @@ from the remainder, so leftovers are reported rather than re-matched.
 | school net | `school net 41`, `校網 41`, `41校網` | `schoolNet` (by name — see §7) |
 | estate | `太古城`, `Taikoo Shing`, `Mei Foo Sun Chuen` | text query, combined with the other slots |
 | place | `TKO`, `KT`, `Sha Tin`, `east`, `港島東` | region / subregion / district |
+| building age | `new`, `new build`, `newly built`, `新樓` | `maxBuildingAge = 5` (marked default) |
 
 Estate names are matched against the estates the dashboard already loads, so
 nothing is bundled or fetched twice: the parser receives the list and builds a
@@ -221,12 +222,12 @@ whether the labels are trustworthy. The plan separates the two:
 
 ### Candidate generation
 
-`scripts/build_nl_dataset.py` produces the inputs: 15 weighted families (place,
+`scripts/build_nl_dataset.py` produces the inputs: 16 weighted families (place,
 place+bed, place+bed+price, line, net, sort, direction, abbreviation,
 out-of-scope, unsupported…), each with 3–5 whole-sentence templates and value
 pools drawn from `geo.json` and `gazetteer.json`, plus hardened pools for
-bedrooms, sizes, prices, sorts, directions and unsupported terms defined in the
-script itself. It uses no model and no network.
+bedrooms, sizes, prices, sorts, building age, directions and unsupported terms
+defined in the script itself. It uses no model and no network.
 
 - **Least-used sampling per planted value.** "2 bed", "two bedrooms" and `兩房`
   are one coverage cell, so a value with more spellings does not get more rows.
@@ -242,6 +243,17 @@ script itself. It uses no model and no network.
   Rail Line in Causeway Bay, so those rows are generated.)
 - **Consistency.** A district always carries its subregion and region; area and
   price ranges are ordered; one location per row.
+
+- **Building age.** `new` is a build age, not a transaction date: `newest` and `最新` stay sort
+words, while `new` / `新樓` set `maxBuildingAge = 5`, marked `(default)` in the
+same way as a vague size. The age is a real five years (milliseconds/365.25, the
+same arithmetic as the mart), not a calendar-year bucket, so a 5-year-11-month
+estate does not pass a 5-year chip. Estates with no `first_op_date` are excluded
+(~9% of the snapshot): an unknown build year cannot be known to be recent. Age
+matching runs **after** estate and place, so `New Territories` and estate names
+containing "new" are consumed first. `新盤` is primary-market wording — the data has no
+launch or first-sale flag — so it is disclosed rather than mapped onto age.
+
 - **Planted values are diagnostics, not labels.** Each row records `planted` and
   a coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`). The teacher's
   label is produced independently; `planted` is used for coverage gates and
@@ -253,14 +265,14 @@ A checkout without it **refuses to run** rather than silently pairing lines and
 nets at random; `--no-correlation` generates anyway and marks the report
 `correlation: off`. Uncorrelated output is for smoke tests only, never labels.
 
-A 6,000-row run yields 6,000 unique texts (no duplicates), 42–69 rows per MTR
-line, 33–46 per school-net name, 102–106 per sort key, and 60–83 per place
-scope, with every one of the 77 scopes present. Roughly half the rows contain
+A 6,000-row run yields 6,000 unique texts (no duplicates), 52–66 rows per MTR
+line, 32–48 per school-net name, 92–101 per sort key, 61–83 per place scope, and
+224 rows carrying a building age, with every one of the 77 scopes present. Roughly half the rows contain
 Chinese, because Chinese place names and size words are in the lexicon.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
-0.83 of the sampling weight, but **94.0% of emitted rows** carry a location
-(5,638 of 6,000; 87.1% at 1,000 rows). The gap is dedupe and the abbreviation
+0.83 of the sampling weight, but **94.4% of emitted rows** carry a location
+(5,664 of 6,000; 88.9% at 1,000 rows). The gap is dedupe and the abbreviation
 family, which also plants a place: families with more distinct texts survive
 dedupe better. Quote the measured figure, not 0.83. This is realistic for a
 property query but **not** the shape the training set needs, so the "no slot in

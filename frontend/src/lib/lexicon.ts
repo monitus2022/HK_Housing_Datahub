@@ -5,9 +5,9 @@
  * lexicon did *not* understand is reported back instead of being dropped.
  *
  * The parser consumes phrases in a fixed order — bedrooms, area (including
- * vague-size defaults and a bare-size fallback), price, sort words, unsupported
- * concepts, MTR lines, school nets, then a place — and removes each phrase it
- * understands. Whatever is left is either shown as unrecognised, or matched
+ * vague-size defaults and a bare-size fallback), price, sort words,
+ * unsupported concepts, MTR lines, school nets, then an estate and a place,
+ * then a building age — and removes each phrase it understands. Whatever is left is either shown as unrecognised, or matched
  * fuzzily as a whole. A phrase that is recognised but has no data behind it
  * (sea view, quiet, "near MTR") goes to `ignored` rather than being silently
  * treated as free text: the result set must reflect what the user asked for, or
@@ -149,7 +149,6 @@ const UNSUPPORTED: { pattern: RegExp; label: string }[] = [
   { pattern: /\bquiet\b/, label: "Quiet (no noise data)" },
   { pattern: /\b(?:pet|pets) ?friendly\b/, label: "Pet policy (no data)" },
   { pattern: /\b(?:furnished|unfurnished)\b/, label: "Furnishing (no data)" },
-  { pattern: /\b(?:new build|newly built|brand new)\b/, label: "Building age (no age filter)" },
   { pattern: /\b(?:car ?park|parking)\b/, label: "Parking (no data)" },
   { pattern: /\b(?:near|close to|next to) ?(?:the )?mtr\b/, label: "MTR proximity (line-level data only)" },
   { pattern: /(?:^| )mtr(?: station)?(?= |$)/, label: "MTR proximity (line-level data only)" },
@@ -161,7 +160,6 @@ const UNSUPPORTED: { pattern: RegExp; label: string }[] = [
   { pattern: /(?:^| )(?:好校網|名校網)(?= |$)/, label: "School quality (net membership only)" },
   { pattern: /(?:^| )(?:連傢俬|有傢俬|包傢俬)(?= |$)/, label: "Furnishing (no data)" },
   { pattern: /(?:^| )(?:寵物|可養寵物)(?= |$)/, label: "Pet policy (no data)" },
-  { pattern: /(?:^| )(?:新樓|新盤)(?= |$)/, label: "Building age (no age filter)" },
 ];
 
 const BEDROOM_WORDS: Record<string, number> = {
@@ -225,6 +223,9 @@ const SORT_WORDS: { pattern: RegExp; key: SortKey; label: string }[] = [
     label: "Alphabetical",
   },
 ];
+
+/** Default applied by "new" / 新樓, from the snapshot: 96 estates since 2021. */
+const NEW_BUILD_YEARS = 5;
 
 type SizeBand = "small" | "middle" | "large";
 
@@ -951,6 +952,38 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       direction = directionWord(placed.span);
     }
     rest = placed.rest;
+  }
+
+  // Building age is matched after the place: "New Territories" is a region, and
+  // estate names may contain "new". Both are consumed before this step.
+  const primaryMarket = consume(rest, /(?:^| )(?:新盤|新樓盤)(?= |$)/);
+  if (primaryMarket) {
+    spec.ignored.push(
+      "Primary market (new launches) is not in the data; use 新樓 for a recent build",
+    );
+    rest = primaryMarket.rest;
+  }
+  // "New Territores" is a typo of a region, and the whole-phrase fallback below
+  // would have found it. Do not consume "new" out of a phrase that resolves as
+  // a place, or the fallback only sees "territores".
+  const agePhrase = leftoverWords(rest).join(" ");
+  const agePhraseIsPlace =
+    agePhrase.length >= 4 &&
+    /(?:^| )(?:new build|newly built|brand new|new|新樓)(?= |$)/.test(rest) &&
+    ((outcome) => outcome.kind === "resolved" || outcome.kind === "ambiguous")(
+      resolvePhrase(agePhrase, { regionId: options.regionId }),
+    );
+  const ageWord = agePhraseIsPlace
+    ? null
+    : consume(rest, /(?:^| )(?:new build|newly built|brand new|new|新樓)(?= |$)/);
+  if (ageWord) {
+    patch.maxBuildingAge = String(NEW_BUILD_YEARS);
+    spec.applied.push({
+      field: "Building age",
+      value: `≤ ${NEW_BUILD_YEARS} years`,
+      defaulted: true,
+    });
+    rest = ageWord.rest;
   }
 
   let leftovers = leftoverWords(rest);

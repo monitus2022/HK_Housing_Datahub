@@ -6,6 +6,7 @@ import {
   listMtrLines,
   listSchoolNets,
   matchesFilters,
+  supportsBuildingAge,
 } from "./filters";
 
 function estate(overrides: Partial<EstateSummary>): EstateSummary {
@@ -41,6 +42,92 @@ function estate(overrides: Partial<EstateSummary>): EstateSummary {
     ...overrides,
   };
 }
+
+describe("building age", () => {
+  const thisYear = new Date().getFullYear();
+
+  it("keeps estates first occupied within the limit", () => {
+    const recent = estate({ first_op_date: `${thisYear - 3}-06-01` });
+    const old = estate({ first_op_date: `${thisYear - 12}-06-01` });
+    const filters = { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" };
+    expect(matchesFilters(recent, filters)).toBe(true);
+    expect(matchesFilters(old, filters)).toBe(false);
+  });
+
+  it("uses a real five years, not a calendar-year bucket", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const filters = { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" };
+    // 5 years and one day old is outside the limit under either rule.
+    const justOver = new Date(Date.now() - 5 * 365.25 * day - day);
+    const justUnder = new Date(Date.now() - 5 * 365.25 * day + day);
+    expect(
+      matchesFilters(
+        estate({ first_op_date: justOver.toISOString() }),
+        filters,
+      ),
+    ).toBe(false);
+    expect(
+      matchesFilters(
+        estate({ first_op_date: justUnder.toISOString() }),
+        filters,
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts a future first occupation as pre-sale", () => {
+    const future = new Date(Date.now() + 200 * 24 * 60 * 60 * 1000);
+    expect(
+      matchesFilters(estate({ first_op_date: future.toISOString() }), {
+        ...EMPTY_ESTATE_FILTERS,
+        maxBuildingAge: "5",
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects a malformed date", () => {
+    const filters = { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" };
+    expect(matchesFilters(estate({ first_op_date: "unknown" }), filters)).toBe(
+      false,
+    );
+  });
+
+  it("treats an unknown first occupation as no match", () => {
+    const unknown = estate({ first_op_date: null });
+    expect(
+      matchesFilters(unknown, { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" }),
+    ).toBe(false);
+  });
+
+  it("ignores the filter when it is empty", () => {
+    expect(matchesFilters(estate({ first_op_date: null }), EMPTY_ESTATE_FILTERS)).toBe(
+      true,
+    );
+  });
+});
+
+describe("supportsBuildingAge", () => {
+  it("is false when every date is null", () => {
+    const estates = [estate({ first_op_date: null }), estate({ first_op_date: null })];
+    expect(supportsBuildingAge(estates)).toBe(false);
+  });
+
+  it("is true when any estate has a date", () => {
+    const estates = [estate({ first_op_date: null }), estate({ first_op_date: "2010-01-01" })];
+    expect(supportsBuildingAge(estates)).toBe(true);
+  });
+
+  it("is false for an empty snapshot", () => {
+    expect(supportsBuildingAge([])).toBe(false);
+  });
+});
+
+describe("activeFilterCount", () => {
+  it("counts the age as one filter", () => {
+    expect(
+      activeFilterCount({ ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" }),
+    ).toBe(1);
+  });
+});
 
 describe("matchesFilters", () => {
   it("applies inclusive price, net-ft, and area ranges", () => {
