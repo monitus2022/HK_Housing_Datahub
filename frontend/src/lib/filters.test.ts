@@ -53,6 +53,33 @@ describe("building age", () => {
     expect(matchesFilters(old, filters)).toBe(false);
   });
 
+  it("uses a real five years, not a calendar-year bucket", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const filters = { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" };
+    // 5 years and one day old is outside the limit under either rule.
+    const justOver = new Date(Date.now() - 5 * 365.25 * day - day);
+    const justUnder = new Date(Date.now() - 5 * 365.25 * day + day);
+    expect(
+      matchesFilters(
+        estate({ first_op_date: justOver.toISOString() }),
+        filters,
+      ),
+    ).toBe(false);
+    expect(
+      matchesFilters(
+        estate({ first_op_date: justUnder.toISOString() }),
+        filters,
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a malformed date", () => {
+    const filters = { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" };
+    expect(matchesFilters(estate({ first_op_date: "unknown" }), filters)).toBe(
+      false,
+    );
+  });
+
   it("treats an unknown first occupation as no match", () => {
     const unknown = estate({ first_op_date: null });
     expect(

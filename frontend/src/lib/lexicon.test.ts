@@ -609,6 +609,29 @@ describe("new build", () => {
     }
   });
 
+  it("does not eat New Territories", () => {
+    const spec = applied(parseQuery("New Territories 1 bed"));
+    expect(spec.filters.regionId).toBe("30");
+    expect(spec.filters.bedrooms).toBe("1");
+    expect(spec.filters.maxBuildingAge).toBe("");
+    expect(spec.unrecognised).toEqual([]);
+  });
+
+  it("does not eat an estate name containing new", () => {
+    const estates = [{ estate_name_en: "New Territories Plaza", estate_name_zh: "新界廣場" }];
+    const spec = applied(parseQuery("New Territories Plaza 3 bed", { estates }));
+    expect(spec.estate?.name).toBe("New Territories Plaza");
+    expect(spec.filters.maxBuildingAge).toBe("");
+    expect(spec.filters.bedrooms).toBe("3");
+  });
+
+  it("applies the age and discloses primary market independently", () => {
+    const both = applied(parseQuery("新盤 新樓"));
+    expect(both.filters.maxBuildingAge).toBe("5");
+    expect(both.ignored.join(" ")).toContain("Primary market");
+    expect(both.ignored.join(" ")).not.toContain("no age filter");
+  });
+
   it("keeps newest as a sort, not an age filter", () => {
     const spec = applied(parseQuery("newest in TKO"));
     expect(spec.sort).toBe("latest_tx_date");

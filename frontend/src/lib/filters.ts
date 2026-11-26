@@ -75,9 +75,13 @@ function matchesBuildingAge(estate: EstateSummary, maxAge: string): boolean {
   const limit = parseNumber(maxAge);
   if (limit === null) return true;
   if (!estate.first_op_date) return false;
-  const year = Number(estate.first_op_date.slice(0, 4));
-  if (!Number.isFinite(year) || year <= 0) return false;
-  return new Date().getFullYear() - year <= limit;
+  const built = Date.parse(estate.first_op_date);
+  if (Number.isNaN(built)) return false;
+  // Calendar years would let a 5-year chip match an estate that is 5 years 11
+  // months old. Milliseconds/365.25 matches the mart's own age arithmetic.
+  const years = (Date.now() - built) / (365.25 * 24 * 60 * 60 * 1000);
+  // A future first occupation is pre-sale, which is newer than new.
+  return years <= limit;
 }
 
 export function matchesFilters(

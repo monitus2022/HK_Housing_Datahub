@@ -35,12 +35,12 @@ from the remainder, so leftovers are reported rather than re-matched.
 | vague size | `small`, `middle size`, `大單位` | marked default + band hints (see §3) |
 | price | `under 6m`, `5m to 8m`, `600萬以下`, `500萬至800萬` | `minPrice` / `maxPrice` |
 | sort | `cheapest`, `most active`, `最平`, `最活躍` | `sort` |
-| building age | `new`, `new build`, `newly built`, `新樓` | `maxBuildingAge = 5` (marked default) |
 | unsupported | `sea view`, `quiet`, `parking`, `near MTR`, `海景`, `近地鐵` | `Ignored:` |
 | MTR line | `island line`, `tko line`, `港島綫`, `東鐵線` | `mtrLine` |
 | school net | `school net 41`, `校網 41`, `41校網` | `schoolNet` (by name — see §7) |
 | estate | `太古城`, `Taikoo Shing`, `Mei Foo Sun Chuen` | text query, combined with the other slots |
 | place | `TKO`, `KT`, `Sha Tin`, `east`, `港島東` | region / subregion / district |
+| building age | `new`, `new build`, `newly built`, `新樓` | `maxBuildingAge = 5` (marked default) |
 
 Estate names are matched against the estates the dashboard already loads, so
 nothing is bundled or fetched twice: the parser receives the list and builds a
@@ -245,7 +245,12 @@ script itself. It uses no model and no network.
   price ranges are ordered; one location per row.
 `new` is a build age, not a transaction date: `newest` and `最新` stay sort
 words, while `new` / `新樓` set `maxBuildingAge = 5`, marked `(default)` in the
-same way as a vague size. `新盤` is primary-market wording — the data has no
+same way as a vague size. The age is a real five years (milliseconds/365.25, the
+same arithmetic as the mart), not a calendar-year bucket, so a 5-year-11-month
+estate does not pass a 5-year chip. Estates with no `first_op_date` are excluded
+(~9% of the snapshot): an unknown build year cannot be known to be recent. Age
+matching runs **after** estate and place, so `New Territories` and estate names
+containing "new" are consumed first. `新盤` is primary-market wording — the data has no
 launch or first-sale flag — so it is disclosed rather than mapped onto age.
 
 - **Planted values are diagnostics, not labels.** Each row records `planted` and

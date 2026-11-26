@@ -51,7 +51,7 @@ DEFAULT_DB = ROOT / "data" / "agency" / "agency_data.db"
 FAMILIES: list[dict[str, Any]] = [
     {
         "name": "place",
-        "weight": 0.15,
+        "weight": 0.13,
         "slots": ["place"],
         "templates": [
             "{place}",
@@ -73,7 +73,7 @@ FAMILIES: list[dict[str, Any]] = [
     },
     {
         "name": "place_price",
-        "weight": 0.08,
+        "weight": 0.07,
         "slots": ["place", "price"],
         "templates": [
             "{price} in {place}",
@@ -139,6 +139,16 @@ FAMILIES: list[dict[str, Any]] = [
             "{bedrooms} {price}",
             "{price} {bedrooms} flat",
             "{bedrooms} for {price}",
+        ],
+    },
+    {
+        "name": "place_age",
+        "weight": 0.03,
+        "slots": ["place", "age"],
+        "templates": [
+            "{age} in {place}",
+            "{place} {age}",
+            "looking for {age} in {place}",
         ],
     },
     {
@@ -255,6 +265,14 @@ PRICES = [
 ]
 
 # Sort phrases -> SortKey.
+AGES = [
+    "new build",
+    "newly built",
+    "brand new",
+    "new",
+    "新樓",
+]
+
 SORTS = [
     ("cheapest", "latest_price"),
     ("most active", "tx_count_12m"),
@@ -417,6 +435,7 @@ def build_pools(
         item([phrase], {"minPrice": low, "maxPrice": high})
         for phrase, low, high in PRICES
     ]
+    pools["age"] = [item([phrase], {"maxBuildingAge": "5"}) for phrase in AGES]
     pools["sort"] = [
         item([phrase], {"sort": key}) for phrase, key in SORTS
     ]

@@ -97,8 +97,8 @@ snapshot predates the trends, transactions, estate-history, or catalogue file,
 only that section shows an error; the overview and estate search keep working.
 
 Search state is linkable too: `q`, `sort`, `region`, `subregion`, `district`,
-price/area ranges, `bedrooms`, `mtr`, and `school` are serialized in the query
-string and restored on load. Links that carry only `district` back-fill their
+price/area ranges, `bedrooms`, `mtr`, `school`, and `maxAge` are serialized in
+the query string and restored on load. Links that carry only `district` back-fill their
 region and subregion from the checked-in geography model, so the cascade opens
 at the right level. Estate views use `?estate=<estate_id>`; opening such a URL loads the
 snapshot and opens that estate, and selecting or closing an estate updates the
@@ -136,6 +136,9 @@ silently narrow the new one — and the result area always discloses what happen
   than pretending a recent build is a new launch.
 - `new` / `新樓` applies a building-age filter of 5 years, marked `(default)`
   like a vague size. `newest` and `最新` are still sort words, not age filters.
+  The rule is a real five years, not a calendar bucket, and an estate with no
+  recorded first-occupation date is excluded rather than assumed recent (about
+  9% of the snapshot).
 - `Unrecognised:` lists words that were not used, so nothing is dropped quietly.
 - An ambiguous place asks instead of guessing and offers hint buttons; clicking a
   hint rewrites the URL through the normal filter serializer, so the result stays
@@ -162,8 +165,8 @@ VITE_FEATURE_NL_SEARCH=true npm run build
 Cloudflare Pages sets the variable per environment. With the flag off the form
 and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
 imported for its module-level index. With the flag on the feature adds about
-20 kB raw / 6.8 kB gzipped over the flag-off build (419.77 kB / 123.69 kB off,
-439.83 kB / 130.50 kB on, measured at head). The flag is a build-time rollout switch, not a
+20 kB raw / 6.8 kB gzipped over the flag-off build (419.82 kB / 123.73 kB off,
+439.63 kB / 130.48 kB on, measured at head). The flag is a build-time rollout switch, not a
 code-splitting boundary.
 
 An estate name in the sentence is applied as the `q` text query, which is a

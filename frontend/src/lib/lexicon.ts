@@ -160,7 +160,6 @@ const UNSUPPORTED: { pattern: RegExp; label: string }[] = [
   { pattern: /(?:^| )(?:好校網|名校網)(?= |$)/, label: "School quality (net membership only)" },
   { pattern: /(?:^| )(?:連傢俬|有傢俬|包傢俬)(?= |$)/, label: "Furnishing (no data)" },
   { pattern: /(?:^| )(?:寵物|可養寵物)(?= |$)/, label: "Pet policy (no data)" },
-  { pattern: /(?:^| )(?:新樓|新盤)(?= |$)/, label: "Building age (no age filter)" },
 ];
 
 const BEDROOM_WORDS: Record<string, number> = {
@@ -681,41 +680,6 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
 
-  // "new" means a recent build, not a recent transaction; "recent" stays a sort
-  // word. 新盤 is primary-market wording the data cannot answer.
-  const newBuild = consume(
-    rest,
-    /(?:^| )(?:new build|newly built|brand new|new)(?= |$)/,
-  );
-  if (newBuild) {
-    patch.maxBuildingAge = String(NEW_BUILD_YEARS);
-    spec.applied.push({
-      field: "Building age",
-      value: `≤ ${NEW_BUILD_YEARS} years (default)`,
-      defaulted: true,
-    });
-    rest = newBuild.rest;
-  } else {
-    const primary = consume(rest, /(?:^| )(?:新盤|新樓盤)(?= |$)/);
-    if (primary) {
-      spec.ignored.push(
-        "Primary market (new launches) is not in the data; use 新樓 for a recent build",
-      );
-      rest = primary.rest;
-    } else {
-      const cjkNew = consume(rest, /(?:^| )新樓(?= |$)/);
-      if (cjkNew) {
-        patch.maxBuildingAge = String(NEW_BUILD_YEARS);
-        spec.applied.push({
-          field: "Building age",
-          value: `≤ ${NEW_BUILD_YEARS} years (default)`,
-          defaulted: true,
-        });
-        rest = cjkNew.rest;
-      }
-    }
-  }
-
   let sizeAlternatives: { min: string; max: string }[] = [];
   if (!patch.minNetArea && !patch.maxNetArea) {
     // Vague size words get a marked default rather than being dropped: the
@@ -988,6 +952,29 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
       direction = directionWord(placed.span);
     }
     rest = placed.rest;
+  }
+
+  // Building age is matched after the place: "New Territories" is a region, and
+  // estate names may contain "new". Both are consumed before this step.
+  const primaryMarket = consume(rest, /(?:^| )(?:新盤|新樓盤)(?= |$)/);
+  if (primaryMarket) {
+    spec.ignored.push(
+      "Primary market (new launches) is not in the data; use 新樓 for a recent build",
+    );
+    rest = primaryMarket.rest;
+  }
+  const ageWord = consume(
+    rest,
+    /(?:^| )(?:new build|newly built|brand new|new|新樓)(?= |$)/,
+  );
+  if (ageWord) {
+    patch.maxBuildingAge = String(NEW_BUILD_YEARS);
+    spec.applied.push({
+      field: "Building age",
+      value: `≤ ${NEW_BUILD_YEARS} years (default)`,
+      defaulted: true,
+    });
+    rest = ageWord.rest;
   }
 
   let leftovers = leftoverWords(rest);

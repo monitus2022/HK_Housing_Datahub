@@ -168,6 +168,12 @@ export function EstateSearch({ estates, onSelect }: Props) {
       ),
     [estates],
   );
+  // A snapshot without first-occupation dates would make the age field return
+  // zero rows for any value, so it is hidden rather than misleading.
+  const supportsAge = useMemo(
+    () => estates.some((estate) => estate.first_op_date !== undefined),
+    [estates],
+  );
   const effectiveFilters = supportsFilters ? filters : EMPTY_ESTATE_FILTERS;
   const filtered = useMemo(
     () => filterEstates(estates, deferredQuery, effectiveFilters),
@@ -637,18 +643,20 @@ export function EstateSearch({ estates, onSelect }: Props) {
               }
             />
           </label>
-          <label className="field">
-            <span>Max building age (years)</span>
-            <input
-              type="number"
-              min="0"
-              inputMode="numeric"
-              value={filters.maxBuildingAge}
-              onChange={(event) =>
-                updateFilter({ maxBuildingAge: event.target.value })
-              }
-            />
-          </label>
+          {supportsAge ? (
+            <label className="field">
+              <span>Max building age (years)</span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={filters.maxBuildingAge}
+                onChange={(event) =>
+                  updateFilter({ maxBuildingAge: event.target.value })
+                }
+              />
+            </label>
+          ) : null}
           <label className="field">
             <span>Bedrooms (latest)</span>
             <select

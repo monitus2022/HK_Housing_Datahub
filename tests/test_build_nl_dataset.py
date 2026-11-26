@@ -31,6 +31,7 @@ FILTER_KEYS = {
     "mtrLine",
     "schoolNet",
     "sort",
+    "maxBuildingAge",
 }
 
 
