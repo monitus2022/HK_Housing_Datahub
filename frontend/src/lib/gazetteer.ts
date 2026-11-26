@@ -383,7 +383,9 @@ function directionOutcome(
   let direction: string | null = null;
   let regionFromTerm: string | undefined;
 
-  const cjk = cjkDirection(term);
+  // An exact place label wins: 港島西 and 新界北 are district names, not
+  // "west of the island" and "north of the New Territories".
+  const cjk = PLACE_INDEX.has(term) ? null : cjkDirection(term);
   if (cjk) {
     direction = cjk.direction;
     regionFromTerm = cjk.regionTerm;

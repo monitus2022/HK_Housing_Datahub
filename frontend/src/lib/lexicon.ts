@@ -350,7 +350,7 @@ function parseCjkNumber(raw: string): number | null {
       continue;
     }
     // 萬/億 are stripped by `cjkMoney` before this runs, so a unit here means
-    // the amount was malformed ("一萬五千" is not a supported form).
+    // the amount put a unit inside the numeral ("一億五千萬" is not supported).
     return null;
   }
   return seen ? section + digit : null;
@@ -366,7 +366,8 @@ function cjkMoney(raw: string): number | null {
   const amount = parseCjkNumber(match[1]);
   if (amount === null || amount <= 0) return null;
   const factor = match[2] === "億" || match[2] === "亿" ? 100_000_000 : 10_000;
-  return amount * factor;
+  // Round like the English paths: 1.5萬 is 15,000, not 14999.999999999998.
+  return Math.round(amount * factor);
 }
 
 /** "600萬以下", "五百萬以上", "500萬至800萬" -> a price patch. */
@@ -957,12 +958,20 @@ function unfoldDots(text: string): string {
 }
 
 /** The direction word inside a span, for the question and hint refinement. */
+const CJK_DIRECTION_WORDS: Record<string, string> = {
+  "東": "east",
+  "南": "south",
+  "西": "west",
+  "北": "north",
+};
+
 function directionWord(span: string): string | null {
-  return (
-    span
-      .split(" ")
-      .find((word) => ["east", "west", "north", "south"].includes(word)) ?? null
-  );
+  const english = span
+    .split(" ")
+    .find((word) => ["east", "west", "north", "south"].includes(word));
+  if (english) return english;
+  // Chinese has no space to split on, and puts the word last: 港島東.
+  return CJK_DIRECTION_WORDS[span.slice(-1)] ?? null;
 }
 
 /** Whole-phrase membership that respects word boundaries. */

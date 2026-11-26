@@ -594,6 +594,53 @@ describe("Chinese belongs to v1, not to the model", () => {
     ]);
   });
 
+  it("names the direction in a Chinese question and can be anchored", () => {
+    const bare = parseQuery("東");
+    expect(bare.direction).toBe("east");
+    expect(bare.question).toBe("East of which region?");
+
+    const kowloon = parseQuery("九龍東");
+    expect(kowloon.direction).toBe("east");
+    expect(kowloon.question).toBe("East of which subregion?");
+
+    // Answering with Kowloon must narrow to its eastern subregions, not apply
+    // all of Kowloon.
+    const refined = refineDirection(kowloon, "20");
+    expect(refined.kind).toBe("ambiguous");
+    expect(refined.spec?.hints.map((hint) => hint.label)).toEqual([
+      "Kwun Tong",
+      "Kai Tak",
+      "Tseung Kwan O",
+    ]);
+
+    const island = refineDirection(parseQuery("東"), "10");
+    expect(island.kind).toBe("applied");
+    expect(island.spec?.filters.subregionId).toBe("1004");
+  });
+
+  it("keeps district names that merely look like directions", () => {
+    expect(applied(parseQuery("港島西")).filters.districtId).toBe("100102");
+    expect(applied(parseQuery("新界北")).filters.districtId).toBe("301502");
+  });
+
+  it("does not turn a place ending near a direction word into a direction", () => {
+    for (const text of ["北角", "西貢", "東涌", "上水"]) {
+      const parse = parseQuery(text);
+      expect(parse.kind, text).toBe("applied");
+      expect(parse.direction, text).toBeNull();
+    }
+  });
+
+  it("parses the number edges the price tests skip", () => {
+    expect(applied(parseQuery("九千九百萬以下")).filters.maxPrice).toBe("99000000");
+    expect(applied(parseQuery("一千零五十萬以下")).filters.maxPrice).toBe("10500000");
+    expect(applied(parseQuery("兩億以下")).filters.maxPrice).toBe("200000000");
+    expect(applied(parseQuery("10萬以下")).filters.maxPrice).toBe("100000");
+    expect(applied(parseQuery("0.5萬以上")).filters.minPrice).toBe("5000");
+    // No trailing unit: not a supported amount, so no price is applied.
+    expect(parseQuery("一萬五千").spec?.filters.maxPrice ?? "").toBe("");
+  });
+
   it("asks which region a bare 東 means", () => {
     const parse = parseQuery("東");
     expect(parse.kind).toBe("ambiguous");
