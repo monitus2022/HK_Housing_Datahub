@@ -55,10 +55,9 @@ rest unrecognised. One consequence: an estate whose name contains an unsupported
 concept (`Sea View`-style names) is consumed by the unsupported step first.
 
 The index costs ~59 ms for 9,750 estates, so the flag-on build warms it while the
-browser is idle rather than on submit; with the flag off nothing is indexed. The
-applied text is a **substring** match, so it can return more rows than the
-disclosed estate count — a name that prefixes another estate, or a district name,
-widens it.
+browser is idle rather than on submit; with the flag off nothing is indexed. The applied text is a **substring** match, so it
+can return more rows than the disclosed estate count — a name that prefixes
+another estate, or a district name, widens it.
 
 **Language is a row property, not a per-slot draw.** Each row is English (55%),
 Chinese (30%) or mixed (15%). A mixed row is an English sentence with a Chinese
@@ -285,7 +284,7 @@ place.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
 0.83 of the sampling weight, but **93.0% of emitted rows** carry a location
-(5,580 of 6,000; 89.1% at 1,000 rows). The gap is dedupe and the abbreviation
+(5,577 of 6,000; 89.1% at 1,000 rows). The gap is dedupe and the abbreviation
 family, which also plants a place: families with more distinct texts survive
 dedupe better. Quote the measured figure, not 0.83. This is realistic for a
 property query but **not** the shape the training set needs, so the "no slot in

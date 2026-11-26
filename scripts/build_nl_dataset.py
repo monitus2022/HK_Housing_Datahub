@@ -599,6 +599,12 @@ def least_used(
 ANCHOR_FAMILIES = {"place_line": ("mtr", "mtrLine"), "place_net": ("net", "schoolNet")}
 
 
+def language_predicate(slot: str, lang: str):
+    """Only accept a pool entry that has a surface in the row's language."""
+    wanted = form_language(slot, lang)
+    return lambda entry: bool(entry["forms"].get(wanted))
+
+
 def forms_for(entry: dict[str, Any], slot: str, lang: str) -> list[str]:
     """Which language's surface to use for one slot.
 
@@ -652,9 +658,7 @@ def render(
             pools[anchor_slot],
             usage[anchor_slot],
             rng,
-            lambda candidate, want=form_language(anchor_slot, lang): bool(
-                candidate["forms"].get(want)
-            ),
+            language_predicate(anchor_slot, lang),
         )
         usage[anchor_slot][entry["key"]] += 1
         chosen[anchor_slot] = entry
@@ -678,12 +682,11 @@ def render(
     for slot in family["slots"]:
         if slot in chosen:
             continue
-        wanted = form_language(slot, lang)
         entry = least_used(
             pools[slot],
             usage[slot],
             rng,
-            lambda candidate, want=wanted: bool(candidate["forms"].get(want)),
+            language_predicate(slot, lang),
         )
         usage[slot][entry["key"]] += 1
         chosen[slot] = entry

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import re
 import random
+import re
 import sqlite3
 from collections import Counter
 from pathlib import Path
@@ -168,11 +168,33 @@ def test_language_mix_and_purity() -> None:
             assert re.search(r"[A-Za-z]", text), row
 
 
+def test_language_predicate_rejects_an_incompatible_entry() -> None:
+    generator = load_generator()
+    pool = [
+        {"forms": {"en": ["english only"]}, "planted": {}, "expect": "applied", "key": "en"},
+        {"forms": {"en": ["both"], "zh": ["兩者"]}, "planted": {}, "expect": "applied", "key": "both"},
+    ]
+    usage = {"en": 0, "both": 0}
+    picked = generator.least_used(
+        pool, usage, random.Random(3), generator.language_predicate("place", "zh")
+    )
+    assert picked["key"] == "both"
+    picked_en = generator.least_used(
+        pool, usage, random.Random(3), generator.language_predicate("place", "en")
+    )
+    assert picked_en["key"] in {"en", "both"}
+
+
 def test_language_purity_survives_the_correlated_path(tmp_path: Path) -> None:
     """The mtr/net anchor picks entries too, and must respect the row language."""
     generator = load_generator()
     db = write_fixture_db(tmp_path / "fixture.db")
     rows = generator.generate(1200, seed=113, db_path=db)
+    # The anchor path must actually be exercised, or the purity check is vacuous.
+    assert any(
+        row["lang"] == "zh" and ("mtrLine" in row["planted"] or "schoolNet" in row["planted"])
+        for row in rows
+    ), "no correlated Chinese rows were generated"
     for row in rows:
         text = row["text"]
         if row["lang"] == "en":
@@ -332,7 +354,7 @@ def test_place_allowed_refuses_an_empty_allowance() -> None:
 
 def test_least_used_refuses_an_unsatisfiable_predicate() -> None:
     generator = load_generator()
-    pool = [{"forms": ["x"], "planted": {}, "expect": "applied", "key": "k"}]
+    pool = [{"forms": {"en": ["x"]}, "planted": {}, "expect": "applied", "key": "k"}]
     usage = {"k": 0}
     with pytest.raises(RuntimeError):
         generator.least_used(pool, usage, random.Random(1), lambda entry: False)
