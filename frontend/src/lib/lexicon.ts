@@ -980,7 +980,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     patch.maxBuildingAge = String(NEW_BUILD_YEARS);
     spec.applied.push({
       field: "Building age",
-      value: `≤ ${NEW_BUILD_YEARS} years (default)`,
+      value: `≤ ${NEW_BUILD_YEARS} years`,
       defaulted: true,
     });
     rest = ageWord.rest;

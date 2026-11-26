@@ -638,6 +638,12 @@ describe("new build", () => {
     expect(both.ignored.join(" ")).not.toContain("no age filter");
   });
 
+  it("combines the age with a place", () => {
+    const spec = applied(parseQuery("new in TKO"));
+    expect(spec.filters.subregionId).toBe("2010");
+    expect(spec.filters.maxBuildingAge).toBe("5");
+  });
+
   it("keeps newest as a sort, not an age filter", () => {
     const spec = applied(parseQuery("newest in TKO"));
     expect(spec.sort).toBe("latest_tx_date");
@@ -798,7 +804,7 @@ describe("Chinese belongs to v1, not to the model", () => {
     expect(newBuild.filters.maxBuildingAge).toBe("5");
     expect(newBuild.applied).toContainEqual({
       field: "Building age",
-      value: "≤ 5 years (default)",
+      value: "≤ 5 years",
       defaulted: true,
     });
     expect(said("安靜")).toContain("Quiet (no noise data)");

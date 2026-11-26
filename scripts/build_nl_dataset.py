@@ -264,7 +264,6 @@ PRICES = [
     ("6.5m to 9m", "6500000", "9000000"),
 ]
 
-# Sort phrases -> SortKey.
 AGES = [
     "new build",
     "newly built",
@@ -273,6 +272,7 @@ AGES = [
     "新樓",
 ]
 
+# Sort phrases -> SortKey.
 SORTS = [
     ("cheapest", "latest_price"),
     ("most active", "tx_count_12m"),
