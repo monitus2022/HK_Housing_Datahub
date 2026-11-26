@@ -121,6 +121,14 @@ describe("supportsBuildingAge", () => {
   });
 });
 
+describe("activeFilterCount", () => {
+  it("counts the age as one filter", () => {
+    expect(
+      activeFilterCount({ ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" }),
+    ).toBe(1);
+  });
+});
+
 describe("matchesFilters", () => {
   it("applies inclusive price, net-ft, and area ranges", () => {
     const subject = estate({});

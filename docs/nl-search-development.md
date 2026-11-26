@@ -244,15 +244,15 @@ defined in the script itself. It uses no model and no network.
 - **Consistency.** A district always carries its subregion and region; area and
   price ranges are ordered; one location per row.
 
-  `new` is a build age, not a transaction date: `newest` and `最新` stay sort
-  words, while `new` / `新樓` set `maxBuildingAge = 5`, marked `(default)` in the
-  same way as a vague size. The age is a real five years (milliseconds/365.25, the
-  same arithmetic as the mart), not a calendar-year bucket, so a 5-year-11-month
-  estate does not pass a 5-year chip. Estates with no `first_op_date` are excluded
-  (~9% of the snapshot): an unknown build year cannot be known to be recent. Age
-  matching runs **after** estate and place, so `New Territories` and estate names
-  containing "new" are consumed first. `新盤` is primary-market wording — the data has no
-  launch or first-sale flag — so it is disclosed rather than mapped onto age.
+- **Building age.** `new` is a build age, not a transaction date: `newest` and `最新` stay sort
+words, while `new` / `新樓` set `maxBuildingAge = 5`, marked `(default)` in the
+same way as a vague size. The age is a real five years (milliseconds/365.25, the
+same arithmetic as the mart), not a calendar-year bucket, so a 5-year-11-month
+estate does not pass a 5-year chip. Estates with no `first_op_date` are excluded
+(~9% of the snapshot): an unknown build year cannot be known to be recent. Age
+matching runs **after** estate and place, so `New Territories` and estate names
+containing "new" are consumed first. `新盤` is primary-market wording — the data has no
+launch or first-sale flag — so it is disclosed rather than mapped onto age.
 
 - **Planted values are diagnostics, not labels.** Each row records `planted` and
   a coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`). The teacher's
