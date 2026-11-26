@@ -185,6 +185,54 @@ whether the labels are trustworthy. The plan separates the two:
 | Closed-world absences (`shenzhen` is not in HK) | may label REFUSE/ABSTAIN negatives |
 | Teacher (3B CPU first, 7B GPU if needed) | labels the positive and ambiguous rows |
 
+### Candidate generation
+
+`scripts/build_nl_dataset.py` produces the inputs: 15 weighted families (place,
+place+bed, place+bed+price, line, net, sort, direction, abbreviation,
+out-of-scope, unsupported…), each with 3–5 whole-sentence templates and value
+pools drawn from `geo.json` and `gazetteer.json`, plus hardened pools for
+bedrooms, sizes, prices, sorts, directions and unsupported terms defined in the
+script itself. It uses no model and no network.
+
+- **Least-used sampling per planted value.** "2 bed", "two bedrooms" and `兩房`
+  are one coverage cell, so a value with more spellings does not get more rows.
+- **Co-occurrence from the mart.** A line or net is paired only with subregions
+  that actually contain it (read-only, `mode=ro`), so the bulk avoids sentences
+  like "South Island Line in Tung Chung". The constraint is **subregion-level**,
+  so a district inside a served subregion can still be wrong (Tung Chung Line
+  "in Discovery Bay"). A line or net name the mart cannot place is dropped from
+  the pool and listed in `--report`, never silently paired with anything. (The
+  mart itself has odd pairings — net "Tai Po" appears in one Yuen Long estate —
+  and those are kept, because the dataset mirrors the data. The same applies to
+  lines: the mart really does place the Tsuen Wan Line in Yuen Long and the East
+  Rail Line in Causeway Bay, so those rows are generated.)
+- **Consistency.** A district always carries its subregion and region; area and
+  price ranges are ordered; one location per row.
+- **Planted values are diagnostics, not labels.** Each row records `planted` and
+  a coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`). The teacher's
+  label is produced independently; `planted` is used for coverage gates and
+  per-slot recall checks. An absent bound is the empty string, not null, so
+  `maxPrice: ""` means "no upper bound".
+
+The mart is the only non-artifact input, and it lives under gitignored `data/`.
+A checkout without it **refuses to run** rather than silently pairing lines and
+nets at random; `--no-correlation` generates anyway and marks the report
+`correlation: off`. Uncorrelated output is for smoke tests only, never labels.
+
+A 6,000-row run yields 6,000 unique texts (no duplicates), 49–67 rows per MTR
+line, 31–47 per school-net name, 100–104 per sort key, and 57–85 per place
+scope, with every one of the 77 scopes present. Roughly half the rows contain
+Chinese, because Chinese place names and size words are in the lexicon.
+
+The candidate mix is deliberately place-heavy: the place-carrying families carry
+0.83 of the sampling weight, but **94.5% of emitted rows** carry a location
+(5,667 of 6,000; 88.5% at 1,000 rows). The gap is dedupe and the abbreviation
+family, which also plants a place: families with more distinct texts survive
+dedupe better. Quote the measured figure, not 0.83. This is realistic for a
+property query but **not** the shape the training set needs, so the "no slot in
+more than 55% of rows" gate below must be met by down-sampling, not inherited
+from this generator.
+
 ### Volume gates (all must hold before training)
 
 - ≥ 3,000 training rows after filtering, ≥ 300 dev rows;
@@ -307,5 +355,7 @@ seeing the numbers is too late.
 | `frontend/src/lib/geo.ts` / `.json` | region → subregion → district model |
 | `frontend/src/components/EstateSearch.tsx` | the input, disclosure rows and hints |
 | `scripts/build_gazetteer.py`, `scripts/build_geo.py` | regenerate the artifacts |
+| `scripts/build_nl_dataset.py` | generate the NL candidate rows |
 | `make gazetteer-check`, `make geo-check` | fail on artifact drift |
+| `make nl-dataset` | 6,000 candidates + coverage report + 50-row sample |
 | `frontend/README.md` | user-facing behaviour and the feature flag |
