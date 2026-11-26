@@ -6,6 +6,7 @@ import {
   listMtrLines,
   listSchoolNets,
   matchesFilters,
+  supportsBuildingAge,
 } from "./filters";
 
 function estate(overrides: Partial<EstateSummary>): EstateSummary {
@@ -73,6 +74,16 @@ describe("building age", () => {
     ).toBe(true);
   });
 
+  it("accepts a future first occupation as pre-sale", () => {
+    const future = new Date(Date.now() + 200 * 24 * 60 * 60 * 1000);
+    expect(
+      matchesFilters(estate({ first_op_date: future.toISOString() }), {
+        ...EMPTY_ESTATE_FILTERS,
+        maxBuildingAge: "5",
+      }),
+    ).toBe(true);
+  });
+
   it("rejects a malformed date", () => {
     const filters = { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" };
     expect(matchesFilters(estate({ first_op_date: "unknown" }), filters)).toBe(
@@ -91,6 +102,22 @@ describe("building age", () => {
     expect(matchesFilters(estate({ first_op_date: null }), EMPTY_ESTATE_FILTERS)).toBe(
       true,
     );
+  });
+});
+
+describe("supportsBuildingAge", () => {
+  it("is false when every date is null", () => {
+    const estates = [estate({ first_op_date: null }), estate({ first_op_date: null })];
+    expect(supportsBuildingAge(estates)).toBe(false);
+  });
+
+  it("is true when any estate has a date", () => {
+    const estates = [estate({ first_op_date: null }), estate({ first_op_date: "2010-01-01" })];
+    expect(supportsBuildingAge(estates)).toBe(true);
+  });
+
+  it("is false for an empty snapshot", () => {
+    expect(supportsBuildingAge([])).toBe(false);
   });
 });
 

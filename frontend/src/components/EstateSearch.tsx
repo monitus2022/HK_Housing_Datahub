@@ -18,6 +18,7 @@ import {
   activeFilterCount,
   listMtrLines,
   listSchoolNets,
+  supportsBuildingAge,
   EMPTY_ESTATE_FILTERS,
   type EstateFilters,
 } from "../lib/filters";
@@ -170,10 +171,7 @@ export function EstateSearch({ estates, onSelect }: Props) {
   );
   // A snapshot without first-occupation dates would make the age field return
   // zero rows for any value, so it is hidden rather than misleading.
-  const supportsAge = useMemo(
-    () => estates.some((estate) => estate.first_op_date !== undefined),
-    [estates],
-  );
+  const supportsAge = useMemo(() => supportsBuildingAge(estates), [estates]);
   const effectiveFilters = supportsFilters ? filters : EMPTY_ESTATE_FILTERS;
   const filtered = useMemo(
     () => filterEstates(estates, deferredQuery, effectiveFilters),

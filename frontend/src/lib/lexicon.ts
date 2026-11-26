@@ -6,8 +6,8 @@
  *
  * The parser consumes phrases in a fixed order — bedrooms, area (including
  * vague-size defaults and a bare-size fallback), price, sort words, unsupported
- * concepts, MTR lines, school nets, then a place — and removes each phrase it
- * understands. Whatever is left is either shown as unrecognised, or matched
+ * concepts, MTR lines, school nets, then an estate and a place, then a building
+ * age — and removes each phrase it understands. Whatever is left is either shown as unrecognised, or matched
  * fuzzily as a whole. A phrase that is recognised but has no data behind it
  * (sea view, quiet, "near MTR") goes to `ignored` rather than being silently
  * treated as free text: the result set must reflect what the user asked for, or
@@ -963,10 +963,19 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     );
     rest = primaryMarket.rest;
   }
-  const ageWord = consume(
-    rest,
-    /(?:^| )(?:new build|newly built|brand new|new|新樓)(?= |$)/,
-  );
+  // "New Territores" is a typo of a region, and the whole-phrase fallback below
+  // would have found it. Do not consume "new" out of a phrase that resolves as
+  // a place, or the fallback only sees "territores".
+  const agePhrase = leftoverWords(rest).join(" ");
+  const agePhraseIsPlace =
+    agePhrase.length >= 4 &&
+    /(?:^| )(?:new build|newly built|brand new|new|新樓)(?= |$)/.test(rest) &&
+    ((outcome) => outcome.kind === "resolved" || outcome.kind === "ambiguous")(
+      resolvePhrase(agePhrase, { regionId: options.regionId }),
+    );
+  const ageWord = agePhraseIsPlace
+    ? null
+    : consume(rest, /(?:^| )(?:new build|newly built|brand new|new|新樓)(?= |$)/);
   if (ageWord) {
     patch.maxBuildingAge = String(NEW_BUILD_YEARS);
     spec.applied.push({

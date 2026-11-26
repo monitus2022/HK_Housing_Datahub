@@ -736,7 +736,7 @@ def report(
     expects = Counter(row["expect"] for row in rows)
     coverage: dict[str, Counter[str]] = defaultdict(Counter)
     for row in rows:
-        for slot in ("mtrLine", "schoolNet", "sort", "bedrooms"):
+        for slot in ("mtrLine", "schoolNet", "sort", "bedrooms", "maxBuildingAge"):
             if slot in row["planted"]:
                 coverage[slot][str(row["planted"][slot])] += 1
         level = (

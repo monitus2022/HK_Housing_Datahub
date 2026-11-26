@@ -617,6 +617,12 @@ describe("new build", () => {
     expect(spec.unrecognised).toEqual([]);
   });
 
+  it("does not eat a misspelt New Territories either", () => {
+    const spec = applied(parseQuery("New Territores 3 bed"));
+    expect(spec.filters.regionId).toBe("30");
+    expect(spec.filters.maxBuildingAge).toBe("");
+  });
+
   it("does not eat an estate name containing new", () => {
     const estates = [{ estate_name_en: "New Territories Plaza", estate_name_zh: "新界廣場" }];
     const spec = applied(parseQuery("New Territories Plaza 3 bed", { estates }));

@@ -155,6 +155,11 @@ export function activeFilterCount(filters: EstateFilters): number {
   return count;
 }
 
+/** True when the snapshot carries first-occupation dates at all. */
+export function supportsBuildingAge(estates: EstateSummary[]): boolean {
+  return estates.some((estate) => Boolean(estate.first_op_date));
+}
+
 export function listMtrLines(estates: EstateSummary[]): string[] {
   const lines = new Set<string>();
   for (const estate of estates) {
