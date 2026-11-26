@@ -548,6 +548,9 @@ describe("Chinese belongs to v1, not to the model", () => {
     expect(applied(parseQuery("將軍澳綫")).filters.mtrLine).toBe(
       "Tseung Kwan O Line",
     );
+    expect(applied(parseQuery("將軍澳線")).filters.mtrLine).toBe(
+      "Tseung Kwan O Line",
+    );
     expect(applied(parseQuery("東鐵線")).filters.mtrLine).toBe("East Rail Line");
     expect(applied(parseQuery("港島綫")).filters.mtrLine).toBe("Island Line");
   });
@@ -580,6 +583,8 @@ describe("Chinese belongs to v1, not to the model", () => {
     expect(said("近地鐵")).toContain("MTR proximity (line-level data only)");
     expect(said("連傢俬")).toContain("Furnishing (no data)");
     expect(said("新樓")).toContain("Building age (no age filter)");
+    expect(said("安靜")).toContain("Quiet (no noise data)");
+    expect(said("好校網")).toContain("School quality (net membership only)");
   });
 
   it("anchors a Chinese direction to the region named in front of it", () => {
@@ -637,19 +642,28 @@ describe("Chinese belongs to v1, not to the model", () => {
     expect(applied(parseQuery("兩億以下")).filters.maxPrice).toBe("200000000");
     expect(applied(parseQuery("10萬以下")).filters.maxPrice).toBe("100000");
     expect(applied(parseQuery("0.5萬以上")).filters.minPrice).toBe("5000");
+    // 0.07 * 100_000_000 is 7000000.000000001; without the round this would
+    // stringify with that noise. Every 萬 decimal in range happens to land on an
+    // integer after multiplication, so the 億 scale is the one that pins it.
+    expect(applied(parseQuery("0.07億以下")).filters.maxPrice).toBe("7000000");
     // No trailing unit: not a supported amount, so no price is applied.
     expect(parseQuery("一萬五千").spec?.filters.maxPrice ?? "").toBe("");
+    // A unit inside the numeral is the reachable malformed case.
+    const compound = parseQuery("一億五千萬以下");
+    expect(compound.spec?.filters.maxPrice ?? "").toBe("");
+    expect(compound.spec?.filters.minPrice ?? "").toBe("");
   });
 
   it("asks which region a bare 東 means", () => {
     const parse = parseQuery("東");
     expect(parse.kind).toBe("ambiguous");
-    expect(parse.question).toContain("region");
+    expect(parse.question).toBe("East of which region?");
     expect(parse.spec?.hints.length).toBeGreaterThan(0);
   });
 
   it("refuses a Chinese city outside the market", () => {
     expect(parseQuery("深圳").kind).toBe("refused");
     expect(parseQuery("倫敦").kind).toBe("refused");
+    expect(parseQuery("東京").kind).toBe("refused");
   });
 });
