@@ -39,6 +39,7 @@ const PARAM_KEYS = [
   "bedrooms",
   "mtr",
   "school",
+  "maxAge",
 ] as const;
 
 function readSort(value: string | null): SortKey {
@@ -77,6 +78,7 @@ export function searchStateFromParams(search: string): SearchState {
       bedrooms: params.get("bedrooms") ?? "",
       mtrLine: params.get("mtr") ?? "",
       schoolNet: params.get("school") ?? "",
+      maxBuildingAge: params.get("maxAge") ?? "",
     },
   };
 }
@@ -108,6 +110,7 @@ export function searchStateToSearch(
   if (filters.maxNetArea) params.set("maxNetArea", filters.maxNetArea);
   if (filters.bedrooms) params.set("bedrooms", filters.bedrooms);
   if (filters.mtrLine) params.set("mtr", filters.mtrLine);
+  if (filters.maxBuildingAge) params.set("maxAge", filters.maxBuildingAge);
   if (filters.schoolNet) params.set("school", filters.schoolNet);
 
   const query = params.toString();

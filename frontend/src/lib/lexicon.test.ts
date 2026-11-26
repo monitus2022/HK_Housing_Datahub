@@ -600,6 +600,29 @@ describe("estate names", () => {
   });
 });
 
+describe("new build", () => {
+  it("reads the English forms as an age default", () => {
+    for (const text of ["new", "new build", "newly built", "brand new"]) {
+      const spec = applied(parseQuery(`${text} 3 bed`));
+      expect(spec.filters.maxBuildingAge, text).toBe("5");
+      expect(spec.filters.bedrooms, text).toBe("3");
+    }
+  });
+
+  it("keeps newest as a sort, not an age filter", () => {
+    const spec = applied(parseQuery("newest in TKO"));
+    expect(spec.sort).toBe("latest_tx_date");
+    expect(spec.filters.maxBuildingAge).toBe("");
+  });
+
+  it("carries the age through the URL", () => {
+    const state = specToState(applied(parseQuery("new 2 bed")));
+    const restored = searchStateFromParams(searchStateToSearch(state));
+    expect(restored.filters.maxBuildingAge).toBe("5");
+    expect(restored.filters.bedrooms).toBe("2");
+  });
+});
+
 describe("compound district labels", () => {
   it("shows the component the user typed, not the joined label", () => {
     const zh = applied(parseQuery("石硤尾"));
@@ -740,7 +763,15 @@ describe("Chinese belongs to v1, not to the model", () => {
     expect(said("車位")).toContain("Parking (no data)");
     expect(said("近地鐵")).toContain("MTR proximity (line-level data only)");
     expect(said("連傢俬")).toContain("Furnishing (no data)");
-    expect(said("新樓")).toContain("Building age (no age filter)");
+    // 新盤 is primary-market wording the data cannot answer; 新樓 is a filter.
+    expect(said("新盤")[0]).toContain("Primary market");
+    const newBuild = applied(parseQuery("新樓"));
+    expect(newBuild.filters.maxBuildingAge).toBe("5");
+    expect(newBuild.applied).toContainEqual({
+      field: "Building age",
+      value: "≤ 5 years (default)",
+      defaulted: true,
+    });
     expect(said("安靜")).toContain("Quiet (no noise data)");
     expect(said("好校網")).toContain("School quality (net membership only)");
   });

@@ -271,7 +271,6 @@ UNSUPPORTED = [
     "near mtr",
     "good schools",
     "furnished",
-    "new build",
 ]
 
 DIRECTIONS = ["east", "west", "north", "south"]

@@ -42,6 +42,31 @@ function estate(overrides: Partial<EstateSummary>): EstateSummary {
   };
 }
 
+describe("building age", () => {
+  const thisYear = new Date().getFullYear();
+
+  it("keeps estates first occupied within the limit", () => {
+    const recent = estate({ first_op_date: `${thisYear - 3}-06-01` });
+    const old = estate({ first_op_date: `${thisYear - 12}-06-01` });
+    const filters = { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" };
+    expect(matchesFilters(recent, filters)).toBe(true);
+    expect(matchesFilters(old, filters)).toBe(false);
+  });
+
+  it("treats an unknown first occupation as no match", () => {
+    const unknown = estate({ first_op_date: null });
+    expect(
+      matchesFilters(unknown, { ...EMPTY_ESTATE_FILTERS, maxBuildingAge: "5" }),
+    ).toBe(false);
+  });
+
+  it("ignores the filter when it is empty", () => {
+    expect(matchesFilters(estate({ first_op_date: null }), EMPTY_ESTATE_FILTERS)).toBe(
+      true,
+    );
+  });
+});
+
 describe("matchesFilters", () => {
   it("applies inclusive price, net-ft, and area ranges", () => {
     const subject = estate({});

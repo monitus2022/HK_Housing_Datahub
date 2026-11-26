@@ -315,6 +315,12 @@ export function EstateSearch({ estates, onSelect }: Props) {
       clear: () => updateFilter({ bedrooms: "" }),
     });
   }
+  if (filters.maxBuildingAge) {
+    chips.push({
+      label: `Built ≤ ${filters.maxBuildingAge} yr`,
+      clear: () => updateFilter({ maxBuildingAge: "" }),
+    });
+  }
   if (filters.mtrLine) {
     chips.push({
       label: filters.mtrLine,
@@ -628,6 +634,18 @@ export function EstateSearch({ estates, onSelect }: Props) {
               value={filters.maxNetArea}
               onChange={(event) =>
                 updateFilter({ maxNetArea: event.target.value })
+              }
+            />
+          </label>
+          <label className="field">
+            <span>Max building age (years)</span>
+            <input
+              type="number"
+              min="0"
+              inputMode="numeric"
+              value={filters.maxBuildingAge}
+              onChange={(event) =>
+                updateFilter({ maxBuildingAge: event.target.value })
               }
             />
           </label>

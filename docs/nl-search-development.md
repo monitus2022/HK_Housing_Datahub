@@ -35,6 +35,7 @@ from the remainder, so leftovers are reported rather than re-matched.
 | vague size | `small`, `middle size`, `大單位` | marked default + band hints (see §3) |
 | price | `under 6m`, `5m to 8m`, `600萬以下`, `500萬至800萬` | `minPrice` / `maxPrice` |
 | sort | `cheapest`, `most active`, `最平`, `最活躍` | `sort` |
+| building age | `new`, `new build`, `newly built`, `新樓` | `maxBuildingAge = 5` (marked default) |
 | unsupported | `sea view`, `quiet`, `parking`, `near MTR`, `海景`, `近地鐵` | `Ignored:` |
 | MTR line | `island line`, `tko line`, `港島綫`, `東鐵線` | `mtrLine` |
 | school net | `school net 41`, `校網 41`, `41校網` | `schoolNet` (by name — see §7) |
@@ -242,6 +243,11 @@ script itself. It uses no model and no network.
   Rail Line in Causeway Bay, so those rows are generated.)
 - **Consistency.** A district always carries its subregion and region; area and
   price ranges are ordered; one location per row.
+`new` is a build age, not a transaction date: `newest` and `最新` stay sort
+words, while `new` / `新樓` set `maxBuildingAge = 5`, marked `(default)` in the
+same way as a vague size. `新盤` is primary-market wording — the data has no
+launch or first-sale flag — so it is disclosed rather than mapped onto age.
+
 - **Planted values are diagnostics, not labels.** Each row records `planted` and
   a coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`). The teacher's
   label is produced independently; `planted` is used for coverage gates and

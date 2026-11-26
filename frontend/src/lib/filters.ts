@@ -13,6 +13,8 @@ export interface EstateFilters {
   bedrooms: string;
   mtrLine: string;
   schoolNet: string;
+  /** Maximum building age in years; empty means no age filter. */
+  maxBuildingAge: string;
 }
 
 export const EMPTY_ESTATE_FILTERS: EstateFilters = {
@@ -28,6 +30,7 @@ export const EMPTY_ESTATE_FILTERS: EstateFilters = {
   bedrooms: "",
   mtrLine: "",
   schoolNet: "",
+  maxBuildingAge: "",
 };
 
 function parseNumber(value: string): number | null {
@@ -65,6 +68,16 @@ function matchesBedrooms(estate: EstateSummary, bedrooms: string): boolean {
   if (estate.latest_bedroom === null) return false;
   if (bedrooms === "4+") return estate.latest_bedroom >= 4;
   return estate.latest_bedroom === Number(bedrooms);
+}
+
+/** First occupation within `maxAge` years. Unknown dates never match. */
+function matchesBuildingAge(estate: EstateSummary, maxAge: string): boolean {
+  const limit = parseNumber(maxAge);
+  if (limit === null) return true;
+  if (!estate.first_op_date) return false;
+  const year = Number(estate.first_op_date.slice(0, 4));
+  if (!Number.isFinite(year) || year <= 0) return false;
+  return new Date().getFullYear() - year <= limit;
 }
 
 export function matchesFilters(
@@ -106,6 +119,9 @@ export function matchesFilters(
   if (!matchesBedrooms(estate, filters.bedrooms)) {
     return false;
   }
+  if (!matchesBuildingAge(estate, filters.maxBuildingAge)) {
+    return false;
+  }
   if (
     filters.mtrLine &&
     !splitList(estate.mtr_lines).includes(filters.mtrLine)
@@ -131,6 +147,7 @@ export function activeFilterCount(filters: EstateFilters): number {
   if (filters.bedrooms) count += 1;
   if (filters.mtrLine) count += 1;
   if (filters.schoolNet) count += 1;
+  if (filters.maxBuildingAge) count += 1;
   return count;
 }
 

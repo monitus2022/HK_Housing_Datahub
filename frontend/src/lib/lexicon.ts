@@ -149,7 +149,6 @@ const UNSUPPORTED: { pattern: RegExp; label: string }[] = [
   { pattern: /\bquiet\b/, label: "Quiet (no noise data)" },
   { pattern: /\b(?:pet|pets) ?friendly\b/, label: "Pet policy (no data)" },
   { pattern: /\b(?:furnished|unfurnished)\b/, label: "Furnishing (no data)" },
-  { pattern: /\b(?:new build|newly built|brand new)\b/, label: "Building age (no age filter)" },
   { pattern: /\b(?:car ?park|parking)\b/, label: "Parking (no data)" },
   { pattern: /\b(?:near|close to|next to) ?(?:the )?mtr\b/, label: "MTR proximity (line-level data only)" },
   { pattern: /(?:^| )mtr(?: station)?(?= |$)/, label: "MTR proximity (line-level data only)" },
@@ -225,6 +224,9 @@ const SORT_WORDS: { pattern: RegExp; key: SortKey; label: string }[] = [
     label: "Alphabetical",
   },
 ];
+
+/** Default applied by "new" / 新樓, from the snapshot: 96 estates since 2021. */
+const NEW_BUILD_YEARS = 5;
 
 type SizeBand = "small" | "middle" | "large";
 
@@ -675,6 +677,41 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
           value: areaLabel(patch.minNetArea, ""),
         });
         rest = areaMin.rest;
+      }
+    }
+  }
+
+  // "new" means a recent build, not a recent transaction; "recent" stays a sort
+  // word. 新盤 is primary-market wording the data cannot answer.
+  const newBuild = consume(
+    rest,
+    /(?:^| )(?:new build|newly built|brand new|new)(?= |$)/,
+  );
+  if (newBuild) {
+    patch.maxBuildingAge = String(NEW_BUILD_YEARS);
+    spec.applied.push({
+      field: "Building age",
+      value: `≤ ${NEW_BUILD_YEARS} years (default)`,
+      defaulted: true,
+    });
+    rest = newBuild.rest;
+  } else {
+    const primary = consume(rest, /(?:^| )(?:新盤|新樓盤)(?= |$)/);
+    if (primary) {
+      spec.ignored.push(
+        "Primary market (new launches) is not in the data; use 新樓 for a recent build",
+      );
+      rest = primary.rest;
+    } else {
+      const cjkNew = consume(rest, /(?:^| )新樓(?= |$)/);
+      if (cjkNew) {
+        patch.maxBuildingAge = String(NEW_BUILD_YEARS);
+        spec.applied.push({
+          field: "Building age",
+          value: `≤ ${NEW_BUILD_YEARS} years (default)`,
+          defaulted: true,
+        });
+        rest = cjkNew.rest;
       }
     }
   }
