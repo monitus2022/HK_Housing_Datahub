@@ -485,3 +485,185 @@ describe("apply", () => {
     expect(url).toContain("region=20");
   });
 });
+
+describe("Chinese belongs to v1, not to the model", () => {
+  it("reads 兩房 and 六房 as bedrooms", () => {
+    expect(applied(parseQuery("兩房 in 大埔")).filters.bedrooms).toBe("2");
+    expect(applied(parseQuery("六房")).filters.bedrooms).toBe("4+");
+    expect(applied(parseQuery("3房")).filters.bedrooms).toBe("3");
+  });
+
+  it("reads a Chinese price ceiling", () => {
+    const spec = applied(parseQuery("600萬以下"));
+    expect(spec.filters.maxPrice).toBe("6000000");
+    expect(spec.filters.minPrice).toBe("");
+    expect(spec.applied).toContainEqual({ field: "Price", value: "≤ HK$6M" });
+  });
+
+  it("reads a ceiling written in Chinese numerals", () => {
+    expect(applied(parseQuery("五百萬以下")).filters.maxPrice).toBe("5000000");
+    expect(applied(parseQuery("一千萬以下")).filters.maxPrice).toBe("10000000");
+  });
+
+  it("treats a leading 十/百/千 as one", () => {
+    expect(applied(parseQuery("十萬以下")).filters.maxPrice).toBe("100000");
+    expect(applied(parseQuery("兩百萬以下")).filters.maxPrice).toBe("2000000");
+    expect(applied(parseQuery("三千萬以下")).filters.maxPrice).toBe("30000000");
+  });
+
+  it("reads 億 as a hundred million", () => {
+    expect(applied(parseQuery("一億以上")).filters.minPrice).toBe("100000000");
+  });
+
+  it("reads a Chinese price floor", () => {
+    expect(applied(parseQuery("800萬以上")).filters.minPrice).toBe("8000000");
+  });
+
+  it("reads a Chinese price range", () => {
+    const spec = applied(parseQuery("500萬至800萬"));
+    expect(spec.filters.minPrice).toBe("5000000");
+    expect(spec.filters.maxPrice).toBe("8000000");
+  });
+
+  it("reads the spoken range and floor variants", () => {
+    expect(applied(parseQuery("500萬到800萬")).filters.minPrice).toBe("5000000");
+    expect(applied(parseQuery("600萬或以下")).filters.maxPrice).toBe("6000000");
+    expect(applied(parseQuery("600萬以內")).filters.maxPrice).toBe("6000000");
+    expect(applied(parseQuery("六百萬樓下")).filters.maxPrice).toBe("6000000");
+    expect(applied(parseQuery("五百萬起")).filters.minPrice).toBe("5000000");
+  });
+
+  it("reads a decimal 萬 amount", () => {
+    expect(applied(parseQuery("1.5萬以上")).filters.minPrice).toBe("15000");
+  });
+
+  it("refuses to guess a bare 萬 amount", () => {
+    const parse = parseQuery("600萬");
+    expect(parse.kind).toBe("unresolved");
+    expect(parse.spec?.filters.maxPrice ?? "").toBe("");
+    expect(parse.spec?.ignored.join(" ")).toContain("以下");
+  });
+
+  it("reads the Chinese MTR line names, both 綫 and 線", () => {
+    expect(applied(parseQuery("將軍澳綫")).filters.mtrLine).toBe(
+      "Tseung Kwan O Line",
+    );
+    expect(applied(parseQuery("將軍澳線")).filters.mtrLine).toBe(
+      "Tseung Kwan O Line",
+    );
+    expect(applied(parseQuery("東鐵線")).filters.mtrLine).toBe("East Rail Line");
+    expect(applied(parseQuery("港島綫")).filters.mtrLine).toBe("Island Line");
+  });
+
+  it("reads Chinese sort words", () => {
+    expect(applied(parseQuery("最平")).sort).toBe("latest_price");
+    expect(applied(parseQuery("最活躍")).sort).toBe("tx_count_12m");
+    expect(applied(parseQuery("最新")).sort).toBe("latest_tx_date");
+    expect(applied(parseQuery("按名稱")).sort).toBe("name");
+  });
+
+  it("reads 校網 with the number on either side", () => {
+    expect(applied(parseQuery("校網 40")).filters.schoolNet).toBe("Sham Shui Po");
+    expect(applied(parseQuery("40校網")).filters.schoolNet).toBe("Sham Shui Po");
+  });
+
+  it("discloses Chinese concepts that have no data", () => {
+    const view = applied(parseQuery("海景 in 大埔"));
+    expect(view.ignored).toContain("View (no view data)");
+    expect(view.filters.subregionId).toBe("3016");
+
+    // An ignored-only query applies nothing, so it is unresolved by design.
+    const said = (text: string) => {
+      const parse = parseQuery(text);
+      expect(parse.kind).toBe("unresolved");
+      if (!parse.spec) throw new Error("expected disclosure");
+      return parse.spec.ignored;
+    };
+    expect(said("車位")).toContain("Parking (no data)");
+    expect(said("近地鐵")).toContain("MTR proximity (line-level data only)");
+    expect(said("連傢俬")).toContain("Furnishing (no data)");
+    expect(said("新樓")).toContain("Building age (no age filter)");
+    expect(said("安靜")).toContain("Quiet (no noise data)");
+    expect(said("好校網")).toContain("School quality (net membership only)");
+  });
+
+  it("anchors a Chinese direction to the region named in front of it", () => {
+    expect(applied(parseQuery("港島東")).filters.subregionId).toBe("1004");
+    // East Kowloon covers three subregions, so it asks instead of guessing.
+    const kowloon = parseQuery("九龍東");
+    expect(kowloon.kind).toBe("ambiguous");
+    expect(kowloon.spec?.hints.map((hint) => hint.label)).toEqual([
+      "Kwun Tong",
+      "Kai Tak",
+      "Tseung Kwan O",
+    ]);
+  });
+
+  it("names the direction in a Chinese question and can be anchored", () => {
+    const bare = parseQuery("東");
+    expect(bare.direction).toBe("east");
+    expect(bare.question).toBe("East of which region?");
+
+    const kowloon = parseQuery("九龍東");
+    expect(kowloon.direction).toBe("east");
+    expect(kowloon.question).toBe("East of which subregion?");
+
+    // Answering with Kowloon must narrow to its eastern subregions, not apply
+    // all of Kowloon.
+    const refined = refineDirection(kowloon, "20");
+    expect(refined.kind).toBe("ambiguous");
+    expect(refined.spec?.hints.map((hint) => hint.label)).toEqual([
+      "Kwun Tong",
+      "Kai Tak",
+      "Tseung Kwan O",
+    ]);
+
+    const island = refineDirection(parseQuery("東"), "10");
+    expect(island.kind).toBe("applied");
+    expect(island.spec?.filters.subregionId).toBe("1004");
+  });
+
+  it("keeps district names that merely look like directions", () => {
+    expect(applied(parseQuery("港島西")).filters.districtId).toBe("100102");
+    expect(applied(parseQuery("新界北")).filters.districtId).toBe("301502");
+  });
+
+  it("does not turn a place ending near a direction word into a direction", () => {
+    for (const text of ["北角", "西貢", "東涌", "上水"]) {
+      const parse = parseQuery(text);
+      expect(parse.kind, text).toBe("applied");
+      expect(parse.direction, text).toBeNull();
+    }
+  });
+
+  it("parses the number edges the price tests skip", () => {
+    expect(applied(parseQuery("九千九百萬以下")).filters.maxPrice).toBe("99000000");
+    expect(applied(parseQuery("一千零五十萬以下")).filters.maxPrice).toBe("10500000");
+    expect(applied(parseQuery("兩億以下")).filters.maxPrice).toBe("200000000");
+    expect(applied(parseQuery("10萬以下")).filters.maxPrice).toBe("100000");
+    expect(applied(parseQuery("0.5萬以上")).filters.minPrice).toBe("5000");
+    // 0.07 * 100_000_000 is 7000000.000000001; without the round this would
+    // stringify with that noise. Every 萬 decimal in range happens to land on an
+    // integer after multiplication, so the 億 scale is the one that pins it.
+    expect(applied(parseQuery("0.07億以下")).filters.maxPrice).toBe("7000000");
+    // No trailing unit: not a supported amount, so no price is applied.
+    expect(parseQuery("一萬五千").spec?.filters.maxPrice ?? "").toBe("");
+    // A unit inside the numeral is the reachable malformed case.
+    const compound = parseQuery("一億五千萬以下");
+    expect(compound.spec?.filters.maxPrice ?? "").toBe("");
+    expect(compound.spec?.filters.minPrice ?? "").toBe("");
+  });
+
+  it("asks which region a bare 東 means", () => {
+    const parse = parseQuery("東");
+    expect(parse.kind).toBe("ambiguous");
+    expect(parse.question).toBe("East of which region?");
+    expect(parse.spec?.hints.length).toBeGreaterThan(0);
+  });
+
+  it("refuses a Chinese city outside the market", () => {
+    expect(parseQuery("深圳").kind).toBe("refused");
+    expect(parseQuery("倫敦").kind).toBe("refused");
+    expect(parseQuery("東京").kind).toBe("refused");
+  });
+});

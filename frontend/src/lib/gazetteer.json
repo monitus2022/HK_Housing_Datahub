@@ -6,7 +6,7 @@
     "school_nets": 39,
     "abbreviations": 7,
     "direction_cells": 12,
-    "out_of_scope": 26
+    "out_of_scope": 28
   },
   "mtrLines": [
     {
@@ -463,6 +463,8 @@
     "zhuhai",
     "中山",
     "佛山",
+    "倫敦",
+    "東京",
     "台北",
     "台灣",
     "廣州",

@@ -119,7 +119,8 @@ tables; `make gazetteer-check` fails when the artifact drifts.
 
 `src/lib/lexicon.ts` parses one sentence into one query spec
 (`2 bedroom flat in TKO`, `3 room under 6m in Sha Tin`, `cheapest 2 bed in Kwun
-Tong`, `near the island line`, `school net 41`). It is deterministic and runs in
+Tong`, `near the island line`, `school net 41`). Chinese works too: `兩房 in
+大埔`, `600萬以下`, `最平`, `港島綫`, `40校網`. It is deterministic and runs in
 the browser: no network call, no model and no dependency. Each submit **replaces**
 the current filters — one utterance is one query, so a previous query cannot
 silently narrow the new one — and the result area always discloses what happened:

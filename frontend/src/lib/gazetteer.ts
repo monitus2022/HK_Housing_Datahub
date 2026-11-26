@@ -349,6 +349,32 @@ function fuzzy(term: string): PlaceOutcome {
   };
 }
 
+const CJK_DIRECTIONS: Record<string, string> = {
+  "東": "east",
+  "南": "south",
+  "西": "west",
+  "北": "north",
+};
+
+/** 港島 is how people write the island; the geo label is 香港島. */
+const CJK_REGION_ALIASES: Record<string, string> = {
+  "港島": "香港島",
+  "香港島": "香港島",
+  "九龍": "九龍",
+  "新界": "新界",
+};
+
+/** 東, or 港島東 with the region first — Chinese has no space to split on. */
+function cjkDirection(
+  term: string,
+): { direction: string; regionTerm?: string } | null {
+  const direction = CJK_DIRECTIONS[term.slice(-1)];
+  if (!direction) return null;
+  const prefix = term.slice(0, -1);
+  if (!prefix) return { direction };
+  return { direction, regionTerm: CJK_REGION_ALIASES[prefix] ?? prefix };
+}
+
 function directionOutcome(
   term: string,
   anchorRegionId?: string,
@@ -357,7 +383,13 @@ function directionOutcome(
   let direction: string | null = null;
   let regionFromTerm: string | undefined;
 
-  if (parts.length === 1) {
+  // An exact place label wins: 港島西 and 新界北 are district names, not
+  // "west of the island" and "north of the New Territories".
+  const cjk = PLACE_INDEX.has(term) ? null : cjkDirection(term);
+  if (cjk) {
+    direction = cjk.direction;
+    regionFromTerm = cjk.regionTerm;
+  } else if (parts.length === 1) {
     if (DIRECTIONS.has(parts[0])) direction = parts[0];
   } else {
     const last = parts[parts.length - 1];
