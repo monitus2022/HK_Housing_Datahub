@@ -136,6 +136,14 @@ const UNSUPPORTED: { pattern: RegExp; label: string }[] = [
   { pattern: /\b(?:near|close to|next to) ?(?:the )?mtr\b/, label: "MTR proximity (line-level data only)" },
   { pattern: /(?:^| )mtr(?: station)?(?= |$)/, label: "MTR proximity (line-level data only)" },
   { pattern: /\b(?:good|great|top|best) ?schools?\b/, label: "School quality (net membership only)" },
+  { pattern: /(?:^| )(?:海景|海景房|維港景|山景|河景)(?= |$)/, label: "View (no view data)" },
+  { pattern: /(?:^| )(?:安靜|清靜|寧靜)(?= |$)/, label: "Quiet (no noise data)" },
+  { pattern: /(?:^| )(?:車位|停車位)(?= |$)/, label: "Parking (no data)" },
+  { pattern: /(?:^| )(?:近地鐵|近港鐵|地鐵站|港鐵站)(?= |$)/, label: "MTR proximity (line-level data only)" },
+  { pattern: /(?:^| )(?:好校網|名校網)(?= |$)/, label: "School quality (net membership only)" },
+  { pattern: /(?:^| )(?:連傢俬|有傢俬|包傢俬)(?= |$)/, label: "Furnishing (no data)" },
+  { pattern: /(?:^| )(?:寵物|可養寵物)(?= |$)/, label: "Pet policy (no data)" },
+  { pattern: /(?:^| )(?:新樓|新盤)(?= |$)/, label: "Building age (no age filter)" },
 ];
 
 const BEDROOM_WORDS: Record<string, number> = {
@@ -147,9 +155,12 @@ const BEDROOM_WORDS: Record<string, number> = {
   six: 6,
   "一": 1,
   "二": 2,
+  "兩": 2,
+  "两": 2,
   "三": 3,
   "四": 4,
   "五": 5,
+  "六": 6,
 };
 
 const SORT_WORDS: { pattern: RegExp; key: SortKey; label: string }[] = [
@@ -172,6 +183,26 @@ const SORT_WORDS: { pattern: RegExp; key: SortKey; label: string }[] = [
   },
   {
     pattern: /(?:^| )(?:alphabetical|by name|a to z)(?= |$)/,
+    key: "name",
+    label: "Alphabetical",
+  },
+  {
+    pattern: /(?:^| )(?:最平|最便宜|最抵|平啲)(?= |$)/,
+    key: "latest_price",
+    label: "Cheapest first",
+  },
+  {
+    pattern: /(?:^| )(?:最活躍|最旺|最多成交|成交最多)(?= |$)/,
+    key: "tx_count_12m",
+    label: "Most active first",
+  },
+  {
+    pattern: /(?:^| )(?:最新|最近成交|最新成交)(?= |$)/,
+    key: "latest_tx_date",
+    label: "Latest transaction first",
+  },
+  {
+    pattern: /(?:^| )(?:按名稱|字母順序|按字母)(?= |$)/,
     key: "name",
     label: "Alphabetical",
   },
@@ -220,10 +251,15 @@ const CJK_SIZE_BANDS: Record<string, SizeBand> = {
  * line is only recognised when the user says "Tung Chung Line".
  */
 const MTR_ALIASES: { phrase: string; value: string }[] = [
-  ...MTR_LINES.map((line) => ({
-    phrase: normalise(line.en),
-    value: line.en,
-  })),
+  ...MTR_LINES.flatMap((line) => {
+    const forms = [normalise(line.en)];
+    if (line.zh) {
+      forms.push(normalise(line.zh));
+      // Both forms are typed: 東鐵綫 and 東鐵線.
+      forms.push(normalise(line.zh.replace(/綫/g, "線")));
+    }
+    return forms.map((phrase) => ({ phrase, value: line.en }));
+  }),
   { phrase: "tko line", value: "Tseung Kwan O Line" },
   { phrase: "east rail", value: "East Rail Line" },
   { phrase: "tuen ma", value: "Tuen Ma Line" },
@@ -274,6 +310,117 @@ function scale(unit: string): number {
 /** "6dot5" is 6.5: normalisation strips punctuation, so the point is spelled. */
 function toNumber(raw: string): number {
   return Number(raw.replace("dot", "."));
+}
+
+const CJK_DIGITS: Record<string, number> = {
+  "零": 0,
+  "〇": 0,
+  "一": 1,
+  "二": 2,
+  "兩": 2,
+  "两": 2,
+  "三": 3,
+  "四": 4,
+  "五": 5,
+  "六": 6,
+  "七": 7,
+  "八": 8,
+  "九": 9,
+};
+
+const CJK_UNITS: Record<string, number> = { "十": 10, "百": 100, "千": 1000 };
+
+/** "五百萬" -> 5,000,000. Arabic forms like "1dot5萬" go through `toNumber`. */
+function parseCjkNumber(raw: string): number | null {
+  if (/^\d+(?:dot\d+)?$/.test(raw)) return toNumber(raw);
+  let section = 0;
+  let digit = 0;
+  let seen = false;
+  for (const char of raw) {
+    if (char in CJK_DIGITS) {
+      digit = CJK_DIGITS[char];
+      seen = true;
+      continue;
+    }
+    if (char in CJK_UNITS) {
+      // 十/百/千 with no leading digit mean one of them: 十 means 10.
+      section += (digit || 1) * CJK_UNITS[char];
+      digit = 0;
+      seen = true;
+      continue;
+    }
+    // 萬/億 are stripped by `cjkMoney` before this runs, so a unit here means
+    // the amount was malformed ("一萬五千" is not a supported form).
+    return null;
+  }
+  return seen ? section + digit : null;
+}
+
+/** A money expression with an explicit 萬/億 unit. */
+const CJK_MONEY =
+  "((?:\\d+(?:dot\\d+)?|[零〇一二兩两三四五六七八九十百千]+)(?:萬|万|億|亿))";
+
+function cjkMoney(raw: string): number | null {
+  const match = raw.match(/^(.*?)(萬|万|億|亿)$/);
+  if (!match) return null;
+  const amount = parseCjkNumber(match[1]);
+  if (amount === null || amount <= 0) return null;
+  const factor = match[2] === "億" || match[2] === "亿" ? 100_000_000 : 10_000;
+  return amount * factor;
+}
+
+/** "600萬以下", "五百萬以上", "500萬至800萬" -> a price patch. */
+function takeCjkPrice(
+  rest: string,
+): { rest: string; patch: Partial<EstateFilters>; label: string } | null {
+  const range = consume(
+    rest,
+    // "~" and "-" are stripped by normalisation, so only the spoken words survive.
+    new RegExp(`(?:^| )${CJK_MONEY} ?(?:至|到)? ?${CJK_MONEY}(?= |$)`),
+  );
+  if (range) {
+    const low = cjkMoney(range.match[1]);
+    const high = cjkMoney(range.match[2]);
+    if (low !== null && high !== null && low <= high) {
+      return {
+        rest: range.rest,
+        patch: { minPrice: String(low), maxPrice: String(high) },
+        label: `${moneyLabel(String(low))} – ${moneyLabel(String(high))}`,
+      };
+    }
+  }
+
+  const ceiling = consume(
+    rest,
+    new RegExp(`(?:^| )${CJK_MONEY} ?(?:以下|或以下|以內|以内|樓下|楼下)(?= |$)`),
+  );
+  if (ceiling) {
+    const value = cjkMoney(ceiling.match[1]);
+    if (value !== null) {
+      return {
+        rest: ceiling.rest,
+        patch: { maxPrice: String(value) },
+        label: `≤ ${moneyLabel(String(value))}`,
+      };
+    }
+  }
+
+  const floor = consume(
+    rest,
+    new RegExp(`(?:^| )${CJK_MONEY} ?(?:以上|或以上|起)(?= |$)`),
+  );
+  if (floor) {
+    const value = cjkMoney(floor.match[1]);
+    if (value !== null) {
+      return {
+        rest: floor.rest,
+        patch: { minPrice: String(value) },
+        label: `≥ ${moneyLabel(String(value))}`,
+      };
+    }
+  }
+
+  return null;
 }
 
 /** Remove one span, keeping the rest of the phrase separable. */
@@ -395,7 +542,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
   if (!patch.bedrooms) {
-    const cjk = consume(rest, /(?:^| )(\d|一|二|三|四|五) ?房(?= |$)/);
+    const cjk = consume(rest, /(?:^| )(\d|一|二|三|四|五|六|兩|两) ?房(?= |$)/);
     if (cjk) {
       const raw = cjk.match[1];
       const count = Number(raw) || BEDROOM_WORDS[raw] || 0;
@@ -500,49 +647,71 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
 
-  const priceRange = consume(
-    rest,
-    /(?:^| )\$?(\d+(?:dot\d+)?) ?(m|k|million|mil) ?(?:-|to)? ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
-  );
-  if (priceRange) {
-    const low = toNumber(priceRange.match[1]) * scale(priceRange.match[2]);
-    const high = toNumber(priceRange.match[3]) * scale(priceRange.match[4]);
-    patch.minPrice = String(Math.round(low));
-    patch.maxPrice = String(Math.round(high));
-    spec.applied.push({
-      field: "Price",
-      value: `${moneyLabel(patch.minPrice)} – ${moneyLabel(patch.maxPrice)}`,
-    });
-    rest = priceRange.rest;
+  const cjkPrice = takeCjkPrice(rest);
+  if (cjkPrice) {
+    Object.assign(patch, cjkPrice.patch);
+    spec.applied.push({ field: "Price", value: cjkPrice.label });
+    rest = cjkPrice.rest;
   } else {
-    const priceMax = consume(
+    const priceRange = consume(
       rest,
-      /(?:under|below|less than|up to|max|cheaper than) ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
+      /(?:^| )\$?(\d+(?:dot\d+)?) ?(m|k|million|mil) ?(?:-|to)? ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
     );
-    if (priceMax) {
-      patch.maxPrice = String(
-        Math.round(toNumber(priceMax.match[1]) * scale(priceMax.match[2])),
-      );
+    if (priceRange) {
+      const low = toNumber(priceRange.match[1]) * scale(priceRange.match[2]);
+      const high = toNumber(priceRange.match[3]) * scale(priceRange.match[4]);
+      patch.minPrice = String(Math.round(low));
+      patch.maxPrice = String(Math.round(high));
       spec.applied.push({
         field: "Price",
-        value: `≤ ${moneyLabel(patch.maxPrice)}`,
+        value: `${moneyLabel(patch.minPrice)} – ${moneyLabel(patch.maxPrice)}`,
       });
-      rest = priceMax.rest;
+      rest = priceRange.rest;
     } else {
-      const priceMin = consume(
+      const priceMax = consume(
         rest,
-        /(?:over|above|more than|at least|min|from) ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
+        /(?:under|below|less than|up to|max|cheaper than) ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
       );
-      if (priceMin) {
-        patch.minPrice = String(
-          Math.round(toNumber(priceMin.match[1]) * scale(priceMin.match[2])),
+      if (priceMax) {
+        patch.maxPrice = String(
+          Math.round(toNumber(priceMax.match[1]) * scale(priceMax.match[2])),
         );
         spec.applied.push({
           field: "Price",
-          value: `≥ ${moneyLabel(patch.minPrice)}`,
+          value: `≤ ${moneyLabel(patch.maxPrice)}`,
         });
-        rest = priceMin.rest;
+        rest = priceMax.rest;
+      } else {
+        const priceMin = consume(
+          rest,
+          /(?:over|above|more than|at least|min|from) ?\$?(\d+(?:dot\d+)?) ?(m|k|million|mil)(?= |$)/,
+        );
+        if (priceMin) {
+          patch.minPrice = String(
+            Math.round(toNumber(priceMin.match[1]) * scale(priceMin.match[2])),
+          );
+          spec.applied.push({
+            field: "Price",
+            value: `≥ ${moneyLabel(patch.minPrice)}`,
+          });
+          rest = priceMin.rest;
+        }
       }
+    }
+  }
+
+  // "600萬" alone names an amount but not a direction; saying so beats assuming
+  // a ceiling, which is what a "never silently guess" parser must not do.
+  if (!patch.minPrice && !patch.maxPrice) {
+    const bareCjkPrice = consume(
+      rest,
+      new RegExp(`(?:^| )${CJK_MONEY}(?= |$)`),
+    );
+    if (bareCjkPrice) {
+      spec.ignored.push(
+        `Price ${bareCjkPrice.match[1]} without 以下/以上 (say "${bareCjkPrice.match[1]}以下")`,
+      );
+      rest = bareCjkPrice.rest;
     }
   }
 
@@ -593,7 +762,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   if (!patch.mtrLine) {
     const netId = consume(
       rest,
-      /(?:school net|schoolnet|net) ?(?:no ?)?(\d{1,2})(?= |$)/,
+      /(?:school net|schoolnet|net|校網|學校網) ?(?:no ?)?(\d{1,2})(?= |$)/,
     );
     if (netId) {
       const names = [
@@ -633,9 +802,34 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
 
+  // "40校網": Chinese puts the number first.
+  if (!patch.schoolNet) {
+    const suffixNet = consume(rest, /(?:^| )(\d{1,2}) ?(?:校網|學校網)(?= |$)/);
+    if (suffixNet) {
+      const netId = suffixNet.match[1];
+      const names = [
+        ...new Set(
+          SCHOOL_NETS.filter((net) => net.id === netId).map((net) => net.en),
+        ),
+      ].filter(Boolean);
+      rest = suffixNet.rest;
+      if (names.length === 1) {
+        patch.schoolNet = names[0];
+        spec.applied.push({
+          field: "School net",
+          value: `${names[0]} (all nets with this name)`,
+        });
+      } else if (names.length > 1) {
+        spec.ignored.push(`School net ${netId} spans ${names.join(" and ")}`);
+      } else {
+        spec.ignored.push(`School net ${netId} is not in this snapshot`);
+      }
+    }
+  }
+
   // "school net" with no number or name names the concept but no value.
   if (!patch.schoolNet) {
-    const bareNet = consume(rest, /(?:school net|schoolnet)(?= |$)/);
+    const bareNet = consume(rest, /(?:school net|schoolnet|校網|學校網)(?= |$)/);
     if (bareNet) {
       spec.ignored.push("School net without a number or name");
       rest = bareNet.rest;

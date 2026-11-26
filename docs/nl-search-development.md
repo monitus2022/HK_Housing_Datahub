@@ -30,15 +30,21 @@ from the remainder, so leftovers are reported rather than re-matched.
 | Step | Examples | Slot |
 |---|---|---|
 | out-of-scope | `shenzhen`, `深圳` | refuse the whole sentence |
-| bedrooms | `2 bed`, `3 room`, `三房` | `bedrooms` (`4+` above 3) |
+| bedrooms | `2 bed`, `3 room`, `兩房`, `六房` | `bedrooms` (`4+` above 3) |
 | area | `500-700 sq ft`, `under 600 ft` | `minNetArea` / `maxNetArea` |
 | vague size | `small`, `middle size`, `大單位` | marked default + band hints (see §3) |
-| price | `under 6m`, `5m to 8m`, `under 6.5m` | `minPrice` / `maxPrice` |
-| sort | `cheapest`, `most active` | `sort` |
-| unsupported | `sea view`, `quiet`, `parking`, `near MTR` | `Ignored:` |
-| MTR line | `island line`, `tko line` | `mtrLine` |
-| school net | `school net 41` | `schoolNet` (by name — see §7) |
-| place | `TKO`, `KT`, `Sha Tin`, `east` | region / subregion / district |
+| price | `under 6m`, `5m to 8m`, `600萬以下`, `500萬至800萬` | `minPrice` / `maxPrice` |
+| sort | `cheapest`, `most active`, `最平`, `最活躍` | `sort` |
+| unsupported | `sea view`, `quiet`, `parking`, `near MTR`, `海景`, `近地鐵` | `Ignored:` |
+| MTR line | `island line`, `tko line`, `港島綫`, `東鐵線` | `mtrLine` |
+| school net | `school net 41`, `校網 41`, `41校網` | `schoolNet` (by name — see §7) |
+| place | `TKO`, `KT`, `Sha Tin`, `east`, `港島東` | region / subregion / district |
+
+Chinese is part of v1, not deferred to the model: prices accept Arabic or
+Chinese numerals (`六百萬`, `1.5萬`) with `以下`/`以上`/`至` ranges, a bare `600萬`
+is disclosed as incomplete rather than assumed to be a ceiling, line names accept
+both `綫` and `線`, and directions are written region-first (`港島東`). A direction
+that spans several subregions asks instead of picking one.
 
 A place is resolved by `gazetteer.ts` (abbreviations, curated direction cells,
 typo tolerance with a margin test). Ambiguity returns candidates and applies no
