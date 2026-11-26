@@ -52,6 +52,28 @@ const NL_MAX_LENGTH = 120;
 
 const NL_ENABLED = import.meta.env.VITE_FEATURE_NL_SEARCH === "true";
 
+/**
+ * Builds the estate-name index while the browser is idle. A separate component
+ * so the flag-off build drops it, and the index builder, entirely: ~59 ms for
+ * 9,750 names is not work the non-NL build should ever do.
+ */
+function NlEstateWarmer({ estates }: { estates: EstateSummary[] }) {
+  useEffect(() => {
+    if (estates.length === 0) return;
+    if (typeof globalThis.requestIdleCallback === "function") {
+      const handle = globalThis.requestIdleCallback(() => warmEstateIndex(estates));
+      return () => {
+        if (typeof globalThis.cancelIdleCallback === "function") {
+          globalThis.cancelIdleCallback(handle);
+        }
+      };
+    }
+    const timer = setTimeout(() => warmEstateIndex(estates), 200);
+    return () => clearTimeout(timer);
+  }, [estates]);
+  return null;
+}
+
 interface Props {
   estates: EstateSummary[];
   onSelect: (estate: EstateSummary) => void;
@@ -136,21 +158,6 @@ export function EstateSearch({ estates, onSelect }: Props) {
   );
   // Indexing ~9,750 names costs ~59 ms; do it while the browser is idle so the
   // first submit does not pay for it.
-  useEffect(() => {
-    if (estates.length === 0) return;
-    const idle = globalThis.requestIdleCallback;
-    if (typeof idle === "function") {
-      const handle = idle(() => warmEstateIndex(estates));
-      return () => {
-        if (typeof globalThis.cancelIdleCallback === "function") {
-          globalThis.cancelIdleCallback(handle);
-        }
-      };
-    }
-    const timer = setTimeout(() => warmEstateIndex(estates), 200);
-    return () => clearTimeout(timer);
-  }, [estates]);
-
   const mtrLines = useMemo(() => listMtrLines(estates), [estates]);
   const schoolNets = useMemo(() => listSchoolNets(estates), [estates]);
   const filterCount = activeFilterCount(filters);
@@ -340,6 +347,7 @@ export function EstateSearch({ estates, onSelect }: Props) {
         </p>
       </div>
 
+      {NL_ENABLED ? <NlEstateWarmer estates={estates} /> : null}
       {NL_ENABLED ? (
         <form
           className="nl-form"

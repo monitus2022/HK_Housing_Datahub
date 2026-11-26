@@ -4,6 +4,7 @@ import {
   parseQuery,
   refineDirection,
   specToState,
+  warmEstateIndex,
   type NlParse,
 } from "./lexicon";
 import { searchStateFromParams, searchStateToSearch } from "./searchState";
@@ -580,6 +581,16 @@ describe("estate names", () => {
     expect(applied(parseQuery("Bel Air", { estates: after })).estate?.name).toBe(
       "Bel Air",
     );
+  });
+
+  it("warms the index without changing behaviour", () => {
+    const estates = [...ESTATES];
+    expect(() => warmEstateIndex(estates)).not.toThrow();
+    // Warming populates the same cache the parser reads.
+    expect(applied(parseQuery("Taikoo Shing", { estates })).estate?.name).toBe(
+      "Taikoo Shing",
+    );
+    expect(() => warmEstateIndex([])).not.toThrow();
   });
 
   it("does not recognise an estate name without the loaded list", () => {
