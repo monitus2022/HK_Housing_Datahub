@@ -6,7 +6,7 @@ import {
   specToState,
   type NlParse,
 } from "./lexicon";
-import { searchStateToSearch } from "./searchState";
+import { searchStateFromParams, searchStateToSearch } from "./searchState";
 
 function applied(parse: NlParse) {
   expect(parse.kind).toBe("applied");
@@ -539,6 +539,46 @@ describe("estate names", () => {
     expect(spec.estate?.count).toBe(2);
     expect(spec.applied.find((slot) => slot.field === "Estate")?.value).toBe(
       "Amoy Gardens (2 estates)",
+    );
+  });
+
+  it("survives a direction hint being applied", () => {
+    // Re-parsing for an anchored direction must see the same estate list, or the
+    // estate disappears and "Mei Foo" leaks as a district.
+    const parse = parseQuery("Mei Foo Sun Chuen east", { estates: ESTATES });
+    expect(parse.spec?.estate?.name).toBe("Mei Foo Sun Chuen");
+    const refined = refineDirection(parse, "20", { estates: ESTATES });
+    expect(refined.spec?.estate?.name).toBe("Mei Foo Sun Chuen");
+    expect(refined.spec?.filters.districtId).toBe("");
+    expect(refined.kind).toBe("ambiguous");
+  });
+
+  it("wins over a district that shares its name", () => {
+    const lohas = [{ estate_name_en: "Lohas Park", estate_name_zh: "日出康城" }];
+    const spec = applied(parseQuery("Lohas Park", { estates: lohas }));
+    expect(spec.estate?.name).toBe("Lohas Park");
+    expect(spec.filters.districtId).toBe("");
+  });
+
+  it("round-trips the estate through the URL", () => {
+    const spec = applied(parseQuery("太古城 兩房", { estates: ESTATES }));
+    const state = specToState(spec);
+    const restored = searchStateFromParams(searchStateToSearch(state));
+    expect(restored.query).toBe("太古城");
+    expect(restored.filters.bedrooms).toBe("2");
+  });
+
+  it("rebuilds the index when the array identity changes", () => {
+    const before = [...ESTATES];
+    expect(
+      applied(parseQuery("Amoy Gardens", { estates: before })).estate?.name,
+    ).toBe("Amoy Gardens");
+
+    // A new array (as a fresh fetch would provide) is re-indexed, so a name
+    // added later is recognised.
+    const after = [...ESTATES, { estate_name_en: "Bel Air", estate_name_zh: "貝沙灣" }];
+    expect(applied(parseQuery("Bel Air", { estates: after })).estate?.name).toBe(
+      "Bel Air",
     );
   });
 

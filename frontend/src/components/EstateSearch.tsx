@@ -30,6 +30,7 @@ import {
 import {
   hintSpec,
   parseQuery,
+  warmEstateIndex,
   refineDirection,
   specToState,
   type NlHint,
@@ -133,6 +134,23 @@ export function EstateSearch({ estates, onSelect }: Props) {
       }),
     [filters.regionId, filters.subregionId],
   );
+  // Indexing ~9,750 names costs ~59 ms; do it while the browser is idle so the
+  // first submit does not pay for it.
+  useEffect(() => {
+    if (estates.length === 0) return;
+    const idle = globalThis.requestIdleCallback;
+    if (typeof idle === "function") {
+      const handle = idle(() => warmEstateIndex(estates));
+      return () => {
+        if (typeof globalThis.cancelIdleCallback === "function") {
+          globalThis.cancelIdleCallback(handle);
+        }
+      };
+    }
+    const timer = setTimeout(() => warmEstateIndex(estates), 200);
+    return () => clearTimeout(timer);
+  }, [estates]);
+
   const mtrLines = useMemo(() => listMtrLines(estates), [estates]);
   const schoolNets = useMemo(() => listSchoolNets(estates), [estates]);
   const filterCount = activeFilterCount(filters);
@@ -220,7 +238,9 @@ export function EstateSearch({ estates, onSelect }: Props) {
     // instead of silently applying all of Kowloon. Subregion hints are already
     // the answer, so they apply directly.
     if (hint.kind === "place" && hint.level === "region" && nlParse.direction) {
-      const refined = refineDirection(nlParse, hint.scope.regionId);
+      const refined = refineDirection(nlParse, hint.scope.regionId, {
+        estates,
+      });
       if (refined.spec) {
         setNlParse(refined);
         setState(specToState(refined.spec));
