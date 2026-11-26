@@ -443,6 +443,90 @@ function takeCjkPrice(
   return null;
 }
 
+const AREA_UNIT =
+  "(sq ?ft|sqft|square feet|ft|呎|平方呎|平方米|平米|平方公尺|sqm|m2)";
+
+/** 平方米 is the same dimension in another unit, so it converts, not falls back. */
+function toSquareFeet(raw: string, unit: string): string {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return raw;
+  const squareMetres = ["平方米", "平米", "平方公尺", "sqm", "m2"].includes(
+    unit.toLowerCase(),
+  );
+  return String(Math.round(squareMetres ? value * 10.7639104 : value));
+}
+
+/** "500-700 sq ft", "600呎以下", "50至70平方米" -> an area patch. */
+function takeArea(
+  rest: string,
+): { rest: string; patch: Partial<EstateFilters>; label: string } | null {
+  const range = consume(
+    rest,
+    new RegExp(
+      `(?:^| )(\\d{2,5}) ?(?:至|到|to)? ?(\\d{2,5}) ?${AREA_UNIT}(?= |$)`,
+    ),
+  );
+  if (range) {
+    const minimum = toSquareFeet(range.match[1], range.match[3]);
+    const maximum = toSquareFeet(range.match[2], range.match[3]);
+    if (Number(minimum) <= Number(maximum)) {
+      return {
+        rest: range.rest,
+        patch: { minNetArea: minimum, maxNetArea: maximum },
+        label: areaLabel(minimum, maximum),
+      };
+    }
+  }
+
+  const ceilingPrefix = consume(
+    rest,
+    new RegExp(
+      `(?:^| )(?:under|below|less than|up to|max) ?(\\d{2,5}) ?${AREA_UNIT}(?= |$)`,
+    ),
+  );
+  const ceiling =
+    ceilingPrefix ??
+    consume(
+      rest,
+      new RegExp(
+        `(?:^| )(\\d{2,5}) ?${AREA_UNIT} ?(?:以下|以內|以内|或以下)(?= |$)`,
+      ),
+    );
+  if (ceiling) {
+    const maximum = toSquareFeet(ceiling.match[1], ceiling.match[2]);
+    return {
+      rest: ceiling.rest,
+      patch: { maxNetArea: maximum },
+      label: areaLabel("", maximum),
+    };
+  }
+
+  const floorPrefix = consume(
+    rest,
+    new RegExp(
+      `(?:^| )(?:over|above|more than|at least|min|from) ?(\\d{2,5}) ?${AREA_UNIT}(?= |$)`,
+    ),
+  );
+  const floor =
+    floorPrefix ??
+    consume(
+      rest,
+      new RegExp(
+        `(?:^| )(\\d{2,5}) ?${AREA_UNIT} ?(?:以上|或以上|起)(?= |$)`,
+      ),
+    );
+  if (floor) {
+    const minimum = toSquareFeet(floor.match[1], floor.match[2]);
+    return {
+      rest: floor.rest,
+      patch: { minNetArea: minimum },
+      label: areaLabel(minimum, ""),
+    };
+  }
+
+  return null;
+}
+
 /** Remove one span, keeping the rest of the phrase separable. */
 function removeSpan(rest: string, span: string): string {
   return rest.replace(span, " ");
@@ -640,44 +724,11 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     }
   }
 
-  const areaRange = consume(
-    rest,
-    /(?:^| )(\d{2,5}) ?(?:-|to)? ?(\d{2,5}) ?(?:sq ?ft|sqft|square feet|ft)(?= |$)/,
-  );
-  if (areaRange) {
-    patch.minNetArea = areaRange.match[1];
-    patch.maxNetArea = areaRange.match[2];
-    spec.applied.push({
-      field: "Area",
-      value: areaLabel(patch.minNetArea, patch.maxNetArea),
-    });
-    rest = areaRange.rest;
-  } else {
-    const areaMax = consume(
-      rest,
-      /(?:under|below|less than|up to|max) ?(\d{2,5}) ?(?:sq ?ft|sqft|square feet|ft)(?= |$)/,
-    );
-    if (areaMax) {
-      patch.maxNetArea = areaMax.match[1];
-      spec.applied.push({
-        field: "Area",
-        value: areaLabel("", patch.maxNetArea),
-      });
-      rest = areaMax.rest;
-    } else {
-      const areaMin = consume(
-        rest,
-        /(?:over|above|more than|at least|min|from) ?(\d{2,5}) ?(?:sq ?ft|sqft|square feet|ft)(?= |$)/,
-      );
-      if (areaMin) {
-        patch.minNetArea = areaMin.match[1];
-        spec.applied.push({
-          field: "Area",
-          value: areaLabel(patch.minNetArea, ""),
-        });
-        rest = areaMin.rest;
-      }
-    }
+  const areaHit = takeArea(rest);
+  if (areaHit) {
+    Object.assign(patch, areaHit.patch);
+    spec.applied.push({ field: "Area", value: areaHit.label });
+    rest = areaHit.rest;
   }
 
   let sizeAlternatives: { min: string; max: string }[] = [];
@@ -824,7 +875,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     // instead of dropping three words into Unrecognised.
     const bareArea = consume(
       rest,
-      /(?:^| )(\d{2,5}) ?(?:sq ?ft|sqft|square feet|ft)(?= |$)/,
+      new RegExp(`(?:^| )(\\d{2,5}) ?${AREA_UNIT}(?= |$)`),
     );
     if (bareArea) {
       const size = bareArea.match[1];

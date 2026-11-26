@@ -658,6 +658,33 @@ describe("new build", () => {
   });
 });
 
+describe("area units", () => {
+  it("reads 呎 as square feet", () => {
+    const spec = applied(parseQuery("500至700呎 in 大埔"));
+    expect(spec.filters.minNetArea).toBe("500");
+    expect(spec.filters.maxNetArea).toBe("700");
+
+    expect(applied(parseQuery("600呎以下")).filters.maxNetArea).toBe("600");
+    expect(applied(parseQuery("800呎以上")).filters.minNetArea).toBe("800");
+  });
+
+  it("converts 平方米 to square feet", () => {
+    // 1 m² = 10.7639104 ft².
+    expect(applied(parseQuery("50平方米以上")).filters.minNetArea).toBe("538");
+    const range = applied(parseQuery("50至70平方米"));
+    expect(range.filters.minNetArea).toBe("538");
+    expect(range.filters.maxNetArea).toBe("753");
+    expect(applied(parseQuery("over 50 sqm")).filters.minNetArea).toBe("538");
+  });
+
+  it("still asks for a direction when a size stands alone", () => {
+    const parse = parseQuery("2 bed 500呎 in 大埔");
+    expect(parse.kind).toBe("applied");
+    expect(parse.spec?.filters.minNetArea ?? "").toBe("");
+    expect(parse.spec?.ignored.join(" ")).toContain("Size 500 ft² without a range");
+  });
+});
+
 describe("compound district labels", () => {
   it("shows the component the user typed, not the joined label", () => {
     const zh = applied(parseQuery("石硤尾"));
