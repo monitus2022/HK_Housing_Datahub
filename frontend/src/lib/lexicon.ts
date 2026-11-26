@@ -976,8 +976,11 @@ function tidyCase(span: string): string {
  */
 function componentOf(label: string, typed: string): string {
   const wanted = normalise(typed);
-  const part = label.split(" / ").find((candidate) => normalise(candidate) === wanted);
-  return part ?? tidyCase(typed);
+  const part = label
+    .split(" / ")
+    .find((candidate) => normalise(candidate) === wanted);
+  // One label ships with two spaces before the slash ("Mid-Levels Central  /").
+  return part?.trim() ?? tidyCase(typed);
 }
 
 /** Undo the decimal sentinel for anything shown to the user. */

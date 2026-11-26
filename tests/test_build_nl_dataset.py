@@ -174,6 +174,19 @@ def test_a_joined_label_without_component_aliases_is_refused() -> None:
     assert "component" in str(error.value)
 
 
+def test_a_joined_label_missing_a_chinese_alias_is_refused() -> None:
+    """The guard must cover the Chinese components too, not only English."""
+    generator = load_generator()
+    geo = geo_model()
+    district = next(d for d in geo["districts"] if " / " in (d.get("zh") or ""))
+    zh_parts = {part.strip() for part in district["zh"].split(" / ")}
+    district["aliases"] = [
+        alias for alias in district["aliases"] if alias.strip() not in zh_parts
+    ]
+    with pytest.raises(SystemExit):
+        generator.build_places(geo)
+
+
 def write_fixture_db(path: Path) -> Path:
     """A minimal mart that maps one line and one net to single subregions."""
     connection = sqlite3.connect(path)

@@ -506,6 +506,11 @@ describe("compound district labels", () => {
       (slot) => slot.field === "Location",
     )?.value;
     expect(value).toBe("Jardine's Lookout");
+    // This label ships with a double space before its slash.
+    const padded = applied(parseQuery("Mid-Levels Central")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(padded).toBe("Mid-Levels Central");
   });
 
   it("shows the typed component even when the typo fallback found it", () => {
