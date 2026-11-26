@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import random
 import sqlite3
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -144,6 +146,36 @@ def test_negative_families_are_generated() -> None:
     rows = generator.generate(2000, seed=29, db_path=None)
     expects = {row["expect"] for row in rows}
     assert {"refused", "ignored", "ambiguous"} <= expects
+
+
+def test_language_mix_and_purity() -> None:
+    """55% English, 30% Chinese, 15% mixed, and each row is what it claims."""
+    generator = load_generator()
+    rows = generator.generate(3000, seed=107, db_path=None)
+    counts = Counter(row["lang"] for row in rows)
+    total = len(rows)
+    for lang, share in (("en", 0.55), ("zh", 0.30), ("mixed", 0.15)):
+        assert abs(counts[lang] / total - share) < 0.05, (lang, counts[lang], total)
+
+    for row in rows:
+        text = row["text"]
+        if row["lang"] == "en":
+            assert not re.search(r"[\u4e00-\u9fff]", text), row
+        elif row["lang"] == "zh":
+            assert not re.search(r"[A-Za-z]", text), row
+        else:
+            assert re.search(r"[\u4e00-\u9fff]", text), row
+            assert re.search(r"[A-Za-z]", text), row
+
+
+def test_room_phrasing_is_used() -> None:
+    """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
+    generator = load_generator()
+    rows = generator.generate(2000, seed=109, db_path=None)
+    texts = [row["text"].lower() for row in rows if "bedrooms" in row["planted"]]
+    rooms = sum(1 for text in texts if re.search(r"\brooms?\b", text))
+    beds = sum(1 for text in texts if re.search(r"\bbed\b", text))
+    assert rooms > beds, (rooms, beds)
 
 
 def test_compound_district_labels_are_never_emitted() -> None:
