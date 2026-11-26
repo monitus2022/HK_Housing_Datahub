@@ -239,7 +239,7 @@ pools drawn from `geo.json` and `gazetteer.json`, plus hardened pools for
 bedrooms, sizes, prices, sorts, building age, directions and unsupported terms
 defined in the script itself. It uses no model and no network.
 
-- **Least-used sampling per planted value.** "2 bed", "two bedrooms" and `兩房`
+- **Least-used sampling per planted value.** "2 bed", "2 rooms" and `兩房`
   are one coverage cell, so a value with more spellings does not get more rows.
 - **Co-occurrence from the mart.** A line or net is paired only with subregions
   that actually contain it (read-only, `mode=ro`), so the bulk avoids sentences
