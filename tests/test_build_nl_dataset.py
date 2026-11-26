@@ -145,6 +145,19 @@ def test_negative_families_are_generated() -> None:
     assert {"refused", "ignored", "ambiguous"} <= expects
 
 
+def test_compound_district_labels_are_never_emitted() -> None:
+    """Nobody types "Yau Yat Chuen / Shek Kip Mei"; the components stand alone."""
+    generator = load_generator()
+    rows = generator.generate(1500, seed=103, db_path=None)
+    assert all(" / " not in row["text"] for row in rows)
+
+    geo = geo_model()
+    compound = {d["id"] for d in geo["districts"] if " / " in d["en"]}
+    assert compound, "fixture has no compound districts"
+    planted = {row["planted"].get("districtId") for row in rows}
+    assert compound & planted, "compound districts became unreachable"
+
+
 def write_fixture_db(path: Path) -> Path:
     """A minimal mart that maps one line and one net to single subregions."""
     connection = sqlite3.connect(path)

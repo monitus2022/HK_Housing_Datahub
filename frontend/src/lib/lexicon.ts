@@ -875,9 +875,14 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     patch.regionId = scope.regionId ?? "";
     patch.subregionId = scope.subregionId ?? "";
     patch.districtId = scope.districtId ?? "";
+    // A joined label ("Yau Yat Chuen / Shek Kip Mei") reads as a multiple
+    // choice, so show the component the user actually typed.
+    const typed = placed && candidate.label.includes(" / ") ? tidyCase(placed.span) : "";
     spec.applied.push({
       field: "Location",
-      value: `${candidate.label}${candidate.zh ? ` · ${candidate.zh}` : ""}`,
+      value:
+        typed ||
+        `${candidate.label}${candidate.zh ? ` · ${candidate.zh}` : ""}`,
     });
   } else if (ambiguous) {
     const label = direction
@@ -950,6 +955,11 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     direction,
     input,
   };
+}
+
+/** Restore capital letters to a normalised span ("shek kip mei"). */
+function tidyCase(span: string): string {
+  return span.replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
 
 /** Undo the decimal sentinel for anything shown to the user. */

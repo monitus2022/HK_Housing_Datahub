@@ -40,6 +40,13 @@ from the remainder, so leftovers are reported rather than re-matched.
 | school net | `school net 41`, `校網 41`, `41校網` | `schoolNet` (by name — see §7) |
 | place | `TKO`, `KT`, `Sha Tin`, `east`, `港島東` | region / subregion / district |
 
+23 of the 60 district labels are joined names — `Yau Yat Chuen / Shek Kip Mei`,
+`Diamond Hill / San Po Kong / Ngau Chi Wan`. Nobody types the slash form, so the
+dataset plants the components (which already exist as aliases) and the chip shows
+the component the user typed. A joined label is still indexed as a whole, but a
+phrase beyond four words resolves only its first component; that is the window
+cap, not a promise.
+
 Chinese is part of v1, not deferred to the model: prices accept Arabic or
 Chinese numerals (`六百萬`, `1.5萬`) with `以下`/`以上`/`至` ranges, a bare `600萬`
 is disclosed as incomplete rather than assumed to be a ceiling, line names accept

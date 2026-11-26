@@ -486,6 +486,30 @@ describe("apply", () => {
   });
 });
 
+describe("compound district labels", () => {
+  it("shows the component the user typed, not the joined label", () => {
+    const zh = applied(parseQuery("石硤尾"));
+    expect(zh.filters.districtId).toBe("200603");
+    expect(zh.applied.find((slot) => slot.field === "Location")?.value).toBe(
+      "石硤尾",
+    );
+
+    const en = applied(parseQuery("Shek Kip Mei"));
+    expect(en.filters.districtId).toBe("200603");
+    expect(en.applied.find((slot) => slot.field === "Location")?.value).toBe(
+      "Shek Kip Mei",
+    );
+  });
+
+  it("still shows the canonical label for a single-name place", () => {
+    const value = applied(parseQuery("Sha Tin")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(value).toBe("Sha Tin · 沙田");
+  });
+
+});
+
 describe("Chinese belongs to v1, not to the model", () => {
   it("reads 兩房 and 六房 as bedrooms", () => {
     expect(applied(parseQuery("兩房 in 大埔")).filters.bedrooms).toBe("2");
