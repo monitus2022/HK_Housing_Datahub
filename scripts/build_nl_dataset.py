@@ -353,10 +353,33 @@ def build_places(geo: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
             "subregionId": district["subregionId"],
             "districtId": district["id"],
         }
-        add(district["en"], "district", planted)
-        add(district.get("zh"), "district", planted)
-        for alias in district["aliases"]:
-            add(alias, "district", planted)
+        aliases = [alias for alias in district["aliases"] if alias]
+        compound = " / " in district["en"] or " / " in (district.get("zh") or "")
+        # Nobody types "Yau Yat Chuen / Shek Kip Mei". The aliases are the
+        # component names, so a joined label would teach a surface no user
+        # produces and read as a multiple choice.
+        if compound:
+            # A joined label is only safe to drop when every component is an
+            # alias; otherwise the district would silently lose that component.
+            components = {
+                normalise(part)
+                for form in (district["en"], district.get("zh") or "")
+                for part in re.split(r" / ", form)
+                if part.strip()
+            }
+            missing = components - {normalise(alias) for alias in aliases}
+            if missing:
+                raise SystemExit(
+                    f"district {district['id']} has a joined label but no alias "
+                    f"for {sorted(missing)}; the dataset would drop those components"
+                )
+        forms = aliases if compound else [
+            district["en"],
+            district.get("zh"),
+            *aliases,
+        ]
+        for form in forms:
+            add(form, "district", planted)
 
     entries = [
         item(entry["forms"], entry["planted"]) for entry in by_label.values()

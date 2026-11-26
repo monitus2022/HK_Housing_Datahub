@@ -145,6 +145,48 @@ def test_negative_families_are_generated() -> None:
     assert {"refused", "ignored", "ambiguous"} <= expects
 
 
+def test_compound_district_labels_are_never_emitted() -> None:
+    """Nobody types "Yau Yat Chuen / Shek Kip Mei"; the components stand alone."""
+    generator = load_generator()
+    rows = generator.generate(3000, seed=103, db_path=None)
+    # No slash surface at all, not only the spaced form.
+    assert all("/" not in row["text"] for row in rows)
+
+    geo = geo_model()
+    compound = {
+        d["id"]
+        for d in geo["districts"]
+        if " / " in d["en"] or " / " in (d.get("zh") or "")
+    }
+    assert compound, "fixture has no compound districts"
+    planted = {row["planted"].get("districtId") for row in rows}
+    assert compound <= planted, sorted(compound - planted)
+
+
+def test_a_joined_label_without_component_aliases_is_refused() -> None:
+    """Dropping the joined form is only safe when every component is an alias."""
+    generator = load_generator()
+    geo = geo_model()
+    district = next(d for d in geo["districts"] if " / " in d["en"])
+    district["aliases"] = district["aliases"][:1]
+    with pytest.raises(SystemExit) as error:
+        generator.build_places(geo)
+    assert "component" in str(error.value)
+
+
+def test_a_joined_label_missing_a_chinese_alias_is_refused() -> None:
+    """The guard must cover the Chinese components too, not only English."""
+    generator = load_generator()
+    geo = geo_model()
+    district = next(d for d in geo["districts"] if " / " in (d.get("zh") or ""))
+    zh_parts = {part.strip() for part in district["zh"].split(" / ")}
+    district["aliases"] = [
+        alias for alias in district["aliases"] if alias.strip() not in zh_parts
+    ]
+    with pytest.raises(SystemExit):
+        generator.build_places(geo)
+
+
 def write_fixture_db(path: Path) -> Path:
     """A minimal mart that maps one line and one net to single subregions."""
     connection = sqlite3.connect(path)
