@@ -272,9 +272,6 @@ AREAS = [
     ("large", "大單位", "700", ""),
     ("big", "大單位", "700", ""),
     ("spacious", "大單位", "700", ""),
-    ("500-700 sq ft", "500至700呎", "500", "700"),
-    ("under 600 ft", "600呎以下", "", "600"),
-    ("over 800 sq ft", "800呎以上", "800", ""),
 ]
 
 # Price phrases -> (English, Chinese, min, max).
@@ -608,7 +605,7 @@ def forms_for(entry: dict[str, Any], slot: str, lang: str) -> list[str]:
     A mixed row is an English sentence with a Chinese place: "2 bed in 旺角".
     """
     forms = entry["forms"]
-    wanted = "zh" if lang == "zh" or (lang == "mixed" and slot == "place") else "en"
+    wanted = form_language(slot, lang)
     return forms.get(wanted) or forms.get("en") or forms["zh"]
 
 
@@ -616,8 +613,8 @@ def choose_language(rng: random.Random, family: dict[str, Any]) -> str:
     """Pick a row language.
 
     Chinese needs a Chinese template; mixed needs a place slot, because a mixed
-    row is an English sentence with a Chinese place. A family without a place
-    (an abbreviation, an unsupported concept) is English-only.
+    row is an English sentence with a Chinese place. A family without a Chinese
+    template (abbreviations) is English-only.
     """
     options = ["en"]
     weights = [LANGUAGE_WEIGHTS["en"]]
@@ -651,7 +648,14 @@ def render(
     anchor = ANCHOR_FAMILIES.get(family["name"])
     if anchor and cooccurrence is not None:
         anchor_slot, anchor_key = anchor
-        entry = least_used(pools[anchor_slot], usage[anchor_slot], rng)
+        entry = least_used(
+            pools[anchor_slot],
+            usage[anchor_slot],
+            rng,
+            lambda candidate, want=form_language(anchor_slot, lang): bool(
+                candidate["forms"].get(want)
+            ),
+        )
         usage[anchor_slot][entry["key"]] += 1
         chosen[anchor_slot] = entry
         planted.update(entry["planted"])

@@ -264,8 +264,9 @@ matching runs **after** estate and place, so `New Territories` and estate names
 containing "new" are consumed first. `新盤` is primary-market wording — the data has no
 launch or first-sale flag — so it is disclosed rather than mapped onto age.
 
-- **Planted values are diagnostics, not labels.** Each row records `planted` and
-  a coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`). The teacher's
+- **Planted values are diagnostics, not labels.** Each row records `planted`, a
+  coarse `expect` (`applied`, `ambiguous`, `ignored`, `refused`), and the row
+  `lang` (`en`, `zh`, `mixed`). The teacher's
   label is produced independently; `planted` is used for coverage gates and
   per-slot recall checks. An absent bound is the empty string, not null, so
   `maxPrice: ""` means "no upper bound".
@@ -275,15 +276,16 @@ A checkout without it **refuses to run** rather than silently pairing lines and
 nets at random; `--no-correlation` generates anyway and marks the report
 `correlation: off`. Uncorrelated output is for smoke tests only, never labels.
 
-A 6,000-row run yields 6,000 unique texts (no duplicates): 55.9% English, 29.2%
-Chinese, 14.9% mixed; 51–66 rows per MTR line, 31–44 per school-net name, 94–98
-per sort key, 64–85 per place scope, 572–582 per bedroom value, and 215 rows
-carrying a building age, with every one of the 77 scopes present. 43.9% of rows contain Chinese, the
-Chinese rows and the Chinese half of the mixed rows.
+A 6,000-row run yields 6,000 unique texts (no duplicates): 55.8% English, 28.6%
+Chinese, 15.6% mixed; 51–72 rows per MTR line, 33–44 per school-net name, 95–97
+per sort key, 60–86 per place scope, 539–573 per bedroom value, and 206 rows
+carrying a building age, with every one of the 77 scopes present. 44.2% of rows contain Chinese: every
+Chinese row, plus every mixed row, because each mixed row carries a Chinese
+place.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
-0.83 of the sampling weight, but **92.9% of emitted rows** carry a location
-(5,572 of 6,000; 88.7% at 1,000 rows). The gap is dedupe and the abbreviation
+0.83 of the sampling weight, but **93.0% of emitted rows** carry a location
+(5,580 of 6,000; 89.1% at 1,000 rows). The gap is dedupe and the abbreviation
 family, which also plants a place: families with more distinct texts survive
 dedupe better. Quote the measured figure, not 0.83. This is realistic for a
 property query but **not** the shape the training set needs, so the "no slot in

@@ -168,6 +168,29 @@ def test_language_mix_and_purity() -> None:
             assert re.search(r"[A-Za-z]", text), row
 
 
+def test_language_purity_survives_the_correlated_path(tmp_path: Path) -> None:
+    """The mtr/net anchor picks entries too, and must respect the row language."""
+    generator = load_generator()
+    db = write_fixture_db(tmp_path / "fixture.db")
+    rows = generator.generate(1200, seed=113, db_path=db)
+    for row in rows:
+        text = row["text"]
+        if row["lang"] == "en":
+            assert not re.search(r"[\u4e00-\u9fff]", text), row
+        elif row["lang"] == "zh":
+            assert not re.search(r"[A-Za-z]", text), row
+        else:
+            assert re.search(r"[\u4e00-\u9fff]", text), row
+            assert re.search(r"[A-Za-z]", text), row
+
+
+def test_every_row_carries_its_language() -> None:
+    generator = load_generator()
+    rows = generator.generate(200, seed=127, db_path=None)
+    assert {row["lang"] for row in rows} <= {"en", "zh", "mixed"}
+    assert all(row["lang"] for row in rows)
+
+
 def test_room_phrasing_is_used() -> None:
     """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
     generator = load_generator()
@@ -175,7 +198,7 @@ def test_room_phrasing_is_used() -> None:
     texts = [row["text"].lower() for row in rows if "bedrooms" in row["planted"]]
     rooms = sum(1 for text in texts if re.search(r"\brooms?\b", text))
     beds = sum(1 for text in texts if re.search(r"\bbed\b", text))
-    assert rooms > beds, (rooms, beds)
+    assert rooms >= beds * 1.2, (rooms, beds)
 
 
 def test_compound_district_labels_are_never_emitted() -> None:
