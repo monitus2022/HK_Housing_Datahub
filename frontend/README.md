@@ -120,7 +120,9 @@ tables; `make gazetteer-check` fails when the artifact drifts.
 `src/lib/lexicon.ts` parses one sentence into one query spec
 (`2 bedroom flat in TKO`, `3 room under 6m in Sha Tin`, `cheapest 2 bed in Kwun
 Tong`, `near the island line`, `school net 41`). Chinese works too: `兩房 in
-大埔`, `600萬以下`, `最平`, `港島綫`, `40校網`. It is deterministic and runs in
+大埔`, `600萬以下`, `最平`, `港島綫`, `40校網`. Estate names are recognised from
+the estate list the dashboard already holds (`太古城 兩房 under 6m`): the name
+becomes the text query and the other slots still apply. It is deterministic and runs in
 the browser: no network call, no model and no dependency. Each submit **replaces**
 the current filters — one utterance is one query, so a previous query cannot
 silently narrow the new one — and the result area always discloses what happened:
@@ -157,12 +159,14 @@ Cloudflare Pages sets the variable per environment. With the flag off the form
 and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
 imported for its module-level index, so the shared bundle grows by about 5.4 kB
 raw / 1.4 kB gzipped over the pre-P3 build. With the flag on the feature adds
-about 13 kB raw / 4.5 kB gzipped over the flag-off build (19 kB / 5.9 kB over
-the pre-P3 baseline). The flag is a build-time rollout switch, not a
+about 19.7 kB raw / 6.7 kB gzipped over the flag-off build (419.07 kB / 123.55 kB
+off, 438.72 kB / 130.20 kB on, measured at head). The flag is a build-time rollout switch, not a
 code-splitting boundary.
 
-Estate-name matching is still the `q` box: the sentence parser only sets
-structured filters, which is why it never invents a result from free text.
+An estate name in the sentence is applied as the `q` text query, which is a
+substring match over estate names, district names and estate ids — so `太古城`
+narrows to it, and `太古城 兩房` narrows further. That is the one case where the
+parser sets free text; every other slot stays a structured filter.
 Vague sizes (`small`, `middle size`, `大單位`) apply a band derived from the
 snapshot quartiles, marked `(default)`, and offer neighbouring bands as hints so
 the choice can be corrected without retyping; choosing a hint replaces the band

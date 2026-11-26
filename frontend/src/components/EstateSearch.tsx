@@ -30,6 +30,7 @@ import {
 import {
   hintSpec,
   parseQuery,
+  warmEstateIndex,
   refineDirection,
   specToState,
   type NlHint,
@@ -50,6 +51,28 @@ const PAGE_SIZE = 25;
 const NL_MAX_LENGTH = 120;
 
 const NL_ENABLED = import.meta.env.VITE_FEATURE_NL_SEARCH === "true";
+
+/**
+ * Builds the estate-name index while the browser is idle. A separate component
+ * so the flag-off build drops it, and the index builder, entirely: ~59 ms for
+ * 9,750 names is not work the non-NL build should ever do.
+ */
+function NlEstateWarmer({ estates }: { estates: EstateSummary[] }) {
+  useEffect(() => {
+    if (estates.length === 0) return;
+    if (typeof globalThis.requestIdleCallback === "function") {
+      const handle = globalThis.requestIdleCallback(() => warmEstateIndex(estates));
+      return () => {
+        if (typeof globalThis.cancelIdleCallback === "function") {
+          globalThis.cancelIdleCallback(handle);
+        }
+      };
+    }
+    const timer = setTimeout(() => warmEstateIndex(estates), 200);
+    return () => clearTimeout(timer);
+  }, [estates]);
+  return null;
+}
 
 interface Props {
   estates: EstateSummary[];
@@ -199,7 +222,10 @@ export function EstateSearch({ estates, onSelect }: Props) {
   const submitNl = (raw: string) => {
     const text = raw.trim();
     if (!text) return;
-    const parse = parseQuery(text, { regionId: state.filters.regionId });
+    const parse = parseQuery(text, {
+      regionId: state.filters.regionId,
+      estates,
+    });
     setNlText(text);
     setNlParse(parse);
     // Only a parsed spec replaces the query. A refusal or an unresolved
@@ -217,7 +243,9 @@ export function EstateSearch({ estates, onSelect }: Props) {
     // instead of silently applying all of Kowloon. Subregion hints are already
     // the answer, so they apply directly.
     if (hint.kind === "place" && hint.level === "region" && nlParse.direction) {
-      const refined = refineDirection(nlParse, hint.scope.regionId);
+      const refined = refineDirection(nlParse, hint.scope.regionId, {
+        estates,
+      });
       if (refined.spec) {
         setNlParse(refined);
         setState(specToState(refined.spec));
@@ -317,6 +345,7 @@ export function EstateSearch({ estates, onSelect }: Props) {
         </p>
       </div>
 
+      {NL_ENABLED ? <NlEstateWarmer estates={estates} /> : null}
       {NL_ENABLED ? (
         <form
           className="nl-form"
