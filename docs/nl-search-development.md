@@ -66,7 +66,7 @@ is not a random mix of languages inside one sentence. Chinese rows use Chinese
 templates and Chinese forms for every slot (`一房 600萬以下 觀塘`), so a Chinese
 row never contains an English place or an English city. Families with no Chinese
 template — abbreviations — are English-only, and mixed requires a place slot.
-`room`/`rooms` outnumber `bed` forms about 1.45:1 (698 vs 481 rows at 6,000),
+`room`/`rooms` outnumber `bed` forms about 1.46:1 (708 vs 486 rows at 6,000),
 because that is the word people use.
 
 23 of the 60 district labels are joined names — `Yau Yat Chuen / Shek Kip Mei`,
@@ -276,16 +276,16 @@ A checkout without it **refuses to run** rather than silently pairing lines and
 nets at random; `--no-correlation` generates anyway and marks the report
 `correlation: off`. Uncorrelated output is for smoke tests only, never labels.
 
-A 6,000-row run yields 6,000 unique texts (no duplicates): 55.8% English, 28.6%
-Chinese, 15.6% mixed; 51–72 rows per MTR line, 33–44 per school-net name, 95–97
-per sort key, 60–86 per place scope, 539–573 per bedroom value, and 206 rows
-carrying a building age, with every one of the 77 scopes present. 44.2% of rows
-contain Chinese: every Chinese row, plus every mixed row, because each mixed row
-carries a Chinese place.
+A 6,000-row run yields 6,000 unique texts (no duplicates): 55.6% English, 29.2%
+Chinese, 15.3% mixed; 47–70 rows per MTR line, 29–43 per school-net name, 93–97
+per sort key, 58–86 per place scope, 552–588 per bedroom value, 213 rows carrying
+a building age, and 167 area rows in 呎 or 平方米, with every one of the 77
+scopes present. 44.4% of rows contain Chinese: every Chinese row, plus every
+mixed row, because each mixed row carries a Chinese place.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
 0.83 of the sampling weight, but **93.0% of emitted rows** carry a location
-(5,577 of 6,000; 89.1% at 1,000 rows). The gap is dedupe and the abbreviation
+(5,583 of 6,000; 88.7% at 1,000 rows). The gap is dedupe and the abbreviation
 family, which also plants a place: families with more distinct texts survive
 dedupe better. Quote the measured figure, not 0.83. This is realistic for a
 property query but **not** the shape the training set needs, so the "no slot in
