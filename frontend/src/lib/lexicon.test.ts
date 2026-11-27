@@ -754,6 +754,34 @@ describe("compound district labels", () => {
     expect(value).toBe("Tseung Kwan O · 將軍澳");
   });
 
+  it("discloses a joined district reached through any component", () => {
+    // Central is a component of "Sheung Wan / Central", not a single-name place.
+    const central = applied(parseQuery("Central")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(central).toBe("Central · district Sheung Wan / Central");
+
+    const yau = applied(parseQuery("Yau Yat Chuen")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(yau).toBe("Yau Yat Chuen · district Yau Yat Chuen / Shek Kip Mei");
+  });
+
+  it("does not repeat the district when the word is the district", () => {
+    // 中上環 is the whole Chinese label of "Sheung Wan / Central".
+    const value = applied(parseQuery("中上環")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(value).toBe("Sheung Wan / Central · 中上環");
+  });
+
+  it("leaves a subregion sharing a district name unsuffixed", () => {
+    const value = applied(parseQuery("Kowloon City")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(value).not.toContain("district");
+  });
+
   it("still shows the canonical label for a single-name place", () => {
     const value = applied(parseQuery("Sha Tin")).applied.find(
       (slot) => slot.field === "Location",
