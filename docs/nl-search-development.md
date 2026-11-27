@@ -65,8 +65,10 @@ place (`cheapest flats in 何文田`), because that is the mixed style people ty
 is not a random mix of languages inside one sentence. Chinese rows use Chinese
 templates and Chinese forms for every slot, phrased the way people type:
 `想搵 觀塘 一房 600萬以下`, `大埔 兩房 有冇`, `近 港島綫 嘅 西灣河`. The particles
-(`想搵`, `有冇`, `嘅`, `預算`) are words the lexicon does not know — that gap is
-deliberate, and it is what the model is meant to close. Spacing is kept around
+(`想搵`, `有冇`, `嘅`, `預算`, `近`) are words the lexicon does not know — that gap
+is deliberate, and it is what the model is meant to close. An approximator such
+as `左右` is not used, because it would contradict a closed bound
+(`600萬以下 左右`). Spacing is kept around
 every slot so the place stays a separate token, and a Chinese row never contains
 an English place or city. Families with no Chinese
 template — abbreviations — are English-only, and mixed requires a place slot.

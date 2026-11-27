@@ -272,9 +272,12 @@ def test_chinese_rows_read_like_typing() -> None:
     rows = generator.generate(2000, seed=137, db_path=None)
     chinese = [row["text"] for row in rows if row["lang"] == "zh"]
     assert chinese
-    assert any(
-        re.search(r"想搵|有冇|嘅|預算|左右|近", text) for text in chinese
-    ), "no Chinese row uses speech particles"
+    # 近 is excluded: 近地鐵 is a pool surface that predates the templates, so it
+    # would satisfy the assertion on placeholder-order rows.
+    particles = re.compile(r"想搵|有冇|嘅|預算")
+    assert any(particles.search(text) for text in chinese), "no template particles"
+    share = sum(1 for text in chinese if particles.search(text)) / len(chinese)
+    assert share > 0.5, share
 
 
 def test_room_phrasing_is_used() -> None:

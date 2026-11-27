@@ -228,7 +228,7 @@ TEMPLATES_ZH: dict[str, list[str]] = {
     "place_bed": [
         "{place} {bedrooms}",
         "想搵 {place} {bedrooms}",
-        "{bedrooms} {place} 有冇",
+        "{place} {bedrooms} 有冇",
     ],
     "place_price": [
         "{place} {price}",
@@ -239,7 +239,7 @@ TEMPLATES_ZH: dict[str, list[str]] = {
     "place_bed_price": [
         "{place} {bedrooms} {price}",
         "想搵 {bedrooms} {price} 嘅 {place}",
-        "{bedrooms} {place} {price} 左右",
+        "想搵 {place} {bedrooms} {price}",
     ],
     "place_bed_area": [
         "{place} {bedrooms} {area}",
