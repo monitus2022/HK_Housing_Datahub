@@ -148,6 +148,9 @@ silently narrow the new one — and the result area always discloses what happen
   pick the region, then the subregion inside it.
 - A place outside Hong Kong refuses the whole sentence and leaves the current
   results untouched. A bare `Tung Chung` is a district, never the railway line.
+- A component of a joined district (`石硤尾` in `Yau Yat Chuen / Shek Kip Mei`)
+  filters the **whole district**, because estates carry no finer area field, and
+  the interpretation says so: `石硤尾 · district 又一村 / 石硤尾`.
 
 Two limits worth knowing:
 
