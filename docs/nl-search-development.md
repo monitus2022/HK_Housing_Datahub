@@ -31,7 +31,7 @@ from the remainder, so leftovers are reported rather than re-matched.
 |---|---|---|
 | out-of-scope | `shenzhen`, `深圳` | refuse the whole sentence |
 | bedrooms | `2 bed`, `3 room`, `兩房`, `六房` | `bedrooms` (`4+` above 3) |
-| area | `500-700 sq ft`, `under 600 ft` | `minNetArea` / `maxNetArea` |
+| area | `500-700 sq ft`, `under 600 ft`, `500至700呎`, `50至70平方米` | `minNetArea` / `maxNetArea` |
 | vague size | `small`, `middle size`, `大單位` | marked default + band hints (see §3) |
 | price | `under 6m`, `5m to 8m`, `600萬以下`, `500萬至800萬` | `minPrice` / `maxPrice` |
 | sort | `cheapest`, `most active`, `最平`, `最活躍` | `sort` |
