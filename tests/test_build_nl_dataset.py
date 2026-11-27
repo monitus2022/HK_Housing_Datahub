@@ -266,6 +266,17 @@ def test_area_rows_use_units_the_lexicon_understands() -> None:
             assert bounds <= {"538", ""}, row
 
 
+def test_chinese_rows_read_like_typing() -> None:
+    """Placeholder order reads like a spec; the dataset should read like speech."""
+    generator = load_generator()
+    rows = generator.generate(2000, seed=137, db_path=None)
+    chinese = [row["text"] for row in rows if row["lang"] == "zh"]
+    assert chinese
+    assert any(
+        re.search(r"想搵|有冇|嘅|預算|左右|近", text) for text in chinese
+    ), "no Chinese row uses speech particles"
+
+
 def test_room_phrasing_is_used() -> None:
     """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
     generator = load_generator()
