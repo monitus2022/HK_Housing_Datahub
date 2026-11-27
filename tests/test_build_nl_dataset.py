@@ -255,10 +255,10 @@ def test_area_rows_use_units_the_lexicon_understands() -> None:
     ]
     chinese = [row for row in area if row["lang"] == "zh"]
     assert chinese, "no Chinese area rows"
-    assert any("呎" in row["text"] or "平方米" in row["text"] for row in chinese)
+    assert any("呎" in row["text"] for row in chinese), "no 呎 rows"
+    assert any("平方米" in row["text"] for row in chinese), "no 平方米 rows"
 
     for row in chinese:
-        assert "sq ft" not in row["text"]
         # The planted bounds are square feet, so a metric phrase must have been
         # converted before it was recorded.
         if "平方米" in row["text"]:

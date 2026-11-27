@@ -279,8 +279,8 @@ nets at random; `--no-correlation` generates anyway and marks the report
 A 6,000-row run yields 6,000 unique texts (no duplicates): 55.6% English, 29.2%
 Chinese, 15.3% mixed; 47–70 rows per MTR line, 29–43 per school-net name, 93–97
 per sort key, 58–86 per place scope, 552–588 per bedroom value, 213 rows carrying
-a building age, and 167 area rows in 呎 or 平方米, with every one of the 77
-scopes present. 44.4% of rows contain Chinese: every Chinese row, plus every
+a building age, and 167 of the area rows using 呎 or 平方米, with every one of
+the 77 scopes present. 44.4% of rows contain Chinese: every Chinese row, plus every
 mixed row, because each mixed row carries a Chinese place.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
