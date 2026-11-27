@@ -1081,7 +1081,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     ).replace(/\s+/g, " ");
     // 中上環 is the Chinese label of "Sheung Wan / Central": the component and
     // the district are the same word, so a suffix would only repeat it.
-    const newsworthy = typed && normalise(typed) !== normalise(district);
+    const newsworthy = typed !== "" && normalise(typed) !== normalise(district);
     spec.applied.push({
       field: "Location",
       value: newsworthy

@@ -151,7 +151,7 @@ silently narrow the new one — and the result area always discloses what happen
 - A component of a joined district (`石硤尾` in `Yau Yat Chuen / Shek Kip Mei`)
   filters the **whole district**, because estates carry no finer area field, and
   the interpretation says so: `石硤尾 · district 又一村 / 石硤尾`. That affects 23
-  of 60 districts, 57% of estates.
+  of 60 districts, 5,524 of 9,750 estates (57%).
 
 Two limits worth knowing:
 
@@ -171,8 +171,8 @@ VITE_FEATURE_NL_SEARCH=true npm run build
 Cloudflare Pages sets the variable per environment. With the flag off the form
 and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
 imported for its module-level index. With the flag on the feature adds about
-20.5 kB raw / 7.0 kB gzipped over the flag-off build (419.86 kB / 123.75 kB off,
-440.37 kB / 130.71 kB on, measured at head). The flag is a build-time rollout switch, not a
+20.65 kB raw / 7.01 kB gzipped over the flag-off build (419.86 kB / 123.75 kB off,
+440.51 kB / 130.76 kB on, measured at head). The flag is a build-time rollout switch, not a
 code-splitting boundary.
 
 An estate name in the sentence is applied as the `q` text query, which is a

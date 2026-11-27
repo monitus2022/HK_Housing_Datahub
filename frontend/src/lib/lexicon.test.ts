@@ -779,7 +779,7 @@ describe("compound district labels", () => {
     const value = applied(parseQuery("Kowloon City")).applied.find(
       (slot) => slot.field === "Location",
     )?.value;
-    expect(value).not.toContain("district");
+    expect(value).toBe("Kowloon City · 九龍城");
   });
 
   it("still shows the canonical label for a single-name place", () => {
