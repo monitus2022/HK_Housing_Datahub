@@ -10,7 +10,9 @@ from __future__ import annotations
 import importlib.util
 import json
 import random
+import re
 import sqlite3
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -146,6 +148,112 @@ def test_negative_families_are_generated() -> None:
     assert {"refused", "ignored", "ambiguous"} <= expects
 
 
+def test_language_mix_and_purity() -> None:
+    """55% English, 30% Chinese, 15% mixed, and each row is what it claims."""
+    generator = load_generator()
+    rows = generator.generate(3000, seed=107, db_path=None)
+    counts = Counter(row["lang"] for row in rows)
+    total = len(rows)
+    for lang, share in (("en", 0.55), ("zh", 0.30), ("mixed", 0.15)):
+        assert abs(counts[lang] / total - share) < 0.05, (lang, counts[lang], total)
+
+    for row in rows:
+        text = row["text"]
+        if row["lang"] == "en":
+            assert not re.search(r"[\u4e00-\u9fff]", text), row
+        elif row["lang"] == "zh":
+            assert not re.search(r"[A-Za-z]", text), row
+        else:
+            assert re.search(r"[\u4e00-\u9fff]", text), row
+            assert re.search(r"[A-Za-z]", text), row
+
+
+def test_language_predicate_rejects_an_incompatible_entry() -> None:
+    generator = load_generator()
+    pool = [
+        {"forms": {"en": ["english only"]}, "planted": {}, "expect": "applied", "key": "en"},
+        {"forms": {"en": ["both"], "zh": ["兩者"]}, "planted": {}, "expect": "applied", "key": "both"},
+        {"forms": {"zh": ["只有中文"]}, "planted": {}, "expect": "applied", "key": "zh"},
+    ]
+    usage = {"en": 0, "both": 0, "zh": 0}
+    picked = generator.least_used(
+        pool, usage, random.Random(3), generator.language_predicate("place", "zh")
+    )
+    # Either bilingual or Chinese-only is fine; the English-only one is not.
+    assert picked["key"] != "en"
+    assert "zh" in picked["forms"]
+    # Assert the predicate itself, not a pick: it must accept the English-capable
+    # entries and reject the Chinese-only one.
+    english = generator.language_predicate("place", "en")
+    accepted = {entry["key"] for entry in pool if english(entry)}
+    assert accepted == {"en", "both"}
+
+
+def test_anchor_path_skips_a_monolingual_line() -> None:
+    """The anchor selection must obey the row language, not only the main loop.
+
+    Real lines and nets are all bilingual, so this can only be shown with a pool
+    where the English-only candidate is the least-used one: without the predicate
+    it is chosen first and leaks "mono" into a Chinese row.
+    """
+    generator = load_generator()
+    pools = {
+        "mtr": [
+            {"forms": {"en": ["mono"]}, "planted": {"mtrLine": "Mono"}, "expect": "applied", "key": "m"},
+            {"forms": {"en": ["bilingual"], "zh": ["雙語"]}, "planted": {"mtrLine": "Bilingual"}, "expect": "applied", "key": "b"},
+        ],
+        "place": [
+            {"forms": {"en": ["place"], "zh": ["地方"]}, "planted": {"subregionId": "1001"}, "expect": "applied", "key": "p"},
+        ],
+    }
+    family = next(f for f in generator.FAMILIES if f["name"] == "place_line")
+    usage = {"mtr": Counter({"m": 0, "b": 5}), "place": Counter({"p": 0})}
+    cooccurrence = {"mtrLine": {"Mono": {"1001"}, "Bilingual": {"1001"}}}
+    for seed in range(5):
+        text, _, _, _ = generator.render(
+            family, pools, usage, random.Random(seed), cooccurrence, {"1001": "10"}, "zh"
+        )
+        assert "mono" not in text, text
+
+
+def test_language_purity_survives_the_correlated_path(tmp_path: Path) -> None:
+    """The mtr/net anchor picks entries too, and must respect the row language."""
+    generator = load_generator()
+    db = write_fixture_db(tmp_path / "fixture.db")
+    rows = generator.generate(1200, seed=113, db_path=db)
+    # The anchor path must actually be exercised, or the purity check is vacuous.
+    assert any(
+        row["lang"] == "zh" and ("mtrLine" in row["planted"] or "schoolNet" in row["planted"])
+        for row in rows
+    ), "no correlated Chinese rows were generated"
+    for row in rows:
+        text = row["text"]
+        if row["lang"] == "en":
+            assert not re.search(r"[\u4e00-\u9fff]", text), row
+        elif row["lang"] == "zh":
+            assert not re.search(r"[A-Za-z]", text), row
+        else:
+            assert re.search(r"[\u4e00-\u9fff]", text), row
+            assert re.search(r"[A-Za-z]", text), row
+
+
+def test_every_row_carries_its_language() -> None:
+    generator = load_generator()
+    rows = generator.generate(200, seed=127, db_path=None)
+    assert {row["lang"] for row in rows} <= {"en", "zh", "mixed"}
+    assert all(row["lang"] for row in rows)
+
+
+def test_room_phrasing_is_used() -> None:
+    """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
+    generator = load_generator()
+    rows = generator.generate(2000, seed=109, db_path=None)
+    texts = [row["text"].lower() for row in rows if "bedrooms" in row["planted"]]
+    rooms = sum(1 for text in texts if re.search(r"\brooms?\b", text))
+    beds = sum(1 for text in texts if re.search(r"\bbed\b", text))
+    assert rooms >= beds * 1.2, (rooms, beds)
+
+
 def test_compound_district_labels_are_never_emitted() -> None:
     """Nobody types "Yau Yat Chuen / Shek Kip Mei"; the components stand alone."""
     generator = load_generator()
@@ -277,7 +385,7 @@ def test_place_allowed_refuses_an_empty_allowance() -> None:
 
 def test_least_used_refuses_an_unsatisfiable_predicate() -> None:
     generator = load_generator()
-    pool = [{"forms": ["x"], "planted": {}, "expect": "applied", "key": "k"}]
+    pool = [{"forms": {"en": ["x"]}, "planted": {}, "expect": "applied", "key": "k"}]
     usage = {"k": 0}
     with pytest.raises(RuntimeError):
         generator.least_used(pool, usage, random.Random(1), lambda entry: False)

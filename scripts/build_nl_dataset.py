@@ -218,80 +218,109 @@ FAMILIES: list[dict[str, Any]] = [
     },
 ]
 
-# Bedrooms -> bedrooms filter value.
+# Chinese templates. Placeholders only, separated by spaces: a glued particle
+# ("大埔兩房") would make the place unparseable, and an extra word ("想搵") would
+# only pollute Unrecognised. Variety comes from slot order and the form pools.
+TEMPLATES_ZH: dict[str, list[str]] = {
+    "place": ["{place}"],
+    "place_bed": ["{place} {bedrooms}", "{bedrooms} {place}"],
+    "place_price": ["{place} {price}", "{price} {place}"],
+    "place_area": ["{place} {area}", "{area} {place}"],
+    "place_bed_price": [
+        "{place} {bedrooms} {price}",
+        "{bedrooms} {price} {place}",
+        "{price} {bedrooms} {place}",
+    ],
+    "place_bed_area": ["{place} {bedrooms} {area}", "{bedrooms} {area} {place}"],
+    "place_line": ["{place} {mtr}", "{mtr} {place}"],
+    "place_net": ["{place} {net}", "{net} {place}"],
+    "bed_price": ["{bedrooms} {price}", "{price} {bedrooms}"],
+    "sort_place": ["{place} {sort}", "{sort} {place}"],
+    "direction": ["{direction}"],
+    "out_of_scope": ["{out_of_scope}"],
+    "unsupported": ["{unsupported}"],
+    "place_age": ["{place} {age}", "{age} {place}"],
+    "place_unsupported": ["{place} {unsupported}", "{unsupported} {place}"],
+}
+
+for _family in FAMILIES:
+    if _family["name"] in TEMPLATES_ZH:
+        _family["templates_zh"] = TEMPLATES_ZH[_family["name"]]
+
+# Row-level language mix: pure English, pure Chinese, and the mixed style people
+# actually type (English keyword, Chinese place).
+LANGUAGE_WEIGHTS: dict[str, int] = {"en": 55, "zh": 30, "mixed": 15}
+
+# Bedrooms -> (value, English forms, Chinese forms). "room(s)" is prioritised
+# because that is what people actually type.
 BEDROOMS = [
-    ("1 bed", "1"),
-    ("2 bed", "2"),
-    ("3 bed", "3"),
-    ("4+ bed", "4+"),
-    ("three bedroom", "3"),
-    ("two bedrooms", "2"),
-    ("3 room", "3"),
-    ("兩房", "2"),
-    ("三房", "3"),
+    ("1", ["1 bedroom", "1 bed", "one bedroom"], ["一房"]),
+    ("2", ["2 rooms", "2-room", "2 bed"], ["兩房", "二房"]),
+    ("3", ["3 rooms", "3-room", "3 bed", "three bedrooms"], ["三房"]),
+    ("4+", ["4 rooms", "4+ rooms", "4+ bed"], ["四房", "五房", "六房"]),
 ]
 
-# Area phrases -> (min, max). Vague words carry the shipped defaults.
+# Area phrases -> (English, Chinese, min, max). Vague words carry the shipped
+# defaults; Chinese size words only appear next to 單位.
 AREAS = [
-    ("small", "", "400"),
-    ("small size", "", "400"),
-    ("compact", "", "400"),
-    ("middle size", "400", "700"),
-    ("mid size", "400", "700"),
-    ("medium sized", "400", "700"),
-    ("large", "700", ""),
-    ("big", "700", ""),
-    ("spacious", "700", ""),
-    ("500-700 sq ft", "500", "700"),
-    ("under 600 ft", "", "600"),
-    ("over 800 sq ft", "800", ""),
-    ("大單位", "700", ""),
-    ("細單位", "", "400"),
-    ("中型單位", "400", "700"),
+    ("small", "細單位", "", "400"),
+    ("small size", "細單位", "", "400"),
+    ("compact", "細單位", "", "400"),
+    ("middle size", "中型單位", "400", "700"),
+    ("mid size", "中型單位", "400", "700"),
+    ("medium sized", "中型單位", "400", "700"),
+    ("large", "大單位", "700", ""),
+    ("big", "大單位", "700", ""),
+    ("spacious", "大單位", "700", ""),
 ]
 
-# Price phrases -> (min, max).
+# Price phrases -> (English, Chinese, min, max).
 PRICES = [
-    ("under 3m", "", "3000000"),
-    ("under 5m", "", "5000000"),
-    ("under 6m", "", "6000000"),
-    ("below 8 million", "", "8000000"),
-    ("under 600k", "", "600000"),
-    ("up to 12m", "", "12000000"),
-    ("over 10m", "10000000", ""),
-    ("3m to 5m", "3000000", "5000000"),
-    ("5m to 8m", "5000000", "8000000"),
-    ("6.5m to 9m", "6500000", "9000000"),
+    ("under 3m", "300萬以下", "", "3000000"),
+    ("under 5m", "500萬以下", "", "5000000"),
+    ("under 6m", "600萬以下", "", "6000000"),
+    ("below 8 million", "800萬以下", "", "8000000"),
+    ("under 600k", "60萬以下", "", "600000"),
+    ("up to 12m", "1200萬以下", "", "12000000"),
+    ("over 10m", "1000萬以上", "10000000", ""),
+    ("3m to 5m", "300萬至500萬", "3000000", "5000000"),
+    ("5m to 8m", "500萬至800萬", "5000000", "8000000"),
+    ("6.5m to 9m", "650萬至900萬", "6500000", "9000000"),
 ]
 
+# Building age -> (English, Chinese).
 AGES = [
-    "new build",
-    "newly built",
-    "brand new",
-    "new",
-    "新樓",
+    ("new build", "新樓"),
+    ("newly built", "新樓"),
+    ("brand new", "新樓"),
+    ("new", "新樓"),
 ]
 
-# Sort phrases -> SortKey.
+# Sort phrases -> (English, Chinese, SortKey).
 SORTS = [
-    ("cheapest", "latest_price"),
-    ("most active", "tx_count_12m"),
-    ("newest", "latest_tx_date"),
-    ("alphabetical", "name"),
-    ("budget", "latest_price"),
+    ("cheapest", "最平", "latest_price"),
+    ("most active", "最活躍", "tx_count_12m"),
+    ("newest", "最新", "latest_tx_date"),
+    ("alphabetical", "按名稱", "name"),
+    ("budget", "最抵", "latest_price"),
 ]
 
 UNSUPPORTED = [
-    "sea view",
-    "quiet",
-    "pet friendly",
-    "parking",
-    "near mtr",
-    "good schools",
-    "furnished",
+    ("sea view", "海景"),
+    ("quiet", "安靜"),
+    ("pet friendly", "可養寵物"),
+    ("parking", "車位"),
+    ("near mtr", "近地鐵"),
+    ("good schools", "好校網"),
+    ("furnished", "連傢俬"),
 ]
 
-DIRECTIONS = ["east", "west", "north", "south"]
+DIRECTIONS = [
+    ("east", "東"),
+    ("west", "西"),
+    ("north", "北"),
+    ("south", "南"),
+]
 
 MTR_SHORTHANDS = {
     "Tseung Kwan O Line": "tko line",
@@ -314,29 +343,37 @@ def normalise(text: str) -> str:
     return " ".join(text.split())
 
 
+CJK = re.compile(r"[\u4e00-\u9fff]")
+
+
 def item(
-    forms: list[str] | tuple[str, ...],
+    forms: dict[str, list[str]],
     planted: dict[str, Any],
     expect: str = "applied",
 ) -> dict[str, Any]:
-    """One pool entry. Entries with the same planted value share a key.
+    """One pool entry, with its forms tagged by language.
 
-    Balancing is per *value*, not per phrase: "2 bed", "two bedrooms" and "兩房"
-    all count as the same coverage cell.
+    Entries with the same planted value share a key, so balancing stays per
+    value: "2 bed", "2 rooms" and 兩房 are one coverage cell.
     """
+    cleaned = {lang: list(values) for lang, values in forms.items() if values}
+    if not cleaned:
+        raise SystemExit(f"pool entry without forms: {planted}")
     key = json.dumps({"planted": planted, "expect": expect}, sort_keys=True)
-    return {"forms": list(forms), "planted": planted, "expect": expect, "key": key}
+    return {"forms": cleaned, "planted": planted, "expect": expect, "key": key}
 
 
 def build_places(geo: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
-    """One entry per normalised label, at the broadest level that owns it.
+    """One entry per place, carrying its English and Chinese surfaces.
 
-    "Sha Tin" is both a subregion and a district label; production resolves it to
-    the subregion, so the dataset must plant the same scope or the teacher's
-    label would look wrong for a correct parse.
+    Grouping is by scope, not by label: "Sha Tin" and 沙田 are the same place, and
+    a Chinese row must not fall back to an English label. Labels are still owned
+    at the broadest level that claims them, because "Sha Tin" is both a subregion
+    and a district and production resolves it to the subregion.
     """
     ranked = {"region": 0, "subregion": 1, "district": 2}
-    by_label: dict[str, dict[str, Any]] = {}
+    by_scope: dict[str, dict[str, Any]] = {}
+    owner: dict[str, dict[str, Any]] = {}
 
     def add(label: str | None, level: str, planted: dict[str, str]) -> None:
         if not label:
@@ -344,13 +381,21 @@ def build_places(geo: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         key = normalise(label)
         if not key:
             return
-        current = by_label.get(key)
-        if current is not None and ranked[current["level"]] <= ranked[level]:
-            # Same or broader level already owns the label; keep its forms.
-            if label not in current["forms"]:
-                current["forms"].append(label)
-            return
-        by_label[key] = {"level": level, "forms": [label], "planted": planted}
+        language = "zh" if CJK.search(label) else "en"
+        held = owner.get(key)
+        if held is not None and ranked[held["level"]] <= ranked[level]:
+            entry = held
+        else:
+            scope = json.dumps(planted, sort_keys=True)
+            entry = by_scope.setdefault(
+                scope,
+                {"level": level, "en": [], "zh": [], "planted": planted},
+            )
+            # Broader levels are added first, so this only ever widens ownership.
+            entry["level"] = level
+            owner[key] = entry
+        if label not in entry[language]:
+            entry[language].append(label)
 
     region_of = {s["id"]: s["regionId"] for s in geo["subregions"]}
     for region in geo["regions"]:
@@ -390,18 +435,22 @@ def build_places(geo: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
                     f"district {district['id']} has a joined label but no alias "
                     f"for {sorted(missing)}; the dataset would drop those components"
                 )
-        forms = aliases if compound else [
-            district["en"],
-            district.get("zh"),
-            *aliases,
-        ]
+            forms = aliases
+        else:
+            forms = [district["en"], district.get("zh"), *aliases]
         for form in forms:
             add(form, "district", planted)
 
     entries = [
-        item(entry["forms"], entry["planted"]) for entry in by_label.values()
+        item({"en": entry["en"], "zh": entry["zh"]}, entry["planted"])
+        for entry in by_scope.values()
     ]
-    return {"place": sorted(entries, key=lambda row: normalise(row["forms"][0]))}
+    return {
+        "place": sorted(
+            entries,
+            key=lambda row: normalise((row["forms"].get("en") or row["forms"]["zh"])[0]),
+        )
+    }
 
 
 def scope_for(geo: dict[str, Any], level: str, identifier: str) -> dict[str, str]:
@@ -425,36 +474,50 @@ def build_pools(
     pools: dict[str, list[dict[str, Any]]] = build_places(geo)
 
     pools["bedrooms"] = [
-        item([phrase], {"bedrooms": value}) for phrase, value in BEDROOMS
+        item({"en": english, "zh": chinese}, {"bedrooms": value})
+        for value, english, chinese in BEDROOMS
     ]
     pools["area"] = [
-        item([phrase], {"minNetArea": low, "maxNetArea": high})
-        for phrase, low, high in AREAS
+        item({"en": [english], "zh": [chinese]}, {"minNetArea": low, "maxNetArea": high})
+        for english, chinese, low, high in AREAS
     ]
     pools["price"] = [
-        item([phrase], {"minPrice": low, "maxPrice": high})
-        for phrase, low, high in PRICES
+        item({"en": [english], "zh": [chinese]}, {"minPrice": low, "maxPrice": high})
+        for english, chinese, low, high in PRICES
     ]
-    pools["age"] = [item([phrase], {"maxBuildingAge": "5"}) for phrase in AGES]
+    pools["age"] = [
+        item({"en": [english], "zh": [chinese]}, {"maxBuildingAge": "5"})
+        for english, chinese in AGES
+    ]
     pools["sort"] = [
-        item([phrase], {"sort": key}) for phrase, key in SORTS
+        item({"en": [english], "zh": [chinese]}, {"sort": key})
+        for english, chinese, key in SORTS
     ]
     pools["unsupported"] = [
-        item([phrase], {}, "ignored") for phrase in UNSUPPORTED
+        item({"en": [english], "zh": [chinese]}, {}, "ignored")
+        for english, chinese in UNSUPPORTED
     ]
     pools["direction"] = [
-        item([word], {}, "ambiguous") for word in DIRECTIONS
+        item({"en": [english], "zh": [chinese]}, {}, "ambiguous")
+        for english, chinese in DIRECTIONS
     ]
+    # The curated list carries both languages as separate terms; tag each so a
+    # Chinese row never contains an English city and vice versa.
     pools["out_of_scope"] = [
-        item([term], {}, "refused") for term in gazetteer["outOfScope"]
+        item({"zh" if CJK.search(term) else "en": [term]}, {}, "refused")
+        for term in gazetteer["outOfScope"]
     ]
 
     mtr: list[dict[str, Any]] = []
     for line in gazetteer["mtrLines"]:
-        forms = [line["en"]]
+        english = [line["en"]]
         if line["en"] in MTR_SHORTHANDS:
-            forms.append(MTR_SHORTHANDS[line["en"]])
-        mtr.append(item(forms, {"mtrLine": line["en"]}))
+            english.append(MTR_SHORTHANDS[line["en"]])
+        chinese = []
+        if line.get("zh"):
+            chinese.append(line["zh"])
+            chinese.append(line["zh"].replace("綫", "線"))
+        mtr.append(item({"en": english, "zh": chinese}, {"mtrLine": line["en"]}))
     pools["mtr"] = mtr
 
     # Net ids with more than one name would plant a name that covers several
@@ -464,7 +527,13 @@ def build_pools(
     for net in gazetteer["schoolNets"]:
         names_by_id[net["id"]].add(net["en"])
     pools["net"] = [
-        item([f"school net {net_id}", f"net {net_id}"], {"schoolNet": name})
+        item(
+            {
+                "en": [f"school net {net_id}", f"net {net_id}"],
+                "zh": [f"校網 {net_id}", f"{net_id}校網"],
+            },
+            {"schoolNet": name},
+        )
         for net_id, names in sorted(names_by_id.items(), key=lambda pair: int(pair[0]))
         if len(names) == 1
         for name in names
@@ -475,11 +544,11 @@ def build_pools(
     for entry in gazetteer["abbreviations"]:
         candidates = entry["candidates"]
         if len(candidates) > 1:
-            abbr.append(item([entry["term"].upper()], {}, "ambiguous"))
+            abbr.append(item({"en": [entry["term"].upper()]}, {}, "ambiguous"))
             continue
         candidate = candidates[0]
         scope = scope_for(geo, candidate["level"], candidate["id"])
-        abbr.append(item([entry["term"].upper()], scope))
+        abbr.append(item({"en": [entry["term"].upper()]}, scope))
     pools["abbr"] = abbr
     return pools
 
@@ -530,6 +599,45 @@ def least_used(
 ANCHOR_FAMILIES = {"place_line": ("mtr", "mtrLine"), "place_net": ("net", "schoolNet")}
 
 
+def language_predicate(slot: str, lang: str):
+    """Only accept a pool entry that has a surface in the row's language."""
+    wanted = form_language(slot, lang)
+    return lambda entry: bool(entry["forms"].get(wanted))
+
+
+def forms_for(entry: dict[str, Any], slot: str, lang: str) -> list[str]:
+    """Which language's surface to use for one slot.
+
+    A mixed row is an English sentence with a Chinese place: "2 bed in 旺角".
+    """
+    forms = entry["forms"]
+    wanted = form_language(slot, lang)
+    return forms.get(wanted) or forms.get("en") or forms["zh"]
+
+
+def choose_language(rng: random.Random, family: dict[str, Any]) -> str:
+    """Pick a row language.
+
+    Chinese needs a Chinese template; mixed needs a place slot, because a mixed
+    row is an English sentence with a Chinese place. A family without a Chinese
+    template (abbreviations) is English-only.
+    """
+    options = ["en"]
+    weights = [LANGUAGE_WEIGHTS["en"]]
+    if "place" in family["slots"]:
+        options.append("mixed")
+        weights.append(LANGUAGE_WEIGHTS["mixed"])
+    if family.get("templates_zh"):
+        options.append("zh")
+        weights.append(LANGUAGE_WEIGHTS["zh"])
+    return rng.choices(options, weights=weights, k=1)[0]
+
+
+def form_language(slot: str, lang: str) -> str:
+    """A mixed row is English except for the place."""
+    return "zh" if lang == "zh" or (lang == "mixed" and slot == "place") else "en"
+
+
 def render(
     family: dict[str, Any],
     pools: dict[str, list[dict[str, Any]]],
@@ -537,6 +645,7 @@ def render(
     rng: random.Random,
     cooccurrence: dict[str, dict[str, set[str]]] | None,
     region_of: dict[str, str],
+    lang: str,
 ) -> tuple[str, dict[str, Any], str, str]:
     chosen: dict[str, dict[str, Any]] = {}
     planted: dict[str, Any] = {}
@@ -545,7 +654,12 @@ def render(
     anchor = ANCHOR_FAMILIES.get(family["name"])
     if anchor and cooccurrence is not None:
         anchor_slot, anchor_key = anchor
-        entry = least_used(pools[anchor_slot], usage[anchor_slot], rng)
+        entry = least_used(
+            pools[anchor_slot],
+            usage[anchor_slot],
+            rng,
+            language_predicate(anchor_slot, lang),
+        )
         usage[anchor_slot][entry["key"]] += 1
         chosen[anchor_slot] = entry
         planted.update(entry["planted"])
@@ -556,7 +670,10 @@ def render(
             pools["place"],
             usage["place"],
             rng,
-            lambda candidate: place_allowed(candidate, allowed, region_of),
+            lambda candidate: (
+                bool(candidate["forms"].get(form_language("place", lang)))
+                and place_allowed(candidate, allowed, region_of)
+            ),
         )
         usage["place"][place["key"]] += 1
         chosen["place"] = place
@@ -565,13 +682,33 @@ def render(
     for slot in family["slots"]:
         if slot in chosen:
             continue
-        entry = least_used(pools[slot], usage[slot], rng)
+        entry = least_used(
+            pools[slot],
+            usage[slot],
+            rng,
+            language_predicate(slot, lang),
+        )
         usage[slot][entry["key"]] += 1
         chosen[slot] = entry
         planted.update(entry["planted"])
         expect = entry.get("expect", expect)
-    template = rng.choice(family["templates"])
-    forms = {slot: rng.choice(item["forms"]) for slot, item in chosen.items()}
+    if lang == "zh" and family.get("templates_zh"):
+        templates = family["templates_zh"]
+    elif lang == "mixed":
+        # "{place}" alone has no English side, so it would be indistinguishable
+        # from a Chinese row.
+        templates = [
+            t
+            for t in family["templates"]
+            if re.search(r"[A-Za-z]{2,}", re.sub(r"\{[a-z_]+\}", "", t))
+        ] or family["templates"]
+    else:
+        templates = family["templates"]
+    template = rng.choice(templates)
+    forms = {
+        slot: rng.choice(forms_for(entry, slot, lang))
+        for slot, entry in chosen.items()
+    }
     return template.format(**forms), planted, expect, template
 
 
@@ -701,8 +838,9 @@ def generate(
     while len(rows) < count and attempts < limit:
         attempts += 1
         family = weighted_family(rng)
+        lang = choose_language(rng, family)
         text, planted, expect, template = render(
-            family, pools, usage, rng, cooccurrence, region_of
+            family, pools, usage, rng, cooccurrence, region_of, lang
         )
         key = normalise(text)
         if not key or key in seen:
@@ -716,6 +854,7 @@ def generate(
                 "expect": expect,
                 "family": family["name"],
                 "template": template,
+                "lang": lang,
             }
         )
     if len(rows) < count:
@@ -733,6 +872,7 @@ def report(
     excluded: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     families = Counter(row["family"] for row in rows)
+    languages = Counter(row["lang"] for row in rows)
     expects = Counter(row["expect"] for row in rows)
     coverage: dict[str, Counter[str]] = defaultdict(Counter)
     for row in rows:
@@ -778,6 +918,7 @@ def report(
         "correlation": correlation,
         "excluded_unmapped": excluded or {},
         "families": dict(sorted(families.items())),
+        "languages": dict(sorted(languages.items())),
         "expect": dict(sorted(expects.items())),
         "coverage": {slot: dict(sorted(values.items())) for slot, values in coverage.items()},
         "below_gate": {
