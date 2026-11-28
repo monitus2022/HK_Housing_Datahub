@@ -831,14 +831,11 @@ function segmentCjk(text: string, estates: readonly NlEstateName[] | undefined):
         const term = terms.find((candidate) => {
           if (!token.startsWith(candidate, index)) return false;
           const rest = token.slice(index + candidate.length);
-          // 香港島南 + 港島線 would swallow the line name; let the line win.
+          // A direction compound can eat a line name's first character
+          // (九龍東 + 鐵線 = 東鐵線); when it does, the line wins. Only the
+          // swallowed character counts - checking `rest` alone would drop a
+          // direction that the following line did not swallow (九龍東觀塘綫).
           if (CJK_DIRECTION_COMPOUND_SET.has(candidate) && !placeTerms.has(candidate)) {
-            // The compound may have eaten the line's first character: 九龍東 +
-            // 鐵線 is 東鐵線. Check the line from the compound's last character
-            // too, so a line always wins over a direction guess.
-            // Only the swallowed character matters: 九龍東 + 鐵線 is 東鐵線.
-            // Checking `rest` alone would reject a direction that a following
-            // line did not swallow (九龍東觀塘綫), losing the direction.
             const lineAhead = CJK_LINE_TERMS.some((line) =>
               `${candidate.slice(-1)}${rest}`.startsWith(line),
             );
