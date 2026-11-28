@@ -63,8 +63,9 @@ another estate, or a district name, widens it.
 Chinese (30%) or mixed (15%). A mixed row is an English sentence with a Chinese
 place (`cheapest flats in 何文田`), because that is the mixed style people type; it
 is not a random mix of languages inside one sentence. Chinese rows use Chinese
-templates and Chinese forms for every slot, phrased the way people type:
-`想搵 觀塘 一房 600萬以下`, `大埔 兩房 有冇`, `近 港島綫 嘅 西灣河`. The particles
+templates and Chinese forms for every slot, and they are **written without
+spaces**, the way people type: `想搵觀塘一房600萬以下`, `大埔兩房有冇`,
+`近港島綫嘅西灣河`. The lexicon segments them (see §2). The particles
 (`想搵`, `有冇`, `嘅`, `預算`, `近`) are words the lexicon does not know — that gap
 is deliberate, and it is what the model is meant to close. An approximator such
 as `左右` is not used, because it would contradict a closed bound

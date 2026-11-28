@@ -731,7 +731,12 @@ def render(
         slot: rng.choice(forms_for(entry, slot, lang))
         for slot, entry in chosen.items()
     }
-    return template.format(**forms), planted, expect, template
+    text = template.format(**forms)
+    if lang == "zh":
+        # Chinese is typed without spaces; the parser segments it. Zones are
+        # joined, so the dataset contains no spaced Chinese at all.
+        text = text.replace(" ", "")
+    return text, planted, expect, template
 
 
 def load_cooccurrence(db_path: Path) -> dict[str, dict[str, set[str]]]:

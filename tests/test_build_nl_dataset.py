@@ -280,6 +280,16 @@ def test_chinese_rows_read_like_typing() -> None:
     assert share > 0.5, share
 
 
+def test_chinese_rows_contain_no_spaces() -> None:
+    """Chinese is typed without spaces, so the dataset must not ship them."""
+    generator = load_generator()
+    rows = generator.generate(1500, seed=139, db_path=None)
+    chinese = [row for row in rows if row["lang"] == "zh"]
+    assert chinese
+    spaced = [row["text"] for row in chinese if " " in row["text"]]
+    assert not spaced, spaced[:3]
+
+
 def test_room_phrasing_is_used() -> None:
     """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
     generator = load_generator()
