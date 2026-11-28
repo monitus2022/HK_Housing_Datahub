@@ -295,6 +295,17 @@ def test_chinese_rows_contain_no_spaces() -> None:
     assert all(" " in text for text in mixed), mixed[:3]
 
 
+def test_direction_word_places_are_not_planted_in_english() -> None:
+    """"North" is a district and a direction; English rows must not use it."""
+    generator = load_generator()
+    places = generator.build_places(geo_model())["place"]
+    for place in places:
+        planted = place["planted"]
+        if planted.get("subregionId") not in {"3015", "301502"}:
+            continue
+        assert "north" not in [form.lower() for form in place["forms"].get("en", [])]
+
+
 def test_room_phrasing_is_used() -> None:
     """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
     generator = load_generator()

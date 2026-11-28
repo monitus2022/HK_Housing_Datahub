@@ -221,9 +221,8 @@ FAMILIES: list[dict[str, Any]] = [
 # Chinese templates read like something typed into a chat box: 想搵 ("want to
 # find"), 有冇 ("any?"), 嘅 ("of"), 預算 ("budget"). Placeholders are separated
 # while the sentence is assembled, then a zh row is joined before it is written:
-# Chinese is typed without spaces and the lexicon segments it. The particles are
-# deliberately words the lexicon does not know, which is the gap the model is
-# meant to close.
+# Chinese is typed without spaces and the lexicon segments it, treating the
+# particles as filler.
 TEMPLATES_ZH: dict[str, list[str]] = {
     "place": ["{place}", "想搵 {place}", "{place} 樓盤"],
     "place_bed": [
@@ -405,6 +404,10 @@ def build_places(geo: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         if not key:
             return
         language = "zh" if CJK.search(label) else "en"
+        # "North" is a district and a direction. English users typing it mean the
+        # direction, so the dataset does not teach the place form.
+        if language == "en" and key in {"north", "south", "east", "west"}:
+            return
         held = owner.get(key)
         if held is not None and ranked[held["level"]] <= ranked[level]:
             entry = held

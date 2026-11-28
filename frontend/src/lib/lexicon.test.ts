@@ -671,11 +671,49 @@ describe("Chinese is written without spaces", () => {
     expect(both.filters.subregionId).toBe("3016");
   });
 
-  it("keeps an unknown particle as Unrecognised", () => {
+  it("treats common particles as filler, not unknowns", () => {
     const spec = applied(parseQuery("想搵大埔兩房"));
     expect(spec.filters.bedrooms).toBe("2");
     expect(spec.filters.subregionId).toBe("3016");
-    expect(spec.unrecognised).toEqual(["想搵"]);
+    expect(spec.unrecognised).toEqual([]);
+  });
+
+  it("parses a place followed by 樓盤 or a particle", () => {
+    const northPoint = applied(parseQuery("北角樓盤"));
+    expect(northPoint.filters.subregionId).toBe("1004");
+    expect(northPoint.filters.districtId).toBe("100408");
+    expect(applied(parseQuery("中環預算600萬以下")).filters.districtId).toBe(
+      "100104",
+    );
+    expect(applied(parseQuery("天后要500至700呎")).filters.districtId).toBe(
+      "100204",
+    );
+  });
+
+  it("does not let a direction compound swallow a line name", () => {
+    expect(applied(parseQuery("香港島南港島線")).filters.mtrLine).toBe(
+      "South Island Line",
+    );
+    // The compound eats the line's first character: 九龍東 + 鐵線.
+    expect(applied(parseQuery("九龍東鐵線")).filters.mtrLine).toBe(
+      "East Rail Line",
+    );
+    // A direction immediately followed by a line whose first character it did
+    // not swallow keeps both: east asks, the line applies.
+    const east = parseQuery("九龍東觀塘綫");
+    expect(east.spec?.filters.mtrLine).toBe("Kwun Tong Line");
+    expect(east.kind).toBe("ambiguous");
+    expect(east.direction).toBe("east");
+
+    const north = applied(parseQuery("新界北東鐵線"));
+    expect(north.filters.districtId).toBe("301502");
+    expect(north.filters.mtrLine).toBe("East Rail Line");
+  });
+
+  it("resolves a five-word district label", () => {
+    expect(applied(parseQuery("Tseung Kwan O Town Centre")).filters.districtId).toBe(
+      "201006",
+    );
   });
 
   it("finds line names, nets, sort words and age without spaces", () => {
@@ -699,6 +737,15 @@ describe("Chinese is written without spaces", () => {
     const spec = applied(parseQuery("大埔區兩房"));
     expect(spec.filters.subregionId).toBe("3016");
     expect(spec.filters.bedrooms).toBe("2");
+    expect(spec.unrecognised).toEqual([]);
+  });
+});
+
+describe("particles as filler", () => {
+  it("drops 近 in front of a line name", () => {
+    const spec = applied(parseQuery("近港島綫嘅西灣河"));
+    expect(spec.filters.mtrLine).toBe("Island Line");
+    expect(spec.filters.districtId).toBe("100405");
     expect(spec.unrecognised).toEqual([]);
   });
 });
