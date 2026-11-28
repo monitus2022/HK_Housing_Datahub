@@ -244,6 +244,28 @@ def test_every_row_carries_its_language() -> None:
     assert all(row["lang"] for row in rows)
 
 
+def test_area_rows_use_units_the_lexicon_understands() -> None:
+    """呎 and 平方米 are parseable now, so the dataset must exercise them."""
+    generator = load_generator()
+    rows = generator.generate(2000, seed=131, db_path=None)
+    area = [
+        row
+        for row in rows
+        if "minNetArea" in row["planted"] or "maxNetArea" in row["planted"]
+    ]
+    chinese = [row for row in area if row["lang"] == "zh"]
+    assert chinese, "no Chinese area rows"
+    assert any("呎" in row["text"] for row in chinese), "no 呎 rows"
+    assert any("平方米" in row["text"] for row in chinese), "no 平方米 rows"
+
+    for row in chinese:
+        # The planted bounds are square feet, so a metric phrase must have been
+        # converted before it was recorded.
+        if "平方米" in row["text"]:
+            bounds = {row["planted"].get("minNetArea"), row["planted"].get("maxNetArea")}
+            assert bounds <= {"538", ""}, row
+
+
 def test_room_phrasing_is_used() -> None:
     """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
     generator = load_generator()

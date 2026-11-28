@@ -263,6 +263,10 @@ BEDROOMS = [
 # Area phrases -> (English, Chinese, min, max). Vague words carry the shipped
 # defaults; Chinese size words only appear next to 單位.
 AREAS = [
+    ("500-700 sq ft", "500至700呎", "500", "700"),
+    ("under 600 ft", "600呎以下", "", "600"),
+    ("over 800 sq ft", "800呎以上", "800", ""),
+    ("over 50 sqm", "50平方米以上", "538", ""),
     ("small", "細單位", "", "400"),
     ("small size", "細單位", "", "400"),
     ("compact", "細單位", "", "400"),
