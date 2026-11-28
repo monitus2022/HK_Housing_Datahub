@@ -66,8 +66,8 @@ is not a random mix of languages inside one sentence. Chinese rows use Chinese
 templates and Chinese forms for every slot, and they are **written without
 spaces**, the way people type: `想搵觀塘一房600萬以下`, `大埔兩房有冇`,
 `近港島綫嘅西灣河`. The lexicon segments them (see §2), and the particles
-(`想搵`, `有冇`, `嘅`, `預算`, `近`) are treated as filler rather than reported as
-unknown. Colloquial grammar the lexicon does not model — `唔過`, `有冇` as a
+(`想搵`, `有冇`, `嘅`, `預算`, `近`, `樓盤`, `附近`, `睇下`, `要`) are treated as
+filler rather than reported as unknown. Colloquial grammar the lexicon does not model — `唔過`, `有冇` as a
 negation — remains the gap the model is meant to close. An approximator such
 as `左右` is not used, because it would contradict a closed bound
 (`600萬以下左右`). Chinese rows contain **no spaces**, because that is how they

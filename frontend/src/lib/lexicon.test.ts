@@ -698,6 +698,13 @@ describe("Chinese is written without spaces", () => {
     expect(applied(parseQuery("九龍東鐵線")).filters.mtrLine).toBe(
       "East Rail Line",
     );
+    // A direction immediately followed by a line whose first character it did
+    // not swallow keeps both: east asks, the line applies.
+    const east = parseQuery("九龍東觀塘綫");
+    expect(east.spec?.filters.mtrLine).toBe("Kwun Tong Line");
+    expect(east.kind).toBe("ambiguous");
+    expect(east.direction).toBe("east");
+
     const north = applied(parseQuery("新界北東鐵線"));
     expect(north.filters.districtId).toBe("301502");
     expect(north.filters.mtrLine).toBe("East Rail Line");

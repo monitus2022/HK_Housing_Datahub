@@ -836,10 +836,11 @@ function segmentCjk(text: string, estates: readonly NlEstateName[] | undefined):
             // The compound may have eaten the line's first character: 九龍東 +
             // 鐵線 is 東鐵線. Check the line from the compound's last character
             // too, so a line always wins over a direction guess.
-            const lineAhead = CJK_LINE_TERMS.some(
-              (line) =>
-                rest.startsWith(line) ||
-                `${candidate.slice(-1)}${rest}`.startsWith(line),
+            // Only the swallowed character matters: 九龍東 + 鐵線 is 東鐵線.
+            // Checking `rest` alone would reject a direction that a following
+            // line did not swallow (九龍東觀塘綫), losing the direction.
+            const lineAhead = CJK_LINE_TERMS.some((line) =>
+              `${candidate.slice(-1)}${rest}`.startsWith(line),
             );
             if (lineAhead) return false;
           }
