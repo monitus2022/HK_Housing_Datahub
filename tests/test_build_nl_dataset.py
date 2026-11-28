@@ -288,6 +288,11 @@ def test_chinese_rows_contain_no_spaces() -> None:
     assert chinese
     spaced = [row["text"] for row in chinese if " " in row["text"]]
     assert not spaced, spaced[:3]
+    # Mixed rows must keep their English spacing; joining them would be a
+    # different change and would break the mixed contract.
+    mixed = [row["text"] for row in rows if row["lang"] == "mixed"]
+    assert mixed
+    assert all(" " in text for text in mixed), mixed[:3]
 
 
 def test_room_phrasing_is_used() -> None:

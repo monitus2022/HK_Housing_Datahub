@@ -219,10 +219,11 @@ FAMILIES: list[dict[str, Any]] = [
 ]
 
 # Chinese templates read like something typed into a chat box: 想搵 ("want to
-# find"), 有冇 ("any?"), 嘅 ("of"), 預算 ("budget"). Spacing is kept around every
-# placeholder, because a glued particle ("想搵大埔") would make the place itself
-# unparseable; the particles are deliberately words the lexicon does not know,
-# which is the gap the model is meant to close.
+# find"), 有冇 ("any?"), 嘅 ("of"), 預算 ("budget"). Placeholders are separated
+# while the sentence is assembled, then a zh row is joined before it is written:
+# Chinese is typed without spaces and the lexicon segments it. The particles are
+# deliberately words the lexicon does not know, which is the gap the model is
+# meant to close.
 TEMPLATES_ZH: dict[str, list[str]] = {
     "place": ["{place}", "想搵 {place}", "{place} 樓盤"],
     "place_bed": [

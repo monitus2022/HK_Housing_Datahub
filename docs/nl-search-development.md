@@ -69,9 +69,10 @@ spaces**, the way people type: `想搵觀塘一房600萬以下`, `大埔兩房�
 (`想搵`, `有冇`, `嘅`, `預算`, `近`) are words the lexicon does not know — that gap
 is deliberate, and it is what the model is meant to close. An approximator such
 as `左右` is not used, because it would contradict a closed bound
-(`600萬以下 左右`). Spacing is kept around
-every slot so the place stays a separate token, and a Chinese row never contains
-an English place or city. Families with no Chinese
+(`600萬以下 左右`). Chinese rows contain **no spaces**, because that is how they
+are typed: the templates keep placeholders apart only while the sentence is
+assembled, and a zh row is joined before it is written. A Chinese row never
+contains an English place or city. Families with no Chinese
 template — abbreviations — are English-only, and mixed requires a place slot.
 `room`/`rooms` outnumber `bed` forms about 1.43:1 (697 vs 486 rows at 6,000),
 because that is the word people use.
@@ -293,7 +294,7 @@ nets at random; `--no-correlation` generates anyway and marks the report
 A 6,000-row run yields 6,000 unique texts (no duplicates): 55.2% English, 29.8%
 Chinese, 14.9% mixed; 51–64 rows per MTR line, 31–44 per school-net name, 89–102
 per sort key, 60–80 per place scope, 526–554 per bedroom value, 214 rows carrying
-a building age, and 910 area rows (167 of them in 呎 or 平方米), with every one of
+a building age, and 910 area rows (144 of them in 呎 or 平方米), with every one of
 the 77 scopes present. 44.8% of rows contain Chinese: every Chinese row, plus
 every mixed row, because each mixed row carries a Chinese place.
 
