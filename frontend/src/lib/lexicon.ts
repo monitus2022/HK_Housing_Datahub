@@ -90,7 +90,7 @@ export interface NlParse {
   /** Direction word ("east") when the location or its ambiguity came from a
    * direction cell; hints use it to re-anchor the utterance. */
   direction: string | null;
-  /** The normalised utterance, re-parsed when a hint supplies an anchor. */
+  /** The segmented utterance, re-parsed when a hint supplies an anchor. */
   input: string;
 }
 
@@ -143,6 +143,7 @@ const GLUE = new Set([
   "with",
   "within",
   "區",
+  "單位",
 ]);
 
 /** Phrases we understand as a concept but cannot express as a filter. */
@@ -395,6 +396,30 @@ function cjkMoney(raw: string): number | null {
 function takeCjkPrice(
   rest: string,
 ): { rest: string; patch: Partial<EstateFilters>; label: string } | null {
+  // "500至700萬": the unit is written once, at the end of the range.
+  const shared = consume(
+    rest,
+    new RegExp(
+      `(?:^| )((?:\\d+(?:dot\\d+)?|[零〇一二兩两三四五六七八九十百千萬億万亿]+)) ?(?:至|到) ?` +
+        `((?:\\d+(?:dot\\d+)?|[零〇一二兩两三四五六七八九十百千萬億万亿]+))(萬|万|億|亿)(?= |$)`,
+    ),
+  );
+  if (shared) {
+    const low = parseCjkNumber(shared.match[1]);
+    const high = parseCjkNumber(shared.match[2]);
+    const factor =
+      shared.match[3] === "億" || shared.match[3] === "亿" ? 100_000_000 : 10_000;
+    if (low !== null && high !== null && low <= high) {
+      const minimum = String(Math.round(low * factor));
+      const maximum = String(Math.round(high * factor));
+      return {
+        rest: shared.rest,
+        patch: { minPrice: minimum, maxPrice: maximum },
+        label: `${moneyLabel(minimum)} – ${moneyLabel(maximum)}`,
+      };
+    }
+  }
+
   const range = consume(
     rest,
     // "~" and "-" are stripped by normalisation, so only the spoken words survive.
@@ -707,6 +732,7 @@ const CJK_SLOT_TERMS = [
   "大單位",
   "細單位",
   "中型單位",
+  "單位",
 ];
 
 const CJK_HAN = /[\u4e00-\u9fff]/;
@@ -719,19 +745,22 @@ const CJK_DIRECTION_COMPOUNDS = [
   "新界",
 ].flatMap((region) => ["東", "南", "西", "北"].map((way) => `${region}${way}`));
 
-/**
- * Insert spaces around known Chinese terms.
- *
- * Chinese is written without spaces, so `normalise` leaves a whole sentence as
- * one token and every boundary-based pattern misses. Segmenting known places and
- * slot words first lets the rest of the parser stay word-based.
- */
+/** Characters that can begin a slot after a place, used by the guard below. */
 const SLOT_START = /^[0-9一二三四五六七八九十兩两房最校近海車連有包安清寧好名大細中港東南西北萬呎平區]/;
 
-function segmentCjk(text: string, extra: string[]): string {
+const NO_ESTATES: readonly NlEstateName[] = [];
+const SEGMENT_TERMS = new WeakMap<readonly NlEstateName[], string[]>();
+
+function segmentTerms(estates: readonly NlEstateName[] | undefined): string[] {
+  const key = estates ?? NO_ESTATES;
+  const cached = SEGMENT_TERMS.get(key);
+  if (cached) return cached;
   const terms = [
     ...new Set([
-      ...extra,
+      ...(estates ?? []).flatMap((estate) => [
+        normalise(estate.estate_name_zh ?? ""),
+        normalise(estate.estate_name_en ?? ""),
+      ]),
       ...CJK_PLACE_TERMS,
       ...CJK_SLOT_TERMS,
       ...CJK_DIRECTION_COMPOUNDS,
@@ -742,6 +771,26 @@ function segmentCjk(text: string, extra: string[]): string {
   ]
     .filter((term) => (term.length >= 2 || term === "區") && CJK_HAN.test(term))
     .sort((left, right) => right.length - left.length);
+  SEGMENT_TERMS.set(key, terms);
+  return terms;
+}
+
+/**
+ * Insert spaces around known Chinese terms.
+ *
+ * Chinese is written without spaces, so `normalise` leaves a whole sentence as
+ * one token and every boundary-based pattern misses. Segmenting known places and
+ * slot words first lets the rest of the parser stay word-based.
+ */
+function segmentCjk(text: string, estates: readonly NlEstateName[] | undefined): string {
+  const terms = segmentTerms(estates);
+  const placeTerms = new Set([
+    ...(estates ?? []).flatMap((estate) => [
+      normalise(estate.estate_name_zh ?? ""),
+      normalise(estate.estate_name_en ?? ""),
+    ]),
+    ...CJK_PLACE_TERMS,
+  ]);
   return text
     .split(" ")
     .map((token) => {
@@ -752,9 +801,14 @@ function segmentCjk(text: string, extra: string[]): string {
         const term = terms.find((candidate) => {
           if (!token.startsWith(candidate, index)) return false;
           const rest = token.slice(index + candidate.length);
-          // 太古城 is an estate, not 太古 + something; only split when the
-          // remainder can actually begin a slot.
-          return rest === "" || SLOT_START.test(rest);
+          if (!placeTerms.has(candidate)) return true;
+          // 太古城 is an estate, not 太古 + something: a place inside a longer
+          // token is only split when what follows can begin another term or slot.
+          return (
+            rest === "" ||
+            SLOT_START.test(rest) ||
+            terms.some((other) => rest.includes(other))
+          );
         });
         if (term) {
           out += ` ${term} `;
@@ -764,7 +818,7 @@ function segmentCjk(text: string, extra: string[]): string {
         const number = token
           .slice(index)
           .match(
-            /^(?:\d+(?:dot\d+)?|[零〇一二兩两三四五六七八九十百千萬億]+)(?:萬|億|呎|平方米|平米|平方公尺|房)?(?:以下|以上|以內|以内|至|到)?/,
+            /^(?:\d+(?:dot\d+)?|[零〇一二兩两三四五六七八九十百千萬億万亿]+)(?:萬|万|億|亿|呎|平方米|平米|平方公尺|房)?(?:(?:至|到)(?:\d+(?:dot\d+)?|[零〇一二兩两三四五六七八九十百千萬億万亿]+)(?:萬|万|億|亿|呎|平方米|平米|平方公尺)?)?(?:以下|以上|以內|以内)?/,
           );
         if (number && number[0].length > 0) {
           out += ` ${number[0]} `;
@@ -784,13 +838,9 @@ function segmentCjk(text: string, extra: string[]): string {
 export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   // Keep decimal points that would otherwise be stripped as punctuation:
   // "6.5m" becomes "6dot5m", and the price patterns read the word back.
-  const estateTerms = (options.estates ?? []).flatMap((estate) => [
-    normalise(estate.estate_name_zh ?? ""),
-    normalise(estate.estate_name_en ?? ""),
-  ]);
   const input = segmentCjk(
     normalise(text.replace(/(\d)\.(\d)/g, "$1dot$2")),
-    estateTerms,
+    options.estates,
   );
   if (!input) {
     return {
@@ -1000,21 +1050,41 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     rest = hit.rest;
   }
 
-  if (!patch.minNetArea && !patch.maxNetArea) {
+  {
     // A lone size names the dimension but not a direction. Say both forms work
     // instead of dropping three words into Unrecognised.
     const bareArea = consume(
       rest,
       new RegExp(`(?:^| )(\\d{2,5}) ?${AREA_UNIT}(?= |$)`),
     );
-    if (bareArea) {
-      // Report the converted value: the filters are in ft², and "Size 50 ft²"
-      // for 50平方米 would be wrong by a factor of ten.
+    if (bareArea && (patch.minNetArea || patch.maxNetArea)) {
+      // A band word already set the area; say the number was not used rather
+      // than leaving it in Unrecognised.
       const size = toSquareFeet(bareArea.match[1], bareArea.match[2]);
       spec.ignored.push(
-        `Size ${size} ft² without a range (say "under ${size} ft²" or "${size}-700 ft²")`,
+        `Size ${size} ft² also given with a size word; the size word applies`,
       );
       rest = bareArea.rest;
+    } else if (bareArea) {
+      // A bare number is a decade band, not a fragment: "500 sq ft" means 500-599,
+      // "50 sqm" means 50-59 m², converted to ft² like every other area.
+      const raw = Number(bareArea.match[1]);
+      if (Number.isFinite(raw)) {
+        // The band matches the number's precision: 500 -> 500-599, 50 -> 50-59,
+        // 550 -> 550-559. People say "500 sq ft" meaning the hundreds.
+        let width = 1;
+        let scale = raw;
+        while (scale > 0 && scale % 10 === 0) {
+          width *= 10;
+          scale /= 10;
+        }
+        const minimum = toSquareFeet(bareArea.match[1], bareArea.match[2]);
+        const maximum = toSquareFeet(String(raw + width - 1), bareArea.match[2]);
+        patch.minNetArea = minimum;
+        patch.maxNetArea = maximum;
+        spec.applied.push({ field: "Area", value: areaLabel(minimum, maximum) });
+        rest = bareArea.rest;
+      }
     }
   }
 
@@ -1028,7 +1098,7 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     break;
   }
 
-  if (!patch.mtrLine) {
+  if (!patch.schoolNet) {
     const netId = consume(
       rest,
       /(?:school net|schoolnet|net|校網|學校網) ?(?:no ?)?(\d{1,2})(?= |$)/,

@@ -138,7 +138,8 @@ silently narrow the new one — and the result area always discloses what happen
   is shown even when nothing else in the sentence applied. `新盤` (primary
   market) is one of these: the data has no new-launch flag, so it says so rather
   than pretending a recent build is a new launch.
-- `new` / `新樓` applies a building-age filter of 5 years, marked `(default)`
+- A bare size is read as its decade band: `500呎` is 500–599 ft², `50平方米` is
+50–59 m² (538–635 ft²). `new` / `新樓` applies a building-age filter of 5 years, marked `(default)`
   like a vague size. `newest` and `最新` are still sort words, not age filters.
   The rule is a real five years, not a calendar bucket, and an estate with no
   recorded first-occupation date is excluded rather than assumed recent (about
@@ -173,8 +174,8 @@ VITE_FEATURE_NL_SEARCH=true npm run build
 Cloudflare Pages sets the variable per environment. With the flag off the form
 and the parser are tree-shaken out of the bundle, but `gazetteer.json` is still
 imported for its module-level index. With the flag on the feature adds about
-21.95 kB raw / 7.48 kB gzipped over the flag-off build (420.05 kB / 123.83 kB off,
-442.00 kB / 131.31 kB on, measured at head). The flag is a build-time rollout switch, not a
+22.96 kB raw / 7.70 kB gzipped over the flag-off build (420.07 kB / 123.83 kB off,
+443.03 kB / 131.53 kB on, measured at head). The flag is a build-time rollout switch, not a
 code-splitting boundary.
 
 An estate name in the sentence is applied as the `q` text query, which is a

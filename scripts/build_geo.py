@@ -68,6 +68,13 @@ GROUP BY 1, 2, 3, 4, 5, 6, 7
 """
 
 
+# The Chinese label sometimes merges areas that are separate in English, so the
+# "/" split cannot recover them. 中上環 covers both 中環 and 上環.
+CURATED_ALIASES: dict[str, list[str]] = {
+    "100104": ["中環", "上環"],
+}
+
+
 def split_aliases(*labels: str | None) -> list[str]:
     """Split compound labels such as "Happy Valley / Jardine's Lookout".
 
@@ -144,7 +151,10 @@ def build(db_path: Path) -> dict[str, Any]:
                 "zh": district_zh,
                 "subregionId": subregion_id,
                 "estates": 0,
-                "aliases": split_aliases(district_en, district_zh),
+                "aliases": [
+                    *split_aliases(district_en, district_zh),
+                    *CURATED_ALIASES.get(district_id, []),
+                ],
             },
         )
         district["estates"] += estates

@@ -89,8 +89,9 @@ the suffix is omitted.
 Chinese is written without spaces, so before parsing the lexicon segments a run
 of Han characters against known terms: place labels, MTR line names, sort words,
 net words, unsupported concepts, age and size words, plus the estate names the
-dashboard has loaded. Anything it cannot segment stays as one unknown word and is
-reported. `大埔兩房600萬以下` therefore parses as three slots, and `想搵大埔兩房`
+dashboard has loaded. Characters it cannot segment accumulate into a chunk and are
+reported; a numeral run is split whenever it looks like a price or a size, even
+inside a longer unknown word. `大埔兩房600萬以下` therefore parses as three slots, and `想搵大埔兩房`
 applies the place and bedrooms while reporting `想搵` as Unrecognised.
 
 Chinese is part of v1, not deferred to the model: prices accept Arabic or
@@ -127,6 +128,11 @@ and the exact range can be edited in the Filters panel:
 
 `細單位` maps to small. Chinese size words only match next to `單位`, so a bare
 `大` cannot swallow `大埔`.
+
+A bare number is its own **decade band**, because that is what people mean:
+`500 sq ft` and `500呎` are 500–599 ft², and `50平方米` is 50–59 m²
+(538–635 ft²). The width follows the number's precision — `550呎` is 550–559 —
+and the band is applied, not disclosed as incomplete.
 
 ### Hints move a band without retyping
 
