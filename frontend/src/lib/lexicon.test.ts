@@ -734,6 +734,15 @@ describe("Chinese is written without spaces", () => {
   });
 });
 
+describe("particles as filler", () => {
+  it("drops 近 in front of a line name", () => {
+    const spec = applied(parseQuery("近港島綫嘅西灣河"));
+    expect(spec.filters.mtrLine).toBe("Island Line");
+    expect(spec.filters.districtId).toBe("100405");
+    expect(spec.unrecognised).toEqual([]);
+  });
+});
+
 describe("area units", () => {
   it("reads 呎 as square feet", () => {
     const spec = applied(parseQuery("500至700呎 in 大埔"));

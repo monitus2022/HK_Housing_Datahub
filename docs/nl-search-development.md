@@ -88,7 +88,7 @@ dataset plants the components (which already exist as aliases) and the chip show
 the component the user typed. A joined label is still indexed as a whole, but a
 longer phrase resolves **at most one** component: `takePlace` scans windows
 longest-first, so `Diamond Hill / San Po Kong / Ngau Chi Wan` yields
-`San Po Kong` (seven words, past the cap), while the six-word
+`San Po Kong` (eight normalised words, past the cap), while the six-word
 `Kwun Tong / Lam Tin / Yau Tong` now resolves its district in full. That is the
 six-word window, not a promise.
 

@@ -54,7 +54,7 @@ const FIELDS = [
       }
     }
 
-    expect(withFields).toBeGreaterThan(5000);
+    expect(withFields).toBe(5833);
     expect(misses.slice(0, 10)).toEqual([]);
   }, 60_000);
 });

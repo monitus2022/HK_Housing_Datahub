@@ -152,6 +152,7 @@ const GLUE = new Set([
   "附近",
   "睇下",
   "要",
+  "近",
 ]);
 
 /** Phrases we understand as a concept but cannot express as a filter. */
