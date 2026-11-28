@@ -65,9 +65,10 @@ place (`cheapest flats in 何文田`), because that is the mixed style people ty
 is not a random mix of languages inside one sentence. Chinese rows use Chinese
 templates and Chinese forms for every slot, and they are **written without
 spaces**, the way people type: `想搵觀塘一房600萬以下`, `大埔兩房有冇`,
-`近港島綫嘅西灣河`. The lexicon segments them (see §2). The particles
-(`想搵`, `有冇`, `嘅`, `預算`, `近`) are words the lexicon does not know — that gap
-is deliberate, and it is what the model is meant to close. An approximator such
+`近港島綫嘅西灣河`. The lexicon segments them (see §2), and the particles
+(`想搵`, `有冇`, `嘅`, `預算`, `近`) are treated as filler rather than reported as
+unknown. Colloquial grammar the lexicon does not model — `唔過`, `有冇` as a
+negation — remains the gap the model is meant to close. An approximator such
 as `左右` is not used, because it would contradict a closed bound
 (`600萬以下左右`). Chinese rows contain **no spaces**, because that is how they
 are typed: the templates keep placeholders apart only while the sentence is
@@ -87,9 +88,9 @@ dataset plants the components (which already exist as aliases) and the chip show
 the component the user typed. A joined label is still indexed as a whole, but a
 longer phrase resolves **at most one** component: `takePlace` scans windows
 longest-first, so `Diamond Hill / San Po Kong / Ngau Chi Wan` yields
-`San Po Kong`, and `Kwun Tong / Lam Tin / Yau Tong` yields `Kwun Tong` at the
-*subregion* scope because subregions are indexed before districts. That is the
-four-word window, not a promise.
+`San Po Kong` (seven words, past the cap), while the six-word
+`Kwun Tong / Lam Tin / Yau Tong` now resolves its district in full. That is the
+six-word window, not a promise.
 
 The chip shows the component the user typed, but the **filter is the whole
 district**: estates carry no area field below district, and the joined districts
@@ -104,7 +105,8 @@ net words, unsupported concepts, age and size words, plus the estate names the
 dashboard has loaded. Characters it cannot segment accumulate into a chunk and are
 reported; a numeral run is split whenever it looks like a price or a size, even
 inside a longer unknown word. `大埔兩房600萬以下` therefore parses as three slots, and `想搵大埔兩房`
-applies the place and bedrooms while reporting `想搵` as Unrecognised.
+applies the place and bedrooms, treating `想搵` as filler rather than an
+unknown word.
 
 Chinese is part of v1, not deferred to the model: prices accept Arabic or
 Chinese numerals (`六百萬`, `1.5萬`) with `以下`/`以上`/`至` ranges, a bare `600萬`
@@ -328,8 +330,9 @@ Against the generated text, the lexicon reproduces **every planted slot on all
 5,833 rows that carry one** (100% per field: place, bedrooms, price, area, line,
 net, sort, age). That is the baseline the model has to beat, measured on this
 generator's text rather than on real users, and it is deliberately strong: the
-row set was trimmed of ambiguity the lexicon handles differently (English
-direction-word places) and the parser was fixed where it genuinely failed.
+generator no longer plants English direction-word place labels (the parser still
+resolves them as directions) and the parser was fixed where it genuinely failed.
+Read the number as a yardstick for this generator, not as real-user accuracy.
 
 ### Volume gates (all must hold before training)
 

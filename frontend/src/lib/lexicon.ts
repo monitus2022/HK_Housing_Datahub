@@ -831,14 +831,16 @@ function segmentCjk(text: string, estates: readonly NlEstateName[] | undefined):
           if (!token.startsWith(candidate, index)) return false;
           const rest = token.slice(index + candidate.length);
           // 香港島南 + 港島線 would swallow the line name; let the line win.
-          if (
-            CJK_DIRECTION_COMPOUND_SET.has(candidate) &&
-            CJK_LINE_TERMS.some((line) => rest.startsWith(line)) &&
-            // 新界北 is both a direction and a district; when a line follows it
-            // is the district, so fall through to the place guard.
-            !placeTerms.has(candidate)
-          ) {
-            return false;
+          if (CJK_DIRECTION_COMPOUND_SET.has(candidate) && !placeTerms.has(candidate)) {
+            // The compound may have eaten the line's first character: 九龍東 +
+            // 鐵線 is 東鐵線. Check the line from the compound's last character
+            // too, so a line always wins over a direction guess.
+            const lineAhead = CJK_LINE_TERMS.some(
+              (line) =>
+                rest.startsWith(line) ||
+                `${candidate.slice(-1)}${rest}`.startsWith(line),
+            );
+            if (lineAhead) return false;
           }
           if (!placeTerms.has(candidate)) return true;
           // 太古城 is an estate, not 太古 + something: a place inside a longer

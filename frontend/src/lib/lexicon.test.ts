@@ -679,7 +679,9 @@ describe("Chinese is written without spaces", () => {
   });
 
   it("parses a place followed by 樓盤 or a particle", () => {
-    expect(applied(parseQuery("北角樓盤")).filters.subregionId).toBe("1004");
+    const northPoint = applied(parseQuery("北角樓盤"));
+    expect(northPoint.filters.subregionId).toBe("1004");
+    expect(northPoint.filters.districtId).toBe("100408");
     expect(applied(parseQuery("中環預算600萬以下")).filters.districtId).toBe(
       "100104",
     );
@@ -692,6 +694,13 @@ describe("Chinese is written without spaces", () => {
     expect(applied(parseQuery("香港島南港島線")).filters.mtrLine).toBe(
       "South Island Line",
     );
+    // The compound eats the line's first character: 九龍東 + 鐵線.
+    expect(applied(parseQuery("九龍東鐵線")).filters.mtrLine).toBe(
+      "East Rail Line",
+    );
+    const north = applied(parseQuery("新界北東鐵線"));
+    expect(north.filters.districtId).toBe("301502");
+    expect(north.filters.mtrLine).toBe("East Rail Line");
   });
 
   it("resolves a five-word district label", () => {
