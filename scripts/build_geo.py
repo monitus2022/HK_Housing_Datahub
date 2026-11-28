@@ -68,13 +68,21 @@ GROUP BY 1, 2, 3, 4, 5, 6, 7
 """
 
 
+# The Chinese label sometimes merges areas that are separate in English, so the
+# "/" split cannot recover them. 中上環 covers both 中環 and 上環.
+CURATED_ALIASES: dict[str, list[str]] = {
+    "100104": ["中環", "上環"],
+}
+
+
 def split_aliases(*labels: str | None) -> list[str]:
     """Split compound labels such as "Happy Valley / Jardine's Lookout".
 
     The mart stores 23 of the 60 district labels this way. Splitting them on
     "/" in both English and Chinese adds 55 alias strings beyond the canonical
-    pair, for 175 in total, which is what makes "Happy Valley" match without
-    a hand-written synonym list.
+    pair, for 175 in total; CURATED_ALIASES adds two more (中環, 上環) for the one
+    district whose Chinese label merges what the English separates. That is what
+    makes "Happy Valley" match without a hand-written synonym list.
     """
     seen: list[str] = []
     for label in labels:
@@ -144,7 +152,10 @@ def build(db_path: Path) -> dict[str, Any]:
                 "zh": district_zh,
                 "subregionId": subregion_id,
                 "estates": 0,
-                "aliases": split_aliases(district_en, district_zh),
+                "aliases": [
+                    *split_aliases(district_en, district_zh),
+                    *CURATED_ALIASES.get(district_id, []),
+                ],
             },
         )
         district["estates"] += estates

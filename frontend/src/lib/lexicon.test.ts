@@ -339,10 +339,11 @@ describe("disclosure", () => {
     expect(spec.filters.subregionId).toBe("2010");
   });
 
-  it("says a size needs a direction", () => {
+  it("reads a bare size as its decade band", () => {
     const spec = applied(parseQuery("2 bed 500 sq ft in TKO"));
-    expect(spec.filters.minNetArea).toBe("");
-    expect(spec.ignored.join(" ")).toContain("Size 500 ft² without a range");
+    expect(spec.filters.minNetArea).toBe("500");
+    expect(spec.filters.maxNetArea).toBe("599");
+    expect(spec.ignored).toEqual([]);
   });
 
   it("still reports ignored concepts when nothing else applies", () => {
@@ -658,6 +659,50 @@ describe("new build", () => {
   });
 });
 
+describe("Chinese is written without spaces", () => {
+  it("parses the slots out of a run of characters", () => {
+    const spec = applied(parseQuery("大埔兩房"));
+    expect(spec.filters.subregionId).toBe("3016");
+    expect(spec.filters.bedrooms).toBe("2");
+
+    const both = applied(parseQuery("大埔兩房600萬以下"));
+    expect(both.filters.bedrooms).toBe("2");
+    expect(both.filters.maxPrice).toBe("6000000");
+    expect(both.filters.subregionId).toBe("3016");
+  });
+
+  it("keeps an unknown particle as Unrecognised", () => {
+    const spec = applied(parseQuery("想搵大埔兩房"));
+    expect(spec.filters.bedrooms).toBe("2");
+    expect(spec.filters.subregionId).toBe("3016");
+    expect(spec.unrecognised).toEqual(["想搵"]);
+  });
+
+  it("finds line names, nets, sort words and age without spaces", () => {
+    expect(applied(parseQuery("港島綫兩房")).filters.mtrLine).toBe("Island Line");
+    const net = applied(parseQuery("40校網最平"));
+    expect(net.filters.schoolNet).toBe("Sham Shui Po");
+    expect(net.sort).toBe("latest_price");
+    const age = applied(parseQuery("新樓兩房"));
+    expect(age.filters.maxBuildingAge).toBe("5");
+    expect(age.filters.bedrooms).toBe("2");
+  });
+
+  it("still recognises an estate glued to a bedroom count", () => {
+    const estates = [{ estate_name_en: "Taikoo Shing", estate_name_zh: "太古城" }];
+    const spec = applied(parseQuery("太古城兩房", { estates }));
+    expect(spec.estate?.name).toBe("太古城");
+    expect(spec.filters.bedrooms).toBe("2");
+  });
+
+  it("treats 區 as a suffix rather than an unknown word", () => {
+    const spec = applied(parseQuery("大埔區兩房"));
+    expect(spec.filters.subregionId).toBe("3016");
+    expect(spec.filters.bedrooms).toBe("2");
+    expect(spec.unrecognised).toEqual([]);
+  });
+});
+
 describe("area units", () => {
   it("reads 呎 as square feet", () => {
     const spec = applied(parseQuery("500至700呎 in 大埔"));
@@ -677,20 +722,29 @@ describe("area units", () => {
     expect(applied(parseQuery("over 50 sqm")).filters.minNetArea).toBe("538");
   });
 
-  it("still asks for a direction when a size stands alone", () => {
-    const parse = parseQuery("2 bed 500呎 in 大埔");
-    expect(parse.kind).toBe("applied");
-    // Both bounds, because a stray ceiling is exactly the regression to catch.
-    expect(parse.spec?.filters.minNetArea ?? "").toBe("");
-    expect(parse.spec?.filters.maxNetArea ?? "").toBe("");
-    expect(parse.spec?.ignored.join(" ")).toContain("Size 500 ft² without a range");
+  it("reads a bare 呎 size as its decade band", () => {
+    const spec = applied(parseQuery("2 bed 500呎 in 大埔"));
+    expect(spec.filters.minNetArea).toBe("500");
+    expect(spec.filters.maxNetArea).toBe("599");
+    expect(spec.filters.subregionId).toBe("3016");
   });
 
-  it("discloses a bare metric size in square feet", () => {
-    const parse = parseQuery("2 bed 50平方米 in 大埔");
-    expect(parse.spec?.filters.minNetArea ?? "").toBe("");
-    expect(parse.spec?.filters.maxNetArea ?? "").toBe("");
-    expect(parse.spec?.ignored.join(" ")).toContain("Size 538 ft² without a range");
+  it("reads a bare metric size as its decade band", () => {
+    // 50-59 m² is 538-635 ft².
+    const spec = applied(parseQuery("2 bed 50平方米 in 大埔"));
+    expect(spec.filters.minNetArea).toBe("538");
+    expect(spec.filters.maxNetArea).toBe("635");
+  });
+
+  it("matches the band width to the number's precision", () => {
+    expect(applied(parseQuery("550呎")).filters.maxNetArea).toBe("559");
+    expect(applied(parseQuery("1200呎")).filters.maxNetArea).toBe("1299");
+  });
+
+  it("reports a bare number that a size word already overrode", () => {
+    const spec = applied(parseQuery("500呎 細單位"));
+    expect(spec.filters.maxNetArea).toBe("400");
+    expect(spec.ignored.join(" ")).toContain("the size word applies");
   });
 
   it("accepts the metric unit aliases and the Chinese ceiling", () => {
@@ -978,5 +1032,50 @@ describe("Chinese belongs to v1, not to the model", () => {
     expect(parseQuery("深圳").kind).toBe("refused");
     expect(parseQuery("倫敦").kind).toBe("refused");
     expect(parseQuery("東京").kind).toBe("refused");
+  });
+});
+
+describe("segmentation edge cases", () => {
+  it("keeps simplified 万/亿 with their number", () => {
+    expect(applied(parseQuery("五万以下")).filters.maxPrice).toBe("50000");
+    expect(applied(parseQuery("1.5万以上")).filters.minPrice).toBe("15000");
+    expect(applied(parseQuery("两万以下")).filters.maxPrice).toBe("20000");
+    expect(applied(parseQuery("800万以上")).filters.minPrice).toBe("8000000");
+  });
+
+  it("keeps a Chinese range as one token", () => {
+    const spec = applied(parseQuery("500至700萬大埔"));
+    expect(spec.filters.minPrice).toBe("5000000");
+    expect(spec.filters.maxPrice).toBe("7000000");
+    expect(spec.filters.subregionId).toBe("3016");
+  });
+
+  it("does not split a place out of a longer unknown word", () => {
+    expect(parseQuery("太古坊兩房").spec?.filters.subregionId ?? "").toBe("");
+    expect(parseQuery("大埔滘兩房").spec?.filters.subregionId ?? "").toBe("");
+  });
+
+  it("does not resolve an estate name without the estate list", () => {
+    expect(parseQuery("太古城兩房").spec?.filters.districtId ?? "").toBe("");
+  });
+});
+
+describe("segmentation fixes from the random sample", () => {
+  it("resolves 中環 now that the merged Chinese label has aliases", () => {
+    const spec = applied(parseQuery("中環兩房"));
+    expect(spec.filters.districtId).toBe("100104");
+    expect(spec.filters.bedrooms).toBe("2");
+  });
+
+  it("allows an unknown adjective before a size word", () => {
+    const spec = applied(parseQuery("大埔靚單位"));
+    expect(spec.filters.subregionId).toBe("3016");
+    expect(spec.unrecognised).toEqual(["靚"]);
+  });
+
+  it("parses a net and a line in one sentence", () => {
+    const spec = applied(parseQuery("校網41將軍澳綫"));
+    expect(spec.filters.schoolNet).toBe("Kowloon City");
+    expect(spec.filters.mtrLine).toBe("Tseung Kwan O Line");
   });
 });

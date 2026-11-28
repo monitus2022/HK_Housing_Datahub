@@ -94,6 +94,14 @@ cover 5,524 of 9,750 estates (57%). The interpretation therefore names the scope
 text promises. When the component and the district are the same word (`中上環`),
 the suffix is omitted.
 
+Chinese is written without spaces, so before parsing the lexicon segments a run
+of Han characters against known terms: place labels, MTR line names, sort words,
+net words, unsupported concepts, age and size words, plus the estate names the
+dashboard has loaded. Characters it cannot segment accumulate into a chunk and are
+reported; a numeral run is split whenever it looks like a price or a size, even
+inside a longer unknown word. `大埔兩房600萬以下` therefore parses as three slots, and `想搵大埔兩房`
+applies the place and bedrooms while reporting `想搵` as Unrecognised.
+
 Chinese is part of v1, not deferred to the model: prices accept Arabic or
 Chinese numerals (`六百萬`, `1.5萬`) with `以下`/`以上`/`至` ranges, a bare `600萬`
 is disclosed as incomplete rather than assumed to be a ceiling, line names accept
@@ -128,6 +136,11 @@ and the exact range can be edited in the Filters panel:
 
 `細單位` maps to small. Chinese size words only match next to `單位`, so a bare
 `大` cannot swallow `大埔`.
+
+A bare number is its own **decade band**, because that is what people mean:
+`500 sq ft` and `500呎` are 500–599 ft², and `50平方米` is 50–59 m²
+(538–635 ft²). The width follows the number's precision — `550呎` is 550–559 —
+and the band is applied, not disclosed as incomplete.
 
 ### Hints move a band without retyping
 
