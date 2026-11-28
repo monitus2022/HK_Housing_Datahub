@@ -144,6 +144,14 @@ const GLUE = new Set([
   "within",
   "區",
   "單位",
+  "樓盤",
+  "想搵",
+  "有冇",
+  "嘅",
+  "預算",
+  "附近",
+  "睇下",
+  "要",
 ]);
 
 /** Phrases we understand as a concept but cannot express as a filter. */
@@ -648,7 +656,8 @@ function takePlace(
   anchorRegionId?: string,
 ): { rest: string; outcome: PlaceOutcome; span: string } | null {
   const words = rest.split(" ").filter(Boolean);
-  for (let size = Math.min(4, words.length); size >= 1; size -= 1) {
+  // Six words covers "Tseung Kwan O Town Centre"; four stopped at the subregion.
+  for (let size = Math.min(6, words.length); size >= 1; size -= 1) {
     for (let start = 0; start + size <= words.length; start += 1) {
       const span = words.slice(start, start + size).join(" ");
       const outcome = resolvePhrase(span, { regionId: anchorRegionId });
@@ -727,6 +736,14 @@ const CJK_SLOT_TERMS = [
   "細單位",
   "中型單位",
   "單位",
+  "樓盤",
+  "想搵",
+  "有冇",
+  "嘅",
+  "預算",
+  "附近",
+  "睇下",
+  "要",
 ];
 
 const CJK_HAN = /[\u4e00-\u9fff]/;
@@ -738,6 +755,12 @@ const CJK_DIRECTION_COMPOUNDS = [
   "九龍",
   "新界",
 ].flatMap((region) => ["東", "南", "西", "北"].map((way) => `${region}${way}`));
+
+const CJK_DIRECTION_COMPOUND_SET = new Set(CJK_DIRECTION_COMPOUNDS);
+
+const CJK_LINE_TERMS = MTR_LINES.flatMap((line) =>
+  line.zh ? [normalise(line.zh), normalise(line.zh.replace(/綫/g, "線"))] : [],
+);
 
 /** Characters that can begin a slot after a place, used by the guard below. */
 const SLOT_START = /^[0-9一二三四五六七八九十兩两房最校近海車連有包安清寧好名大細中港東南西北萬呎平區]/;
@@ -774,12 +797,14 @@ function segmentTerms(estates: readonly NlEstateName[] | undefined): string[] {
       ...CJK_PLACE_TERMS,
       ...CJK_SLOT_TERMS,
       ...CJK_DIRECTION_COMPOUNDS,
-      ...MTR_LINES.flatMap((line) =>
-        line.zh ? [normalise(line.zh), normalise(line.zh.replace(/綫/g, "線"))] : [],
-      ),
+      ...CJK_LINE_TERMS,
     ]),
   ]
-    .filter((term) => (term.length >= 2 || term === "區") && CJK_HAN.test(term))
+    .filter(
+      (term) =>
+        (term.length >= 2 || ["區", "要", "嘅"].includes(term)) &&
+        CJK_HAN.test(term),
+    )
     .sort((left, right) => right.length - left.length);
   SEGMENT_TERMS.set(key, terms);
   return terms;
@@ -805,6 +830,16 @@ function segmentCjk(text: string, estates: readonly NlEstateName[] | undefined):
         const term = terms.find((candidate) => {
           if (!token.startsWith(candidate, index)) return false;
           const rest = token.slice(index + candidate.length);
+          // 香港島南 + 港島線 would swallow the line name; let the line win.
+          if (
+            CJK_DIRECTION_COMPOUND_SET.has(candidate) &&
+            CJK_LINE_TERMS.some((line) => rest.startsWith(line)) &&
+            // 新界北 is both a direction and a district; when a line follows it
+            // is the district, so fall through to the place guard.
+            !placeTerms.has(candidate)
+          ) {
+            return false;
+          }
           if (!placeTerms.has(candidate)) return true;
           // 太古城 is an estate, not 太古 + something: a place inside a longer
           // token is only split when what follows can begin another term or slot.

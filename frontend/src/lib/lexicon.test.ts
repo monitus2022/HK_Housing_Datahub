@@ -671,11 +671,33 @@ describe("Chinese is written without spaces", () => {
     expect(both.filters.subregionId).toBe("3016");
   });
 
-  it("keeps an unknown particle as Unrecognised", () => {
+  it("treats common particles as filler, not unknowns", () => {
     const spec = applied(parseQuery("想搵大埔兩房"));
     expect(spec.filters.bedrooms).toBe("2");
     expect(spec.filters.subregionId).toBe("3016");
-    expect(spec.unrecognised).toEqual(["想搵"]);
+    expect(spec.unrecognised).toEqual([]);
+  });
+
+  it("parses a place followed by 樓盤 or a particle", () => {
+    expect(applied(parseQuery("北角樓盤")).filters.subregionId).toBe("1004");
+    expect(applied(parseQuery("中環預算600萬以下")).filters.districtId).toBe(
+      "100104",
+    );
+    expect(applied(parseQuery("天后要500至700呎")).filters.districtId).toBe(
+      "100204",
+    );
+  });
+
+  it("does not let a direction compound swallow a line name", () => {
+    expect(applied(parseQuery("香港島南港島線")).filters.mtrLine).toBe(
+      "South Island Line",
+    );
+  });
+
+  it("resolves a five-word district label", () => {
+    expect(applied(parseQuery("Tseung Kwan O Town Centre")).filters.districtId).toBe(
+      "201006",
+    );
   });
 
   it("finds line names, nets, sort words and age without spaces", () => {

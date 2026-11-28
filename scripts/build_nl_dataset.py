@@ -405,6 +405,10 @@ def build_places(geo: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         if not key:
             return
         language = "zh" if CJK.search(label) else "en"
+        # "North" is a district and a direction. English users typing it mean the
+        # direction, so the dataset does not teach the place form.
+        if language == "en" and key in {"north", "south", "east", "west"}:
+            return
         held = owner.get(key)
         if held is not None and ranked[held["level"]] <= ranked[level]:
             entry = held
