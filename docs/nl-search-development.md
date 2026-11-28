@@ -79,6 +79,13 @@ longest-first, so `Diamond Hill / San Po Kong / Ngau Chi Wan` yields
 *subregion* scope because subregions are indexed before districts. That is the
 four-word window, not a promise.
 
+The chip shows the component the user typed, but the **filter is the whole
+district**: estates carry no area field below district, and the joined districts
+cover 5,524 of 9,750 estates (57%). The interpretation therefore names the scope,
+`石硤尾 · district 又一村 / 石硤尾`, so the result set is never narrower than the
+text promises. When the component and the district are the same word (`中上環`),
+the suffix is omitted.
+
 Chinese is part of v1, not deferred to the model: prices accept Arabic or
 Chinese numerals (`六百萬`, `1.5萬`) with `以下`/`以上`/`至` ranges, a bare `600萬`
 is disclosed as incomplete rather than assumed to be a ceiling, line names accept

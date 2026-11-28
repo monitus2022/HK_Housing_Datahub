@@ -1066,17 +1066,27 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     patch.districtId = scope.districtId ?? "";
     // A joined label ("Yau Yat Chuen / Shek Kip Mei") reads as a multiple
     // choice, so show the component the user actually typed - including when the
-    // whole-phrase typo fallback found it.
+    // whole-phrase typo fallback found it. The filter is still the whole
+    // district, so say which one: the chip would otherwise promise a narrower
+    // result set than the query can produce.
     const typedSpan = placed?.span ?? fuzzyPhrase;
     const typed =
       typedSpan && candidate.label.includes(" / ")
         ? componentOf(candidate.label, typedSpan)
         : "";
+    // One geo label ships with a double space before its slash.
+    const district = (CJK.test(typed)
+      ? (candidate.zh ?? candidate.label)
+      : candidate.label
+    ).replace(/\s+/g, " ");
+    // 中上環 is the Chinese label of "Sheung Wan / Central": the component and
+    // the district are the same word, so a suffix would only repeat it.
+    const newsworthy = typed !== "" && normalise(typed) !== normalise(district);
     spec.applied.push({
       field: "Location",
-      value:
-        typed ||
-        `${candidate.label}${candidate.zh ? ` · ${candidate.zh}` : ""}`,
+      value: newsworthy
+        ? `${typed} · district ${district}`
+        : `${candidate.label}${candidate.zh ? ` · ${candidate.zh}` : ""}`,
     });
   } else if (ambiguous) {
     const label = direction
@@ -1150,6 +1160,8 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
     input,
   };
 }
+
+const CJK = /[\u4e00-\u9fff]/;
 
 /** Restore capital letters to a normalised span ("shek kip mei"). */
 function tidyCase(span: string): string {

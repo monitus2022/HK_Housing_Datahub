@@ -711,14 +711,15 @@ describe("compound district labels", () => {
   it("shows the component the user typed, not the joined label", () => {
     const zh = applied(parseQuery("石硤尾"));
     expect(zh.filters.districtId).toBe("200603");
+    // The filter is the whole district, so the disclosure names it.
     expect(zh.applied.find((slot) => slot.field === "Location")?.value).toBe(
-      "石硤尾",
+      "石硤尾 · district 又一村 / 石硤尾",
     );
 
     const en = applied(parseQuery("Shek Kip Mei"));
     expect(en.filters.districtId).toBe("200603");
     expect(en.applied.find((slot) => slot.field === "Location")?.value).toBe(
-      "Shek Kip Mei",
+      "Shek Kip Mei · district Yau Yat Chuen / Shek Kip Mei",
     );
   });
 
@@ -726,20 +727,59 @@ describe("compound district labels", () => {
     const value = applied(parseQuery("Jardine's Lookout")).applied.find(
       (slot) => slot.field === "Location",
     )?.value;
-    expect(value).toBe("Jardine's Lookout");
+    expect(value).toBe(
+      "Jardine's Lookout · district Happy Valley / Jardine's Lookout",
+    );
     // This label ships with a double space before its slash.
     const padded = applied(parseQuery("Mid-Levels Central")).applied.find(
       (slot) => slot.field === "Location",
     )?.value;
-    expect(padded).toBe("Mid-Levels Central");
+    expect(padded).toBe(
+      "Mid-Levels Central · district Mid-Levels Central / Admiralty",
+    );
   });
 
   it("shows the typed component even when the typo fallback found it", () => {
     const spec = applied(parseQuery("shek kip mey"));
     expect(spec.filters.districtId).toBe("200603");
     const value = spec.applied.find((slot) => slot.field === "Location")?.value;
-    expect(value).toBe("Shek Kip Mey");
-    expect(value).not.toContain("/");
+    expect(value).toBe("Shek Kip Mey · district Yau Yat Chuen / Shek Kip Mei");
+    expect(value?.startsWith("Shek Kip Mey")).toBe(true);
+  });
+
+  it("does not disclose a district for a single-name place", () => {
+    const value = applied(parseQuery("Tseung Kwan O")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(value).toBe("Tseung Kwan O · 將軍澳");
+  });
+
+  it("discloses a joined district reached through any component", () => {
+    // Central is a component of "Sheung Wan / Central", not a single-name place.
+    const central = applied(parseQuery("Central")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(central).toBe("Central · district Sheung Wan / Central");
+
+    const yau = applied(parseQuery("Yau Yat Chuen")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(yau).toBe("Yau Yat Chuen · district Yau Yat Chuen / Shek Kip Mei");
+  });
+
+  it("does not repeat the district when the word is the district", () => {
+    // 中上環 is the whole Chinese label of "Sheung Wan / Central".
+    const value = applied(parseQuery("中上環")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(value).toBe("Sheung Wan / Central · 中上環");
+  });
+
+  it("leaves a subregion sharing a district name unsuffixed", () => {
+    const value = applied(parseQuery("Kowloon City")).applied.find(
+      (slot) => slot.field === "Location",
+    )?.value;
+    expect(value).toBe("Kowloon City · 九龍城");
   });
 
   it("still shows the canonical label for a single-name place", () => {
