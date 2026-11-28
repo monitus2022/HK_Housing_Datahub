@@ -658,6 +658,50 @@ describe("new build", () => {
   });
 });
 
+describe("Chinese is written without spaces", () => {
+  it("parses the slots out of a run of characters", () => {
+    const spec = applied(parseQuery("大埔兩房"));
+    expect(spec.filters.subregionId).toBe("3016");
+    expect(spec.filters.bedrooms).toBe("2");
+
+    const both = applied(parseQuery("大埔兩房600萬以下"));
+    expect(both.filters.bedrooms).toBe("2");
+    expect(both.filters.maxPrice).toBe("6000000");
+    expect(both.filters.subregionId).toBe("3016");
+  });
+
+  it("keeps an unknown particle as Unrecognised", () => {
+    const spec = applied(parseQuery("想搵大埔兩房"));
+    expect(spec.filters.bedrooms).toBe("2");
+    expect(spec.filters.subregionId).toBe("3016");
+    expect(spec.unrecognised).toEqual(["想搵"]);
+  });
+
+  it("finds line names, nets, sort words and age without spaces", () => {
+    expect(applied(parseQuery("港島綫兩房")).filters.mtrLine).toBe("Island Line");
+    const net = applied(parseQuery("40校網最平"));
+    expect(net.filters.schoolNet).toBe("Sham Shui Po");
+    expect(net.sort).toBe("latest_price");
+    const age = applied(parseQuery("新樓兩房"));
+    expect(age.filters.maxBuildingAge).toBe("5");
+    expect(age.filters.bedrooms).toBe("2");
+  });
+
+  it("still recognises an estate glued to a bedroom count", () => {
+    const estates = [{ estate_name_en: "Taikoo Shing", estate_name_zh: "太古城" }];
+    const spec = applied(parseQuery("太古城兩房", { estates }));
+    expect(spec.estate?.name).toBe("太古城");
+    expect(spec.filters.bedrooms).toBe("2");
+  });
+
+  it("treats 區 as a suffix rather than an unknown word", () => {
+    const spec = applied(parseQuery("大埔區兩房"));
+    expect(spec.filters.subregionId).toBe("3016");
+    expect(spec.filters.bedrooms).toBe("2");
+    expect(spec.unrecognised).toEqual([]);
+  });
+});
+
 describe("area units", () => {
   it("reads 呎 as square feet", () => {
     const spec = applied(parseQuery("500至700呎 in 大埔"));

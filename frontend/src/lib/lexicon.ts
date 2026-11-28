@@ -21,6 +21,7 @@ import { EMPTY_ESTATE_FILTERS, type EstateFilters } from "./filters";
 import type { SortKey } from "./estates";
 import { DEFAULT_SEARCH_STATE, type SearchState } from "./searchState";
 import {
+  CJK_PLACE_TERMS,
   MTR_LINES,
   SCHOOL_NETS,
   normalise,
@@ -141,6 +142,7 @@ const GLUE = new Set([
   "units",
   "with",
   "within",
+  "區",
 ]);
 
 /** Phrases we understand as a concept but cannot express as a filter. */
@@ -658,10 +660,138 @@ function emptySpec(sort: SortKey): NlSpec {
  * `options.regionId` anchors direction words using the visible cascade, so
  * "east" with Region 10 already selected resolves to Eastern.
  */
+/** Chinese slot words that must become their own token: they have no digits to
+ *  anchor a boundary, so "新樓兩房" would otherwise stay one token.
+ */
+const CJK_SLOT_TERMS = [
+  "校網",
+  "學校網",
+  "區",
+  "最平",
+  "最便宜",
+  "最抵",
+  "最活躍",
+  "最旺",
+  "最多成交",
+  "成交最多",
+  "最新成交",
+  "最近成交",
+  "最新",
+  "按名稱",
+  "字母順序",
+  "按字母",
+  "新樓",
+  "新盤",
+  "新樓盤",
+  "海景房",
+  "海景",
+  "維港景",
+  "山景",
+  "河景",
+  "安靜",
+  "清靜",
+  "寧靜",
+  "車位",
+  "停車位",
+  "近地鐵",
+  "近港鐵",
+  "地鐵站",
+  "港鐵站",
+  "好校網",
+  "名校網",
+  "連傢俬",
+  "有傢俬",
+  "包傢俬",
+  "寵物",
+  "可養寵物",
+  "大單位",
+  "細單位",
+  "中型單位",
+];
+
+const CJK_HAN = /[\u4e00-\u9fff]/;
+
+/** Region-first directions are one word in Chinese: 九龍東, 港島西. */
+const CJK_DIRECTION_COMPOUNDS = [
+  "香港島",
+  "港島",
+  "九龍",
+  "新界",
+].flatMap((region) => ["東", "南", "西", "北"].map((way) => `${region}${way}`));
+
+/**
+ * Insert spaces around known Chinese terms.
+ *
+ * Chinese is written without spaces, so `normalise` leaves a whole sentence as
+ * one token and every boundary-based pattern misses. Segmenting known places and
+ * slot words first lets the rest of the parser stay word-based.
+ */
+const SLOT_START = /^[0-9一二三四五六七八九十兩两房最校近海車連有包安清寧好名大細中港東南西北萬呎平區]/;
+
+function segmentCjk(text: string, extra: string[]): string {
+  const terms = [
+    ...new Set([
+      ...extra,
+      ...CJK_PLACE_TERMS,
+      ...CJK_SLOT_TERMS,
+      ...CJK_DIRECTION_COMPOUNDS,
+      ...MTR_LINES.flatMap((line) =>
+        line.zh ? [normalise(line.zh), normalise(line.zh.replace(/綫/g, "線"))] : [],
+      ),
+    ]),
+  ]
+    .filter((term) => (term.length >= 2 || term === "區") && CJK_HAN.test(term))
+    .sort((left, right) => right.length - left.length);
+  return text
+    .split(" ")
+    .map((token) => {
+      if (!CJK_HAN.test(token)) return token;
+      let out = "";
+      let index = 0;
+      while (index < token.length) {
+        const term = terms.find((candidate) => {
+          if (!token.startsWith(candidate, index)) return false;
+          const rest = token.slice(index + candidate.length);
+          // 太古城 is an estate, not 太古 + something; only split when the
+          // remainder can actually begin a slot.
+          return rest === "" || SLOT_START.test(rest);
+        });
+        if (term) {
+          out += ` ${term} `;
+          index += term.length;
+          continue;
+        }
+        const number = token
+          .slice(index)
+          .match(
+            /^(?:\d+(?:dot\d+)?|[零〇一二兩两三四五六七八九十百千萬億]+)(?:萬|億|呎|平方米|平米|平方公尺|房)?(?:以下|以上|以內|以内|至|到)?/,
+          );
+        if (number && number[0].length > 0) {
+          out += ` ${number[0]} `;
+          index += number[0].length;
+          continue;
+        }
+        out += token[index];
+        index += 1;
+      }
+      return out;
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   // Keep decimal points that would otherwise be stripped as punctuation:
   // "6.5m" becomes "6dot5m", and the price patterns read the word back.
-  const input = normalise(text.replace(/(\d)\.(\d)/g, "$1dot$2"));
+  const estateTerms = (options.estates ?? []).flatMap((estate) => [
+    normalise(estate.estate_name_zh ?? ""),
+    normalise(estate.estate_name_en ?? ""),
+  ]);
+  const input = segmentCjk(
+    normalise(text.replace(/(\d)\.(\d)/g, "$1dot$2")),
+    estateTerms,
+  );
   if (!input) {
     return {
       kind: "unresolved",

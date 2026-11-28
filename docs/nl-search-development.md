@@ -86,6 +86,13 @@ cover 5,524 of 9,750 estates (57%). The interpretation therefore names the scope
 text promises. When the component and the district are the same word (`中上環`),
 the suffix is omitted.
 
+Chinese is written without spaces, so before parsing the lexicon segments a run
+of Han characters against known terms: place labels, MTR line names, sort words,
+net words, unsupported concepts, age and size words, plus the estate names the
+dashboard has loaded. Anything it cannot segment stays as one unknown word and is
+reported. `大埔兩房600萬以下` therefore parses as three slots, and `想搵大埔兩房`
+applies the place and bedrooms while reporting `想搵` as Unrecognised.
+
 Chinese is part of v1, not deferred to the model: prices accept Arabic or
 Chinese numerals (`六百萬`, `1.5萬`) with `以下`/`以上`/`至` ranges, a bare `600萬`
 is disclosed as incomplete rather than assumed to be a ceiling, line names accept

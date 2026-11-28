@@ -201,6 +201,14 @@ for (const district of DISTRICTS) {
 
 const OUT_OF_SCOPE = new Set(raw.outOfScope.map(normalise));
 
+/**
+ * CJK place labels, longest first. Chinese is written without spaces, so the
+ * lexicon needs to find a place inside a longer token ("大埔兩房").
+ */
+export const CJK_PLACE_TERMS: string[] = [...PLACE_INDEX.keys()]
+  .filter((key) => key.length >= 2 && /[\u4e00-\u9fff]/.test(key))
+  .sort((left, right) => right.length - left.length);
+
 interface RawAbbreviation {
   term: string;
   candidates: { level: PlaceLevel; id: string }[];
