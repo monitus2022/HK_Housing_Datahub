@@ -734,8 +734,8 @@ def render(
     }
     text = template.format(**forms)
     if lang == "zh":
-        # Chinese is typed without spaces; the parser segments it. Zones are
-        # joined, so the dataset contains no spaced Chinese at all.
+        # Chinese is typed without spaces; the parser segments the joined text.
+        # Only the utterance is joined - the row's `template` keeps its spaces.
         text = text.replace(" ", "")
     return text, planted, expect, template
 

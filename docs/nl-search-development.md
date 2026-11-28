@@ -69,7 +69,7 @@ spaces**, the way people type: `想搵觀塘一房600萬以下`, `大埔兩房�
 (`想搵`, `有冇`, `嘅`, `預算`, `近`) are words the lexicon does not know — that gap
 is deliberate, and it is what the model is meant to close. An approximator such
 as `左右` is not used, because it would contradict a closed bound
-(`600萬以下 左右`). Chinese rows contain **no spaces**, because that is how they
+(`600萬以下左右`). Chinese rows contain **no spaces**, because that is how they
 are typed: the templates keep placeholders apart only while the sentence is
 assembled, and a zh row is joined before it is written. A Chinese row never
 contains an English place or city. Families with no Chinese
