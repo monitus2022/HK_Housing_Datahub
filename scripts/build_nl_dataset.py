@@ -218,29 +218,48 @@ FAMILIES: list[dict[str, Any]] = [
     },
 ]
 
-# Chinese templates. Placeholders only, separated by spaces: a glued particle
-# ("大埔兩房") would make the place unparseable, and an extra word ("想搵") would
-# only pollute Unrecognised. Variety comes from slot order and the form pools.
+# Chinese templates read like something typed into a chat box: 想搵 ("want to
+# find"), 有冇 ("any?"), 嘅 ("of"), 預算 ("budget"). Placeholders are separated
+# while the sentence is assembled, then a zh row is joined before it is written:
+# Chinese is typed without spaces and the lexicon segments it. The particles are
+# deliberately words the lexicon does not know, which is the gap the model is
+# meant to close.
 TEMPLATES_ZH: dict[str, list[str]] = {
-    "place": ["{place}"],
-    "place_bed": ["{place} {bedrooms}", "{bedrooms} {place}"],
-    "place_price": ["{place} {price}", "{price} {place}"],
-    "place_area": ["{place} {area}", "{area} {place}"],
+    "place": ["{place}", "想搵 {place}", "{place} 樓盤"],
+    "place_bed": [
+        "{place} {bedrooms}",
+        "想搵 {place} {bedrooms}",
+        "{place} {bedrooms} 有冇",
+    ],
+    "place_price": [
+        "{place} {price}",
+        "想搵 {place} {price}",
+        "{place} 預算 {price}",
+    ],
+    "place_area": ["{place} {area}", "想搵 {place} {area}", "{place} 要 {area}"],
     "place_bed_price": [
         "{place} {bedrooms} {price}",
-        "{bedrooms} {price} {place}",
-        "{price} {bedrooms} {place}",
+        "想搵 {bedrooms} {price} 嘅 {place}",
+        "想搵 {place} {bedrooms} {price}",
     ],
-    "place_bed_area": ["{place} {bedrooms} {area}", "{bedrooms} {area} {place}"],
-    "place_line": ["{place} {mtr}", "{mtr} {place}"],
-    "place_net": ["{place} {net}", "{net} {place}"],
-    "bed_price": ["{bedrooms} {price}", "{price} {bedrooms}"],
-    "sort_place": ["{place} {sort}", "{sort} {place}"],
-    "direction": ["{direction}"],
-    "out_of_scope": ["{out_of_scope}"],
-    "unsupported": ["{unsupported}"],
-    "place_age": ["{place} {age}", "{age} {place}"],
-    "place_unsupported": ["{place} {unsupported}", "{unsupported} {place}"],
+    "place_bed_area": [
+        "{place} {bedrooms} {area}",
+        "想搵 {place} {bedrooms} {area}",
+        "{bedrooms} {area} {place} 有冇",
+    ],
+    "place_line": ["{place} {mtr}", "近 {mtr} 嘅 {place}", "想搵 {place} 近 {mtr}"],
+    "place_net": ["{place} {net}", "想搵 {place} {net}", "{net} {place} 有冇"],
+    "bed_price": ["{bedrooms} {price}", "想搵 {bedrooms} {price}", "{bedrooms} 預算 {price}"],
+    "sort_place": ["{place} {sort}", "{sort} 嘅 {place}", "想搵 {sort} {place}"],
+    "direction": ["{direction}", "{direction} 嘅樓", "想搵 {direction}"],
+    "out_of_scope": ["{out_of_scope}", "想搵 {out_of_scope} 嘅樓", "{out_of_scope} 有冇"],
+    "unsupported": ["{unsupported}", "要 {unsupported} 嘅樓", "想搵 {unsupported}"],
+    "place_age": ["{place} {age}", "想搵 {age} {place}", "{place} 要 {age}"],
+    "place_unsupported": [
+        "{place} {unsupported}",
+        "要 {unsupported} 嘅 {place}",
+        "想搵 {place} {unsupported}",
+    ],
 }
 
 for _family in FAMILIES:
@@ -713,7 +732,12 @@ def render(
         slot: rng.choice(forms_for(entry, slot, lang))
         for slot, entry in chosen.items()
     }
-    return template.format(**forms), planted, expect, template
+    text = template.format(**forms)
+    if lang == "zh":
+        # Chinese is typed without spaces; the parser segments the joined text.
+        # Only the utterance is joined - the row's `template` keeps its spaces.
+        text = text.replace(" ", "")
+    return text, planted, expect, template
 
 
 def load_cooccurrence(db_path: Path) -> dict[str, dict[str, set[str]]]:

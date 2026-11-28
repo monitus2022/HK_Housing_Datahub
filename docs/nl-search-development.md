@@ -63,10 +63,18 @@ another estate, or a district name, widens it.
 Chinese (30%) or mixed (15%). A mixed row is an English sentence with a Chinese
 place (`cheapest flats in 何文田`), because that is the mixed style people type; it
 is not a random mix of languages inside one sentence. Chinese rows use Chinese
-templates and Chinese forms for every slot (`一房 600萬以下 觀塘`), so a Chinese
-row never contains an English place or an English city. Families with no Chinese
+templates and Chinese forms for every slot, and they are **written without
+spaces**, the way people type: `想搵觀塘一房600萬以下`, `大埔兩房有冇`,
+`近港島綫嘅西灣河`. The lexicon segments them (see §2). The particles
+(`想搵`, `有冇`, `嘅`, `預算`, `近`) are words the lexicon does not know — that gap
+is deliberate, and it is what the model is meant to close. An approximator such
+as `左右` is not used, because it would contradict a closed bound
+(`600萬以下左右`). Chinese rows contain **no spaces**, because that is how they
+are typed: the templates keep placeholders apart only while the sentence is
+assembled, and a zh row is joined before it is written. A Chinese row never
+contains an English place or city. Families with no Chinese
 template — abbreviations — are English-only, and mixed requires a place slot.
-`room`/`rooms` outnumber `bed` forms about 1.46:1 (708 vs 486 rows at 6,000),
+`room`/`rooms` outnumber `bed` forms about 1.43:1 (697 vs 486 rows at 6,000),
 because that is the word people use.
 
 23 of the 60 district labels are joined names — `Yau Yat Chuen / Shek Kip Mei`,
@@ -283,16 +291,16 @@ A checkout without it **refuses to run** rather than silently pairing lines and
 nets at random; `--no-correlation` generates anyway and marks the report
 `correlation: off`. Uncorrelated output is for smoke tests only, never labels.
 
-A 6,000-row run yields 6,000 unique texts (no duplicates): 55.6% English, 29.2%
-Chinese, 15.3% mixed; 47–70 rows per MTR line, 29–43 per school-net name, 93–97
-per sort key, 58–86 per place scope, 552–588 per bedroom value, 213 rows carrying
-a building age, and 167 of the area rows using 呎 or 平方米, with every one of
-the 77 scopes present. 44.4% of rows contain Chinese: every Chinese row, plus every
-mixed row, because each mixed row carries a Chinese place.
+A 6,000-row run yields 6,000 unique texts (no duplicates): 55.2% English, 29.8%
+Chinese, 14.9% mixed; 51–64 rows per MTR line, 31–44 per school-net name, 89–102
+per sort key, 60–80 per place scope, 526–554 per bedroom value, 214 rows carrying
+a building age, and 910 area rows (144 of them in 呎 or 平方米), with every one of
+the 77 scopes present. 44.8% of rows contain Chinese: every Chinese row, plus
+every mixed row, because each mixed row carries a Chinese place.
 
 The candidate mix is deliberately place-heavy: the place-carrying families carry
-0.83 of the sampling weight, but **93.0% of emitted rows** carry a location
-(5,583 of 6,000; 88.7% at 1,000 rows). The gap is dedupe and the abbreviation
+0.83 of the sampling weight, but **92.3% of emitted rows** carry a location
+(5,537 of 6,000; 88.3% at 1,000 rows). The gap is dedupe and the abbreviation
 family, which also plants a place: families with more distinct texts survive
 dedupe better. Quote the measured figure, not 0.83. This is realistic for a
 property query but **not** the shape the training set needs, so the "no slot in

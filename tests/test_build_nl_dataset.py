@@ -266,6 +266,35 @@ def test_area_rows_use_units_the_lexicon_understands() -> None:
             assert bounds <= {"538", ""}, row
 
 
+def test_chinese_rows_read_like_typing() -> None:
+    """Placeholder order reads like a spec; the dataset should read like speech."""
+    generator = load_generator()
+    rows = generator.generate(2000, seed=137, db_path=None)
+    chinese = [row["text"] for row in rows if row["lang"] == "zh"]
+    assert chinese
+    # 近 is excluded: 近地鐵 is a pool surface that predates the templates, so it
+    # would satisfy the assertion on placeholder-order rows.
+    particles = re.compile(r"想搵|有冇|嘅|預算")
+    assert any(particles.search(text) for text in chinese), "no template particles"
+    share = sum(1 for text in chinese if particles.search(text)) / len(chinese)
+    assert share > 0.5, share
+
+
+def test_chinese_rows_contain_no_spaces() -> None:
+    """Chinese is typed without spaces, so the dataset must not ship them."""
+    generator = load_generator()
+    rows = generator.generate(1500, seed=139, db_path=None)
+    chinese = [row for row in rows if row["lang"] == "zh"]
+    assert chinese
+    spaced = [row["text"] for row in chinese if " " in row["text"]]
+    assert not spaced, spaced[:3]
+    # Mixed rows must keep their English spacing; joining them would be a
+    # different change and would break the mixed contract.
+    mixed = [row["text"] for row in rows if row["lang"] == "mixed"]
+    assert mixed
+    assert all(" " in text for text in mixed), mixed[:3]
+
+
 def test_room_phrasing_is_used() -> None:
     """'room(s)' is what people type, so it must outnumber the 'bed' forms."""
     generator = load_generator()
