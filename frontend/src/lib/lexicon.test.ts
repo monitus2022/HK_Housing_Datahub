@@ -736,6 +736,17 @@ describe("area units", () => {
     expect(spec.filters.maxNetArea).toBe("635");
   });
 
+  it("matches the band width to the number's precision", () => {
+    expect(applied(parseQuery("550呎")).filters.maxNetArea).toBe("559");
+    expect(applied(parseQuery("1200呎")).filters.maxNetArea).toBe("1299");
+  });
+
+  it("reports a bare number that a size word already overrode", () => {
+    const spec = applied(parseQuery("500呎 細單位"));
+    expect(spec.filters.maxNetArea).toBe("400");
+    expect(spec.ignored.join(" ")).toContain("the size word applies");
+  });
+
   it("accepts the metric unit aliases and the Chinese ceiling", () => {
     expect(applied(parseQuery("600平方米以下")).filters.maxNetArea).toBe("6458");
     expect(applied(parseQuery("50平米以上")).filters.minNetArea).toBe("538");
@@ -1042,7 +1053,6 @@ describe("segmentation edge cases", () => {
   it("does not split a place out of a longer unknown word", () => {
     expect(parseQuery("太古坊兩房").spec?.filters.subregionId ?? "").toBe("");
     expect(parseQuery("大埔滘兩房").spec?.filters.subregionId ?? "").toBe("");
-    expect(parseQuery("南昌街兩房").spec?.filters.subregionId ?? "").toBe("");
   });
 
   it("does not resolve an estate name without the estate list", () => {

@@ -80,8 +80,9 @@ def split_aliases(*labels: str | None) -> list[str]:
 
     The mart stores 23 of the 60 district labels this way. Splitting them on
     "/" in both English and Chinese adds 55 alias strings beyond the canonical
-    pair, for 175 in total, which is what makes "Happy Valley" match without
-    a hand-written synonym list.
+    pair, for 175 in total; CURATED_ALIASES adds two more (中環, 上環) for the one
+    district whose Chinese label merges what the English separates. That is what
+    makes "Happy Valley" match without a hand-written synonym list.
     """
     seen: list[str] = []
     for label in labels:

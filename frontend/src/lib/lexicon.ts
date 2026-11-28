@@ -679,12 +679,6 @@ function emptySpec(sort: SortKey): NlSpec {
   };
 }
 
-/**
- * Parse one utterance into one query spec.
- *
- * `options.regionId` anchors direction words using the visible cascade, so
- * "east" with Region 10 already selected resolves to Eastern.
- */
 /** Chinese slot words that must become their own token: they have no digits to
  *  anchor a boundary, so "新樓兩房" would otherwise stay one token.
  */
@@ -749,6 +743,22 @@ const CJK_DIRECTION_COMPOUNDS = [
 const SLOT_START = /^[0-9一二三四五六七八九十兩两房最校近海車連有包安清寧好名大細中港東南西北萬呎平區]/;
 
 const NO_ESTATES: readonly NlEstateName[] = [];
+const PLACE_TERM_SETS = new WeakMap<readonly NlEstateName[], Set<string>>();
+
+function placeTermSet(estates: readonly NlEstateName[] | undefined): Set<string> {
+  const key = estates ?? NO_ESTATES;
+  const cached = PLACE_TERM_SETS.get(key);
+  if (cached) return cached;
+  const places = new Set([
+    ...(estates ?? []).flatMap((estate) => [
+      normalise(estate.estate_name_zh ?? ""),
+      normalise(estate.estate_name_en ?? ""),
+    ]),
+    ...CJK_PLACE_TERMS,
+  ]);
+  PLACE_TERM_SETS.set(key, places);
+  return places;
+}
 const SEGMENT_TERMS = new WeakMap<readonly NlEstateName[], string[]>();
 
 function segmentTerms(estates: readonly NlEstateName[] | undefined): string[] {
@@ -784,13 +794,7 @@ function segmentTerms(estates: readonly NlEstateName[] | undefined): string[] {
  */
 function segmentCjk(text: string, estates: readonly NlEstateName[] | undefined): string {
   const terms = segmentTerms(estates);
-  const placeTerms = new Set([
-    ...(estates ?? []).flatMap((estate) => [
-      normalise(estate.estate_name_zh ?? ""),
-      normalise(estate.estate_name_en ?? ""),
-    ]),
-    ...CJK_PLACE_TERMS,
-  ]);
+  const placeTerms = placeTermSet(estates);
   return text
     .split(" ")
     .map((token) => {
@@ -835,6 +839,12 @@ function segmentCjk(text: string, estates: readonly NlEstateName[] | undefined):
     .trim();
 }
 
+/**
+ * Parse one utterance into one query spec.
+ *
+ * `options.regionId` anchors direction words using the visible cascade, so
+ * "east" with Region 10 already selected resolves to Eastern.
+ */
 export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   // Keep decimal points that would otherwise be stripped as punctuation:
   // "6.5m" becomes "6dot5m", and the price patterns read the word back.
@@ -1051,8 +1061,8 @@ export function parseQuery(text: string, options: NlOptions = {}): NlParse {
   }
 
   {
-    // A lone size names the dimension but not a direction. Say both forms work
-    // instead of dropping three words into Unrecognised.
+    // A bare number is a decade band. If a size word already set the area, the
+    // number is reported as unused rather than left in Unrecognised.
     const bareArea = consume(
       rest,
       new RegExp(`(?:^| )(\\d{2,5}) ?${AREA_UNIT}(?= |$)`),
